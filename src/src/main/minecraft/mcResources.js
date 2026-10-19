@@ -36,6 +36,8 @@ const BLOCKS = [
   'honeycomb_block', 'pumpkin_side', 'pumpkin_top', 'melon_side', 'melon_top', 'note_block', 'jukebox_side', 'jukebox_top', 'sculk',
   'snow', 'ice', 'clay', 'hay_block_side', 'hay_block_top', 'quartz_block_side', 'purpur_block', 'prismarine_bricks', 'sea_lantern',
   'oak_leaves', 'nether_bricks', 'crying_obsidian', 'ancient_debris_side', 'ancient_debris_top', 'respawn_anchor_top', 'beacon',
+  // An amethyst geode, for the start screen: its shell, the budding block and the crystals as they grow.
+  'budding_amethyst', 'calcite', 'smooth_basalt', 'small_amethyst_bud', 'medium_amethyst_bud', 'large_amethyst_bud', 'amethyst_cluster',
 ];
 const ITEMS = [
   'diamond', 'emerald', 'iron_ingot', 'gold_ingot', 'netherite_ingot', 'diamond_pickaxe', 'diamond_sword', 'netherite_sword', 'apple',
@@ -347,6 +349,7 @@ async function build(settings, latest, reporter) {
     sounds,
     soundKeysTried: Object.keys(SOUNDS),
     skinKeysTried: Object.keys(DEFAULT_SKINS),
+    blockKeysTried: BLOCKS,
     music: [],
   };
   await writeJsonFileAtomic(manifestPath(), manifest);
@@ -413,7 +416,7 @@ function ensureMcResources(settings) {
       throw error;
     }
     if (existing && existing.sourceVersion === latest.id) {
-      return topUpSkins(settings, await topUpSounds(settings, existing), latest);
+      return topUpBlocks(settings, await topUpSkins(settings, await topUpSounds(settings, existing), latest), latest);
     }
     if (existing) {
       log.info(`Вышел Minecraft ${latest.id}: обновляем панораму и текстуры (были из ${existing.sourceVersion})`);
@@ -475,6 +478,33 @@ async function topUpSounds(settings, manifest) {
 }
 
 /** Default skins added to DEFAULT_SKINS after the resources were built: read quietly, like sounds. */
+/** Block textures added to the list after the resources were built (the geode): read once more. */
+async function topUpBlocks(settings, manifest, latest) {
+  const tried = new Set(manifest.blockKeysTried ?? manifest.textures?.blocks ?? []);
+  const missing = BLOCKS.filter((name) => !tried.has(name));
+  if (!missing.length) {
+    return manifest;
+  }
+  try {
+    const source = await openSource(createGameLayout(settings.gameDirectory), latest);
+    const blocks = new Set(manifest.textures.blocks);
+    await runWithConcurrency(missing, TEXTURE_CONCURRENCY, async (name) => {
+      if (await extract(source, `assets/minecraft/textures/block/${name}.png`, path.join(rootDirectory(), 'block', `${name}.png`)).catch(() => false)) {
+        blocks.add(name);
+      }
+    });
+    const sorted = [...blocks].sort((a, b) => BLOCKS.indexOf(a) - BLOCKS.indexOf(b));
+    const next = { ...manifest, textures: { ...manifest.textures, blocks: sorted }, blockKeysTried: BLOCKS };
+    await writeJsonFileAtomic(manifestPath(), next);
+    log.info(`Текстуры блоков дополнены: ${missing.filter((name) => blocks.has(name)).join(', ') || 'ничего нового'}`);
+    broadcast(CHANNELS.events.mcResources, next);
+    return next;
+  } catch (error) {
+    log.warn(`Новые текстуры блоков не загружены: ${error.message}`);
+    return manifest;
+  }
+}
+
 async function topUpSkins(settings, manifest, latest) {
   const tried = new Set(manifest.skinKeysTried ?? Object.keys(manifest.textures?.skins ?? {}));
   const missing = Object.entries(DEFAULT_SKINS).filter(([key]) => !tried.has(key));

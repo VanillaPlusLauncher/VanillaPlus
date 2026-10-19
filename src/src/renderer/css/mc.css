@@ -718,3 +718,235 @@
 img.is-smooth {
   image-rendering: auto !important;
 }
+
+/* ===================================================================================================
+ * Pixel-cut style: a little pixelated, not too much. Every button, panel, field and switch has its
+ * corners cut by one "pixel" step (the clip-path below, --cut px) instead of being rounded; buttons are solid
+ * blocks with a light strip on top and a darker one at the bottom, so they look raised and press
+ * down when clicked. Colours stay the launcher's own (the theme colour for the main action).
+ * =================================================================================================== */
+:root {
+  --cut: 3px;
+  --cut-big: 5px;
+  --btn-face: #2a2533;
+  --btn-face-hover: #353042;
+  --btn-light: rgba(255, 255, 255, 0.1);
+  --btn-dark: rgba(0, 0, 0, 0.38);
+  /* Light specks on the main button, like a texture. */
+  --btn-specks: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='22' shape-rendering='crispEdges'%3E%3Cg fill='%23fff' fill-opacity='.16'%3E%3Crect x='5' y='6' width='2' height='2'/%3E%3Crect x='27' y='13' width='2' height='2'/%3E%3Crect x='39' y='5' width='2' height='2'/%3E%3C/g%3E%3Cg fill='%23000' fill-opacity='.09'%3E%3Crect x='16' y='15' width='2' height='2'/%3E%3Crect x='33' y='8' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Panels get a bigger step. */
+.surface,
+.modal,
+.context-menu,
+.dropdown-menu {
+  --cut: var(--cut-big);
+}
+
+.btn,
+.icon-button:not(.icon-button--window),
+.surface,
+.modal,
+.input,
+.textarea,
+.select,
+.segmented,
+.segmented__thumb,
+.tabs,
+.tabs__button,
+.chip,
+.badge,
+.account-chip,
+.toggle__track,
+.toggle__thumb,
+.instance-card,
+.recent-card,
+.project-card,
+.news-tile,
+.home-section__head .link-button {
+  border-radius: 0;
+  /* The step is written here (not in a variable on :root) so each element's own --cut is used. */
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+}
+
+/* --- Buttons --------------------------------------------------------------------------------- */
+.btn {
+  border: 0;
+  background: var(--btn-face);
+  box-shadow: inset 0 3px 0 var(--btn-light), inset 0 -4px 0 var(--btn-dark);
+  padding-bottom: 2px;
+  font-weight: 600;
+  transition: transform 90ms ease-out, background var(--duration-fast), color var(--duration-fast), box-shadow 90ms, filter var(--duration-fast);
+}
+
+.btn:hover:not(:disabled) {
+  border: 0;
+  background: var(--btn-face-hover);
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: inset 0 3px 0 var(--btn-dark), inset 0 -1px 0 var(--btn-light);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-accent), inset 0 -4px 0 var(--btn-dark);
+}
+
+.btn--primary {
+  border: 0;
+  background: var(--btn-specks) 0 0 / 46px 22px, var(--color-accent-strong);
+  color: var(--color-text-on-accent);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.34), inset 0 -4px 0 rgba(0, 0, 0, 0.28);
+}
+
+.btn--primary:hover:not(:disabled) {
+  border: 0;
+  background: var(--btn-specks) 0 0 / 46px 22px, var(--color-accent);
+  color: var(--color-text-on-accent);
+  filter: none;
+}
+
+.btn--primary:active:not(:disabled) {
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.25), inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.btn--primary:disabled {
+  background: #3a3545;
+  color: #8f879f;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.05), inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.btn--danger {
+  color: #ff9b91;
+}
+
+.btn--danger:hover:not(:disabled) {
+  border: 0;
+  background: #4a2630;
+  color: #ffc2bb;
+}
+
+.btn--ghost {
+  background: transparent;
+  box-shadow: none;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.btn--ghost:active:not(:disabled) {
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.icon-button:not(.icon-button--window) {
+  border: 0;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.icon-button:not(.icon-button--window):hover {
+  background: var(--btn-face-hover);
+  box-shadow: inset 0 2px 0 var(--btn-light), inset 0 -3px 0 var(--btn-dark);
+}
+
+.icon-button:not(.icon-button--window):active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 0 var(--btn-dark);
+}
+
+/* --- Panels: flat, a faint light edge on top, a dark one at the bottom ----------------------------- */
+.surface,
+.surface--panel {
+  border: 0;
+  background: rgba(22, 18, 31, 0.9);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.06), inset 0 -3px 0 rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.modal {
+  border: 0;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.07), inset 0 -3px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* --- Fields: sunk into the panel (dark on top, a light line at the bottom) ------------------------- */
+.input,
+.textarea,
+.select {
+  border: 0;
+  background: rgba(5, 4, 9, 0.62);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.4), inset 0 -2px 0 rgba(255, 255, 255, 0.06);
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.85), inset 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* --- Switches, tabs, chips, badges --------------------------------------------------------------- */
+.segmented,
+.tabs {
+  border: 0;
+  background: rgba(5, 4, 9, 0.55);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35), inset 0 -2px 0 rgba(255, 255, 255, 0.05);
+}
+
+.segmented__thumb {
+  background: var(--btn-specks) 0 0 / 46px 22px, var(--color-accent-strong);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.34), inset 0 -3px 0 rgba(0, 0, 0, 0.28);
+}
+
+.tabs__button[aria-selected="true"] {
+  background: var(--btn-face-hover);
+  color: var(--color-accent);
+  box-shadow: inset 0 2px 0 var(--btn-light), inset 0 -3px 0 var(--color-accent);
+}
+
+.chip {
+  border: 0;
+  background: var(--btn-face);
+  box-shadow: inset 0 2px 0 var(--btn-light), inset 0 -3px 0 var(--btn-dark);
+}
+
+.chip:hover {
+  background: var(--btn-face-hover);
+}
+
+.chip[aria-pressed="true"] {
+  background: rgba(var(--accent-rgb), 0.2);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), inset 0 -3px 0 var(--color-accent);
+}
+
+.account-chip {
+  border: 0;
+  background: var(--btn-face);
+  box-shadow: inset 0 2px 0 var(--btn-light), inset 0 -3px 0 var(--btn-dark);
+}
+
+.toggle__track {
+  border: 0;
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.toggle__thumb {
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* --- Cards: notched like the panels ------------------------------------------------------------- */
+.instance-card,
+.recent-card,
+.project-card,
+.news-tile {
+  --cut: 4px;
+}

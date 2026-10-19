@@ -37,6 +37,7 @@
 - Custom instance groups with drag and drop; "Change picture…" on right click; a "Notes" tab; Notes, Version, Java and Files are gathered under the instance's "Settings"
 
 ### Launcher
+- A new pixel-cut look: buttons, panels, fields, switches and cards have corners cut by one pixel step instead of rounded ones; buttons are solid raised blocks (a light strip on top, a darker one at the bottom) that press down when clicked, the main one in the theme colour with light specks. The Friends panel is wider so the account switch fits
 - The close button hides the launcher in the tray: friends' messages and downloads go on; click the icon to open it, right-click → "Quit" to exit. Can be turned off in Settings → "Launcher"
 - Tooltips in the launcher's style instead of Windows' grey ones; a glint on the main buttons, hopping sidebar icons, a breathing Play button, springy dialogs
 - A launcher that moves: cards lean towards the mouse in 3D with a soft light, the panorama drifts as you move the mouse, the Minecraft logo floats and rocks, icons hop and wiggle under the pointer, the X of the name glints, buttons give under a click
@@ -49,7 +50,7 @@
 - Fixed: after opening the Wardrobe several times the player on the home screen turned into a white box (the 3D views were not released)
 - Fixed: NameMC sometimes reported an error before the skin came in (its Cloudflare check reloads the page); its 3D picture is no longer taken for a skin
 - The Wardrobe has five places: your main skin (never written over) and four slots; a new skin goes into the slot you are looking at
-- A start screen: the X, the name and a sliding-block puzzle of 3D cubes in the theme colour while everything is loaded at once (the game's textures, instances, accounts, fonts, news); the launcher opens ready
+- A start screen: the X, the name and a piece of an amethyst geode turning in the air (amethyst, budding amethyst, calcite and smooth basalt with the game's own textures; crystals grow from a small bud to a cluster, sparkles blink) while everything is loaded at once (the game's textures, instances, accounts, fonts, news); the launcher opens ready
 - "Loading" everywhere is the launcher's X; mods without a picture get one from CurseForge or Modrinth by their name (BadOptimizations, for example)
 - Installing several mods sounds once at the start and once when all are done
 - Home: "All instances" and "minecraft.net" readable over any panorama; a recent instance opens with a click (the one Home plays is chosen in the play bar)

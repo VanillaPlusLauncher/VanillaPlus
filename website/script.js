@@ -160,77 +160,8 @@
     revealing.forEach(function (node) { node.classList.add('is-in'); });
   }
 
-  // The launcher's start screen in miniature: a sliding-block puzzle of amethyst cubes on a 3 × 3
-  // board, one place free; every moment a cube next to the gap slides into it.
-  (function puzzle() {
-    var row = document.getElementById('puzzle');
-    if (!row) return;
-    var SIDE = 3;
-    var CELL = 30;
-    var shades = ['#57409a', '#6a4fbb', '#7d5ed8', '#9576f0', '#ae93ff'];
-    function texture(seed) {
-      var value = seed;
-      var canvas = document.createElement('canvas');
-      canvas.width = 16;
-      canvas.height = 16;
-      var context = canvas.getContext('2d');
-      for (var y = 0; y < 16; y += 1) {
-        for (var x = 0; x < 16; x += 1) {
-          value = (value * 1103515245 + 12345) & 0x7fffffff;
-          context.fillStyle = shades[Math.floor((value / 0x7fffffff) * shades.length)];
-          context.fillRect(x, y, 1, 1);
-        }
-      }
-      return canvas.toDataURL();
-    }
-    var board = document.createElement('div');
-    board.className = 'puzzle__board';
-    var spot = function (node, place) {
-      node.style.translate = (place % SIDE) * CELL + 'px ' + Math.floor(place / SIDE) * CELL + 'px';
-    };
-    var cells = [];
-    for (var place = 0; place < SIDE * SIDE; place += 1) {
-      var slot = document.createElement('span');
-      slot.className = 'puzzle__slot';
-      spot(slot, place);
-      board.appendChild(slot);
-    }
-    for (var index = 0; index < SIDE * SIDE - 1; index += 1) {
-      var cube = document.createElement('span');
-      cube.className = 'puzzle__cube';
-      var top = texture(index * 31 + 7);
-      var side = texture(index * 13 + 5);
-      [['top', top], ['south', side], ['east', side]].forEach(function (pair) {
-        var face = document.createElement('span');
-        face.className = 'puzzle__face puzzle__face--' + pair[0];
-        face.style.backgroundImage = 'url(' + pair[1] + ')';
-        cube.appendChild(face);
-      });
-      spot(cube, index);
-      cells[index] = cube;
-      board.appendChild(cube);
-    }
-    cells[SIDE * SIDE - 1] = null;
-    row.appendChild(board);
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var empty = SIDE * SIDE - 1;
-    var previous = -1;
-    setInterval(function () {
-      var x = empty % SIDE;
-      var y = Math.floor(empty / SIDE);
-      var near = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]
-        .filter(function (p) { return p[0] >= 0 && p[0] < SIDE && p[1] >= 0 && p[1] < SIDE; })
-        .map(function (p) { return p[1] * SIDE + p[0]; })
-        .filter(function (p) { return p !== previous; });
-      var from = near[Math.floor(Math.random() * near.length)];
-      var moving = cells[from];
-      cells[empty] = moving;
-      cells[from] = null;
-      spot(moving, empty);
-      previous = empty;
-      empty = from;
-    }, 520);
-  })();
+  // The launcher's start screen in miniature: the turning amethyst geode (geode.js).
+  if (window.AmethyxGeode) window.AmethyxGeode.start(document.getElementById('puzzle'));
 
   // The launcher window in the hero leans gently towards the mouse.
   var heroWindow = document.getElementById('hero-window');

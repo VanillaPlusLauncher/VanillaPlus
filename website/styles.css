@@ -151,50 +151,135 @@ img { max-width: 100%; height: auto; display: block; }
 .hero__actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .hero__meta { margin: 16px 0 0; color: var(--text-muted); font-size: 14px; }
 
-/* The launcher's start screen in miniature: a sliding-block puzzle of 3D amethyst cubes (script.js
-   moves a cube next to the free place into it). */
-.puzzle { position: relative; width: 150px; height: 100px; margin-top: 22px; }
-.puzzle__board {
-  --cell: 30px;
+/* A piece of an amethyst geode turning slowly in the air (geode.js builds its faces; the launcher's start screen is the same):
+   amethyst and budding amethyst on top, calcite and smooth basalt below; crystals grow on the
+   budding blocks with a little pop at every stage, sparkles blink around it. */
+.puzzle {
+  position: relative;
+  width: 240px;
+  height: 200px;
+  margin-top: 10px;
+}
+
+.geode__float {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: geode-float 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes geode-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -7px, 0); }
+}
+
+.geode__shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: 130px;
+  height: 22px;
+  margin-left: -65px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(150, 112, 245, 0.32), rgba(150, 112, 245, 0.08) 60%, transparent);
+  animation: geode-shadow 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes geode-shadow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.88); opacity: 0.7; }
+}
+
+.geode__slab {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: calc(var(--cell) * 3);
-  height: calc(var(--cell) * 3);
-  margin: calc(var(--cell) * -1.5) 0 0 calc(var(--cell) * -1.5);
+  translate: -50% -14%;
   transform-style: preserve-3d;
-  transform: translateY(12px) rotateX(58deg) rotateZ(45deg);
+  animation: geode-spin 16s linear infinite;
 }
-.puzzle__slot {
+
+@keyframes geode-spin {
+  from { transform: rotateX(60deg) rotateZ(0deg); }
+  to { transform: rotateX(60deg) rotateZ(-360deg); }
+}
+
+.geode__face {
   position: absolute;
   left: 0;
   top: 0;
   width: var(--cell);
   height: var(--cell);
-  border: 1px solid rgba(var(--accent-rgb), 0.1);
-  border-radius: 3px;
-  background: rgba(var(--accent-rgb), 0.05);
-}
-.puzzle__cube {
-  --cube: calc(var(--cell) - 5px);
-  position: absolute;
-  left: 2.5px;
-  top: 2.5px;
-  width: var(--cube);
-  height: var(--cube);
-  transform-style: preserve-3d;
-  transition: translate 380ms cubic-bezier(0.6, 0, 0.2, 1);
-}
-.puzzle__face {
-  position: absolute;
-  inset: 0;
+  transform-origin: 0 0;
   background-size: 100% 100%;
   image-rendering: pixelated;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+  backface-visibility: hidden;
+  filter: brightness(var(--shade, 1));
 }
-.puzzle__face--top { transform: translateZ(var(--cube)); filter: brightness(1.12); }
-.puzzle__face--south { transform-origin: 50% 100%; transform: rotateX(-90deg); filter: brightness(0.7); }
-.puzzle__face--east { transform-origin: 100% 50%; transform: rotateY(90deg); filter: brightness(0.88); }
+
+.geode__crystal,
+.geode__grow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+.geode__grow {
+  transform-origin: 0 0;
+  transition: transform 260ms cubic-bezier(0.5, 0, 0.75, 0), opacity 260ms;
+}
+
+.geode__grow--pop {
+  animation: geode-pop 340ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes geode-pop {
+  from { transform: scale3d(0.7, 0.7, 0.7); }
+}
+
+.geode__grow--gone {
+  transform: scale3d(0.2, 0.2, 0.2);
+  opacity: 0;
+  animation: none;
+}
+
+.geode__sprite {
+  position: absolute;
+  left: calc(var(--cell) * -0.7);
+  top: calc(var(--cell) * -1.4);
+  width: calc(var(--cell) * 1.4);
+  height: calc(var(--cell) * 1.4);
+  transform-origin: 50% 100%;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 3px rgba(214, 170, 255, 0.55));
+}
+
+/* A four-pointed sparkle drawn with pixels (one square and four arms), blinking once. */
+.geode__spark {
+  --size: 2px;
+  position: absolute;
+  width: var(--size);
+  height: var(--size);
+  background: #fbe9ff;
+  box-shadow:
+    0 calc(var(--size) * -1) 0 #e4c4ff,
+    0 var(--size) 0 #e4c4ff,
+    calc(var(--size) * -1) 0 0 #e4c4ff,
+    var(--size) 0 0 #e4c4ff;
+  pointer-events: none;
+  animation: geode-spark 1100ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+
+@keyframes geode-spark {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  35% { transform: scale(1.4) rotate(45deg); opacity: 1; }
+  100% { transform: scale(0) rotate(90deg) translateY(-6px); opacity: 0; }
+}
+
 
 /* The launcher in a window that leans towards the mouse. */
 .window {
@@ -352,3 +437,63 @@ img { max-width: 100%; height: auto; display: block; }
   .features, .gallery { grid-template-columns: 1fr; }
   .window { transform: none !important; }
 }
+
+/* --- Pixel-cut style, the same as in the launcher: corners cut by one "pixel" step instead of being
+   rounded; buttons are solid blocks with a light strip on top and a darker one at the bottom. --- */
+:root {
+  --cut: 3px;
+  --btn-face: #2a2533;
+  --btn-face-hover: #353042;
+  --btn-specks: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='22' shape-rendering='crispEdges'%3E%3Cg fill='%23fff' fill-opacity='.16'%3E%3Crect x='5' y='6' width='2' height='2'/%3E%3Crect x='27' y='13' width='2' height='2'/%3E%3Crect x='39' y='5' width='2' height='2'/%3E%3C/g%3E%3Cg fill='%23000' fill-opacity='.09'%3E%3Crect x='16' y='15' width='2' height='2'/%3E%3Crect x='33' y='8' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E");
+}
+.feature, .shot, .download__card, .faq details, .window { --cut: 5px; }
+.btn, .lang, .feature, .feature__icon, .shot, .download__card, .steps li, .steps b, .faq details, .window {
+  border-radius: 0;
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+}
+.btn {
+  border: 0;
+  padding-bottom: 15px;
+  transition: transform 90ms ease-out, background 160ms, box-shadow 90ms;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(2px); }
+.btn--primary {
+  background: var(--btn-specks) 0 0 / 46px 22px, var(--accent-strong);
+  color: #1c0e3a;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.34), inset 0 -4px 0 rgba(0, 0, 0, 0.28);
+}
+.btn--primary:hover {
+  background: var(--btn-specks) 0 0 / 46px 22px, var(--accent);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.34), inset 0 -4px 0 rgba(0, 0, 0, 0.28);
+}
+.btn--primary:active { box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.25), inset 0 -1px 0 rgba(255, 255, 255, 0.25); }
+.btn--ghost {
+  border: 0;
+  background: var(--btn-face);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.1), inset 0 -4px 0 rgba(0, 0, 0, 0.38);
+}
+.btn--ghost:hover { border: 0; background: var(--btn-face-hover); }
+.btn--ghost:active { box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.38), inset 0 -1px 0 rgba(255, 255, 255, 0.1); }
+.btn--big { padding-bottom: 18px; }
+.lang {
+  border: 0;
+  background: var(--btn-face);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -3px 0 rgba(0, 0, 0, 0.38);
+}
+.lang:hover { background: var(--btn-face-hover); }
+.feature, .shot, .download__card, .steps li, .faq details {
+  border: 0;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.06), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+.feature:hover, .faq details[open] {
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), inset 0 -3px 0 var(--accent-strong);
+}
+.shot:hover { box-shadow: inset 0 -3px 0 var(--accent-strong); }
+.feature__icon { box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3); }
+.window { border: 0; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.06); }
