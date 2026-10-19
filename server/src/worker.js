@@ -636,14 +636,42 @@ export class TunnelRoom {
   }
 }
 
+/** Tunnels a player may have at once for free; more will come with a subscription. */
+const FREE_TUNNELS = 5;
+
+/**
+ * How many tunnels this player may have. Subscriptions are not there yet, so everyone gets the
+ * free number; a subscription will raise it here (that is why it is asked per player).
+ */
+function tunnelLimit() {
+  return FREE_TUNNELS;
+}
+
+async function countTunnels(env, user) {
+  const row = await env.DB.prepare('SELECT COUNT(*) AS count FROM tunnels WHERE owner_id = ? AND created_at >= ?').bind(user.id, Date.now() - TUNNEL_DAYS * 86400000).first();
+  return row?.count ?? 0;
+}
+
+/** GET /v1/tunnels: how many tunnels the player has and may have. */
+async function listTunnels(env, user) {
+  return json({ count: await countTunnels(env, user), limit: tunnelLimit(user) });
+}
+
 async function createTunnel(env, user) {
-  const id = randomHex(16);
   const now = Date.now();
-  await env.DB.batch([
-    env.DB.prepare('DELETE FROM tunnels WHERE owner_id = ? AND created_at < ?').bind(user.id, now - TUNNEL_DAYS * 86400000),
-    env.DB.prepare('INSERT INTO tunnels (id, owner_id, created_at) VALUES (?, ?, ?)').bind(id, user.id, now),
-  ]);
+  await env.DB.prepare('DELETE FROM tunnels WHERE owner_id = ? AND created_at < ?').bind(user.id, now - TUNNEL_DAYS * 86400000).run();
+  const limit = tunnelLimit(user);
+  if ((await countTunnels(env, user)) >= limit) {
+    throw new Failure(402, `Бесплатно можно держать до ${limit} туннелей. Удалите ненужный или оформите подписку (скоро).`);
+  }
+  const id = randomHex(16);
+  await env.DB.prepare('INSERT INTO tunnels (id, owner_id, created_at) VALUES (?, ?, ?)').bind(id, user.id, now).run();
   return json({ id });
+}
+
+async function deleteTunnel(env, user, id) {
+  await env.DB.prepare('DELETE FROM tunnels WHERE id = ? AND owner_id = ?').bind(id, user.id).run();
+  return json({ ok: true });
 }
 
 /** GET /v1/tunnels/<id>/ws?token=…&role=control|accept|join: the host's or a friend's WebSocket. */
@@ -722,7 +750,10 @@ async function route(request, env) {
     if (pathname === '/v1/messages' && method === 'GET') return listMessages(env, user, url);
     if (pathname === '/v1/messages' && method === 'POST') return sendMessage(request, env, user);
     if (pathname === '/v1/messages/read' && method === 'POST') return markRead(request, env, user);
+    if (pathname === '/v1/tunnels' && method === 'GET') return listTunnels(env, user);
     if (pathname === '/v1/tunnels' && method === 'POST') return createTunnel(env, user);
+    match = /^\/v1\/tunnels\/([0-9a-f]{32})$/.exec(pathname);
+    if (match && method === 'DELETE') return deleteTunnel(env, user, match[1]);
     match = /^\/v1\/images\/([0-9a-f]{32})$/.exec(pathname);
     if (match && method === 'GET') return image(env, user, match[1]);
     if (pathname === '/v1/me/skin' && (method === 'PUT' || method === 'DELETE')) return setTexture(request, env, user, 'skin');

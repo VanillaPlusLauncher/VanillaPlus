@@ -647,6 +647,8 @@ function createServerListCard(getInstance, { onPlay } = {}) {
 // --- Own server (one click) ----------------------------------------------------------------
 
 const RAM_CHOICES = [2048, 3072, 4096, 6144, 8192];
+/** Tunnels a player can have for free (the Amethyx server, server/src/worker.js, has the same limit). */
+const FREE_TUNNELS = 5;
 const serverLogListeners = new Set();
 const serverStateListeners = new Set();
 let serverEventsReady = false;
@@ -679,12 +681,24 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
   function render() {
     const instance = getInstance();
     if (!state?.exists) {
+      // Where the server runs: on this computer (works now) or in Amethyx's cloud (being prepared).
       element.replaceChildren(
         h('div', { class: 'own-server__text' },
           h('b', null, 'Свой сервер'),
           h('span', { class: 'text-muted' }, 'Сервер из этой сборки для игры с друзьями: те же версия, загрузчик и моды. Клиентские моды (миникарты, шейдеры, меню) на сервер не попадут.'),
         ),
-        h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => openCreate() }, 'Создать сервер'),
+        h('div', { class: 'server-place' },
+          h('button', { class: 'server-place__card', type: 'button', onclick: () => openCreate() },
+            h('span', { class: 'server-place__title' }, icon('home'), 'На этом компьютере'),
+            h('span', { class: 'server-place__text' }, 'Бесплатно. Сервер работает, пока включён компьютер и открыт лаунчер. Друзья в одной сети заходят сразу, из интернета — через туннель.'),
+            h('span', { class: 'server-place__action' }, 'Создать сервер'),
+          ),
+          h('div', { class: 'server-place__card server-place__card--soon', 'aria-disabled': 'true' },
+            h('span', { class: 'server-place__title' }, icon('cloud'), 'В облаке Amethyx', h('span', { class: 'badge' }, 'Скоро')),
+            h('span', { class: 'server-place__text' }, 'Сервер работает круглосуточно, даже когда компьютер выключен. Свой адрес для друзей, защита от атак, копии мира. По подписке.'),
+            h('span', { class: 'server-place__action' }, 'Пока недоступно'),
+          ),
+        ),
       );
       return;
     }
@@ -701,6 +715,22 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
       h('button', { class: 'btn btn--ghost btn--compact', type: 'button', disabled: state.running, title: 'Перенести на сервер текущие моды и настройки сборки', onclick: () => sync() }, 'Обновить моды'),
       h('button', { class: 'icon-button', type: 'button', title: 'Папка сервера', onclick: () => api.app.openFolder(state.directory).catch((error) => toast(errorMessage(error), 'error')) }, icon('folder')),
       h('button', { class: 'icon-button', type: 'button', title: 'Удалить сервер', disabled: state.running, onclick: () => remove() }, icon('close')),
+      tunnelBlock(),
+    );
+  }
+
+  /**
+   * "Доступ из интернета": a tunnel gives the server an address friends anywhere can join, without
+   * a public IP or router setup. Being prepared: up to FREE_TUNNELS free, more with a subscription
+   * (the Amethyx server keeps the same limit).
+   */
+  function tunnelBlock() {
+    return h('div', { class: 'own-server__tunnel' },
+      h('div', { class: 'own-server__text' },
+        h('b', null, icon('globe'), ' Доступ из интернета ', h('span', { class: 'badge' }, 'Скоро')),
+        h('span', { class: 'text-muted' }, `Туннель даст серверу адрес, по которому зайдут друзья из любого города — без белого IP и настройки роутера. Бесплатно — до ${FREE_TUNNELS} туннелей, больше — по подписке.`),
+      ),
+      h('button', { class: 'btn btn--secondary btn--compact', type: 'button', disabled: true }, 'Создать туннель'),
     );
   }
 

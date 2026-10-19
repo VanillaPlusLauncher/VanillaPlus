@@ -77,6 +77,9 @@ export function createSegmented({ options, value, onChange }) {
   }
 
   requestAnimationFrame(moveThumb);
+  // A switch built while hidden (a tab not open yet) has no size at first: the thumb is placed
+  // again whenever the switch gets its size or the font changes the buttons' width.
+  new ResizeObserver(() => moveThumb()).observe(element);
   return { element, setValue };
 }
 

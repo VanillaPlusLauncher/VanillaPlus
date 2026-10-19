@@ -137,3 +137,5 @@ img {
 .icon--bolt { --icon: url("../../../assets/ui/bolt.svg"); }
 .icon--pencil { --icon: url("../../../assets/ui/pencil.svg"); }
 .icon--image { --icon: url("../../../assets/ui/image.svg"); }
+.icon--cloud { --icon: url("../../../assets/ui/cloud.svg"); }
+.icon--globe { --icon: url("../../../assets/ui/globe.svg"); }

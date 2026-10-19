@@ -29,6 +29,7 @@
 - "Update all" updates every mod at once in parallel under one task in the top bar ("3 of 12"); the top bar also names the instance a download is for
 - Faster modpack installs and a shared mod cache
 - A "Servers" tab with three parts: "My server" (a server made from the instance with the same mods, without client-only ones: start, console, mod updates); "For hosting" (the instance as a server pack, a zip or a plain folder: tick the mods, configs, resource packs, data packs, a world and, if you like, a whole ready server with its core and start scripts; the server's mod list as a text file); "Other servers" (the servers you play on, the same list as in the game: players, ping, Play, add and edit)
+- "My server" asks where the server runs: on this computer (as before) or in the Amethyx cloud — the cloud is marked "Soon" for now. A server on this computer shows "Access from the internet" (a tunnel, soon): up to 5 tunnels free, more with a subscription; the Amethyx server already keeps that limit
 - Better at telling client-only mods: mods not installed through the launcher are recognised on Modrinth by their file, Forge/NeoForge "clientSideOnly" is read, and well-known client mods (Sodium, Iris, minimaps, Mod Menu…) are known by name
 - "Export": a short code (Instances → "Paste code") or a file — Modrinth (.mrpack), CurseForge (.zip), plain .zip
 - "Library" instead of "Mods": modpacks, mods, resource packs, shaders and data packs; the game version and loader in filters can be changed by hand (for example, for Sinytra Connector)

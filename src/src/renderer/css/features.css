@@ -6279,3 +6279,99 @@ button:disabled {
   background: var(--color-accent);
   transform: scale(1.3);
 }
+/* --- "Мой сервер": where it runs (this computer / Amethyx cloud, soon) and internet access ------ */
+.server-place {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  flex: 1 1 100%;
+}
+
+.server-place__card {
+  --cut: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  border: 0;
+  background: var(--btn-face, #2a2533);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+  transition: background var(--duration-fast), transform 90ms ease-out, box-shadow var(--duration-fast);
+}
+
+button.server-place__card {
+  cursor: var(--cursor-hand);
+}
+
+button.server-place__card:hover {
+  background: var(--btn-face-hover, #353042);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -3px 0 var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.server-place__card--soon {
+  opacity: 0.62;
+  cursor: var(--cursor-arrow);
+}
+
+.server-place__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.server-place__title .icon {
+  color: var(--color-accent);
+}
+
+.server-place__text {
+  color: var(--color-text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.server-place__action {
+  margin-top: auto;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.server-place__card--soon .server-place__action {
+  color: var(--color-text-muted);
+}
+
+.own-server__tunnel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1 1 100%;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.own-server__tunnel .icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+  color: var(--color-accent);
+}
+
+@media (max-width: 900px) {
+  .server-place {
+    grid-template-columns: 1fr;
+  }
+}

@@ -209,5 +209,26 @@ assert.equal(r.body.user.name, 'Alex2');
 r = await call('GET', '/csl/ms/Alex.json');
 assert.equal(r.status, 404);
 
+// Tunnels: five for free, the sixth is refused until one is deleted.
+r = await call('GET', '/v1/tunnels', undefined, steve);
+assert.deepEqual(r.body, { count: 0, limit: 5 });
+const tunnelIds = [];
+for (let index = 0; index < 5; index += 1) {
+  r = await call('POST', '/v1/tunnels', {}, steve);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  tunnelIds.push(r.body.id);
+}
+r = await call('POST', '/v1/tunnels', {}, steve);
+assert.equal(r.status, 402);
+r = await call('GET', '/v1/tunnels', undefined, steve);
+assert.deepEqual(r.body, { count: 5, limit: 5 });
+r = await call('DELETE', `/v1/tunnels/${tunnelIds[0]}`, undefined, alex);
+r = await call('GET', '/v1/tunnels', undefined, steve);
+assert.equal(r.body.count, 5, 'someone else cannot delete my tunnel');
+r = await call('DELETE', `/v1/tunnels/${tunnelIds[0]}`, undefined, steve);
+assert.equal(r.status, 200);
+r = await call('POST', '/v1/tunnels', {}, steve);
+assert.equal(r.status, 200);
+
 globalThis.fetch = realFetch;
 console.log('server tests passed');
