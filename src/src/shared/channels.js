@@ -76,6 +76,7 @@ const CHANNELS = Object.freeze({
     identify: 'content:identify',
     checkUpdates: 'content:check-updates',
     updateMany: 'content:update-many',
+    findIcon: 'content:find-icon',
     setEnabledMany: 'content:set-enabled-many',
     resolveSides: 'content:resolve-sides',
     checkCompatibility: 'content:check-compatibility',

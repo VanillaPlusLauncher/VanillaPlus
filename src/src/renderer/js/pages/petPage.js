@@ -1,5 +1,5 @@
 import { h } from '../core/dom.js';
-import { hasItem, mcUrl, onMcReady } from '../core/mc.js';
+import { getMcManifest, hasItem, mcUrl, onMcReady } from '../core/mc.js';
 import { sfx } from '../core/sound.js';
 import { toast } from '../components/toast.js';
 import { createParticles } from '../skins/particles.js';
@@ -20,9 +20,9 @@ import { creeperTextures, grassTextures } from '../pet/creeperArt.js';
 
 const STORE_KEY = 'amethyx.pet';
 /** Screen pixels per model pixel. */
-const UNIT = 9;
-/** The grass block, in model pixels. */
-const FLOOR = { width: 48, height: 8, depth: 18 };
+const UNIT = 8;
+/** The ground (3 × 2 grass blocks), in model pixels. */
+const FLOOR = { width: 48, height: 16, depth: 32 };
 const WALK_LIMIT = FLOOR.width / 2 - 7;
 /** How the needs go down per hour (and energy comes back while asleep). */
 const DECAY_PER_HOUR = { hunger: 5, fun: 4, energy: 3 };
@@ -138,13 +138,38 @@ function buildCreeper() {
   return { root, torso, neck, legs, head };
 }
 
+/**
+ * The ground: real Minecraft grass blocks, 3 × 2 of them, each a 16×16×16 cube with the game's own
+ * textures (the grass top tinted green as in a plains biome). Until the game's textures are in, a
+ * drawn look-alike stands in.
+ */
 function buildFloor() {
-  const grass = grassTextures();
-  const tile = { front: grass.side, back: grass.side, left: grass.side, right: grass.side, top: grass.top, bottom: grass.bottom };
-  const floor = cuboid(FLOOR.width, FLOOR.height, FLOOR.depth, tile, 'pet3d__floor');
-  floor.style.transform = `translate3d(0, ${px(FLOOR.height / 2)}, 0)`;
-  // Each side shows 16-texel blocks, like a row of grass blocks.
-  for (const side of floor.children) side.style.backgroundSize = `${16 * UNIT}px ${16 * UNIT}px`;
+  const drawn = grassTextures();
+  const floor = h('div', { class: 'pet3d__joint pet3d__floor' });
+  const blocks = [];
+  for (const bx of [-16, 0, 16]) {
+    for (const bz of [-8, 8]) {
+      const block = cuboid(16, 16, 16, { front: drawn.side, back: drawn.side, left: drawn.side, right: drawn.side, top: drawn.top, bottom: drawn.bottom }, 'pet3d__block');
+      block.style.transform = `translate3d(${px(bx)}, ${px(8)}, ${px(bz)})`;
+      blocks.push(block);
+      floor.append(block);
+    }
+  }
+  const useGameTextures = () => {
+    const known = getMcManifest()?.textures.blocks ?? [];
+    if (!['grass_block_side', 'grass_block_top', 'dirt'].every((name) => known.includes(name))) return;
+    const side = `url(${mcUrl('block/grass_block_side.png')})`;
+    for (const block of blocks) {
+      // cuboid() makes the faces in this order: front, back, right, left, top, bottom.
+      const [front, back, right, left, top, bottom] = block.children;
+      for (const face of [front, back, right, left]) face.style.backgroundImage = side;
+      top.style.backgroundImage = `url(${mcUrl('block/grass_block_top.png')})`;
+      top.classList.add('pet3d__face--grass');
+      bottom.style.backgroundImage = `url(${mcUrl('block/dirt.png')})`;
+    }
+  };
+  useGameTextures();
+  onMcReady(useGameTextures);
   return floor;
 }
 

@@ -181,6 +181,9 @@ export const SOUND_ACTIONS = [
   { key: 'error', label: 'Ошибка', group: 'events', preset: 'villager_no' },
   { key: 'info', label: 'Уведомление', group: 'events', preset: 'toast' },
   { key: 'installed', label: 'Установка завершена', group: 'events', preset: 'challenge' },
+  // Mods, packs and shaders: one quiet sound when a queue of installs begins, one when it is done.
+  { key: 'installStart', label: 'Моды: установка началась', group: 'events', preset: 'click_soft' },
+  { key: 'installEnd', label: 'Моды: установка закончилась', group: 'events', preset: 'xp' },
   { key: 'launch', label: 'Нажали «Играть»', group: 'events', preset: 'none' },
   { key: 'gameStarted', label: 'Игра запустилась', group: 'events', preset: 'levelup' },
   { key: 'skinSaved', label: 'Скин сохранён', group: 'events', preset: 'amethyst' },

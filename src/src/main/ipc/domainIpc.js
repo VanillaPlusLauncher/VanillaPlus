@@ -260,6 +260,8 @@ function registerDomainHandlers(handle) {
   );
   handle(CHANNELS.content.identify, async (_event, instanceId, type) => contentService.identifyContent(await settings(), instanceId, type));
   handle(CHANNELS.content.checkUpdates, async (_event, instanceId, type) => contentService.checkUpdates(await settings(), instanceId, type));
+  handle(CHANNELS.content.findIcon, async (_event, query) =>
+    contentService.findIcon(await settings(), { title: String(query?.title ?? '').slice(0, 100), slug: String(query?.slug ?? '').slice(0, 100), type: ['mod', 'resourcepack', 'shader', 'modpack', 'datapack'].includes(query?.type) ? query.type : 'mod' }));
   handle(CHANNELS.content.updateMany, async (_event, instanceId, type, updates) => contentService.updateMany(await settings(), instanceId, type, Array.isArray(updates) ? updates.slice(0, 1000) : []));
   handle(CHANNELS.content.setEnabledMany, async (_event, instanceId, type, files, enabled) => {
     if (gameService.isInstanceRunning(instanceId)) {

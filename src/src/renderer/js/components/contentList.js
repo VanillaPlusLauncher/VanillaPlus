@@ -11,6 +11,7 @@ import { confirmCompatibility } from './compatDialog.js';
 import { openOptimizeDialog } from './optimizeDialog.js';
 import { toast } from './toast.js';
 import { updateInstance } from '../state/actions.js';
+import { projectIcon } from '../core/projectIcon.js';
 
 /** Mods: where they are needed (Modrinth data or the mod's own file). */
 const SIDE_LABELS = { client: 'Клиент', server: 'Сервер', both: 'Везде' };
@@ -208,7 +209,8 @@ export function createContentList(getInstance, type) {
       { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) } },
       check,
       toggle,
-      item.icon ? h('img', { class: 'content-row__icon', src: item.icon, alt: '', loading: 'lazy' }) : h('div', { class: 'content-row__icon content-row__icon--empty' }, icon('cube')),
+      // Folders (unpacked packs) are only named on disk; everything else may find its picture elsewhere.
+      item.folder ? h('div', { class: 'content-row__icon content-row__icon--empty' }, icon('cube')) : projectIcon({ iconUrl: item.icon, title: item.title, type }, 'content-row__icon'),
       h(
         'div',
         { class: 'content-row__meta' },

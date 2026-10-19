@@ -179,12 +179,12 @@ export function createHomePage({ navigate }) {
         h(
           'button',
           {
-            class: `recent-card${instance.id === settings?.selectedInstanceId ? ' recent-card--selected' : ''}`,
+            // All alike: a click opens the instance. Which one Home plays is chosen in the play bar (›).
+            class: 'recent-card',
             type: 'button',
             style: { '--delay': `${200 + index * 70}ms` },
-            title: 'Клик — выбрать, двойной клик — открыть',
-            onclick: () => saveSettings({ selectedInstanceId: instance.id }).catch(() => {}),
-            ondblclick: () => openInstance(instance.id),
+            title: 'Открыть сборку',
+            onclick: () => openInstance(instance.id),
           },
           iconImage(instance.icon, 'recent-card__icon'),
           h('span', { class: 'recent-card__name' }, instance.name),

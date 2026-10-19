@@ -1,4 +1,5 @@
 import { h } from '../core/dom.js';
+import { assetUrl } from '../core/assets.js';
 
 /** Switch control. `onChange(boolean)` is called on user input. */
 export function createToggle({ checked, onChange, label }) {
@@ -18,11 +19,17 @@ export function createToggle({ checked, onChange, label }) {
 }
 
 /**
- * "Загрузка…" for a page whose content comes from the network: a turning amethyst block and a
- * line of text, so an empty screen never looks broken while the first answer is on its way.
+ * "Загрузка…" for a page whose content comes from the network: the launcher's X, bobbing and
+ * glinting, and a line of text, so an empty screen never looks broken while the first answer is on
+ * its way.
  */
 export function loadingState(text = 'Загрузка…') {
-  return h('div', { class: 'loading-state', role: 'status' }, h('span', { class: 'loading-state__block', 'aria-hidden': 'true' }), h('span', { class: 'loading-state__text' }, text));
+  return h('div', { class: 'loading-state', role: 'status' }, loadingMark(), h('span', { class: 'loading-state__text' }, text));
+}
+
+/** The small bobbing X used wherever something loads. */
+export function loadingMark(className = 'loading-mark') {
+  return h('img', { class: className, src: assetUrl('branding/amethyx-mark.png'), alt: '', 'aria-hidden': 'true' });
 }
 
 /**

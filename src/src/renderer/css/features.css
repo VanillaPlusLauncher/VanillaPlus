@@ -5546,36 +5546,26 @@
   transition: translate 320ms var(--ease-spring), scale 320ms var(--ease-spring), opacity 220ms;
 }
 
-/* How many toasts there are: a number in the corner of the newest one. */
+/* How many toasts there are: quiet grey text in the newest one's top-right corner. */
 .toast__count {
   position: absolute;
-  top: -12px;
-  right: -10px;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 7px;
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  border-radius: 999px;
-  background: var(--color-accent-strong);
-  color: var(--color-text-on-accent);
-  border: 2px solid rgba(16, 13, 23, 0.95);
-  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.55);
+  top: 6px;
+  right: 10px;
+  color: var(--color-text-muted);
   font-family: var(--font-pixel);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1;
-  z-index: 2;
+  pointer-events: none;
 }
 
 .toast__count--pop {
-  animation: count-pop 360ms var(--ease-spring);
+  animation: count-pop 300ms var(--ease-out);
 }
 
 @keyframes count-pop {
-  0% { scale: 0.4; }
-  60% { scale: 1.25; }
+  from { opacity: 0; translate: 0 -3px; }
 }
+
 /* --- "Загрузка…" while a page waits for its first answer (components/controls.js) --------------- */
 .loading-state {
   grid-column: 1 / -1;
@@ -5588,14 +5578,6 @@
   font-family: var(--font-pixel);
   font-size: 15px;
   animation: fadeIn 300ms both;
-}
-
-.loading-state__block {
-  width: 16px;
-  height: 16px;
-  background: var(--color-accent);
-  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.6);
-  animation: spinBlock 1s steps(4) infinite;
 }
 
 .loading-state__text {
@@ -5961,7 +5943,7 @@ button:disabled {
 .pet3d__world {
   position: absolute;
   left: 50%;
-  top: 74%;
+  top: 62%;
   transform-style: preserve-3d;
 }
 
@@ -6179,4 +6161,192 @@ button:disabled {
   .pet-layout {
     grid-template-columns: 1fr;
   }
+}
+/* --- Home: links readable over any panorama; instance cards all alike --------------------------- */
+.home-section__head .link-button {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(12, 9, 20, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.28);
+  color: var(--color-accent);
+  text-shadow: none;
+  transition: background var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.home-section__head .link-button:hover {
+  text-decoration: none;
+  background: rgba(12, 9, 20, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.6);
+}
+
+/* Which instance Home plays is chosen in the play bar: no card stands out. */
+.instance-card--selected,
+:root[data-cards="slot"] .instance-card--grid.instance-card--selected {
+  border-color: rgba(0, 0, 0, 0.55);
+  background: rgba(15, 12, 21, 0.74);
+}
+/* --- The launcher's X wherever something loads: bobbing on a soft bounce, glinting ------------------ */
+.loading-mark {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(180, 140, 255, 0.55));
+  animation: mark-bob 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: transform;
+}
+
+.task-pill__spinner.loading-mark {
+  width: 18px;
+  height: 18px;
+  background: none;
+}
+
+@keyframes mark-bob {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-6deg) scale(1); }
+  45% { transform: translate3d(0, -5px, 0) rotate(6deg) scale(1.06); }
+  60% { transform: translate3d(0, -4px, 0) rotate(5deg) scale(1.05); }
+}
+/* The game's grass top is grey: tinted like a plains biome, the way the game does it. */
+.pet3d__face--grass {
+  background-color: #79c05a;
+  background-blend-mode: multiply;
+}
+/* --- The start screen (index.html #splash, components/splash.js) -------------------------------- */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(150, 112, 245, 0.22), transparent 62%),
+    #0a080f;
+  -webkit-app-region: drag;
+  transition: opacity 500ms var(--ease-out), visibility 500ms;
+}
+
+.splash--leaving {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.splash--leaving .splash__box {
+  transform: scale(1.04);
+}
+
+.splash__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  transition: transform 500ms var(--ease-out);
+}
+
+.splash__logo {
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 28px rgba(150, 112, 245, 0.45));
+  animation: splash-logo 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite, splash-in 700ms var(--ease-spring) both;
+}
+
+@keyframes splash-logo {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-3deg); }
+  50% { transform: translate3d(0, -8px, 0) rotate(3deg); }
+}
+
+@keyframes splash-in {
+  from { opacity: 0; scale: 0.6; }
+}
+
+.splash__name {
+  font-family: var(--font-pixel);
+  font-size: 30px;
+  color: var(--color-text);
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.5);
+  animation: fadeIn 600ms 200ms both;
+}
+
+/* A queue of blocks in the theme colour: every block steps one place to the right with a little hop
+   (gravity: a slow rise, a quicker fall, a squash on landing); the last one leaps in an arc over
+   the others back to the front. Four blocks a quarter of the cycle apart fill the four places. */
+.splash__blocks {
+  position: relative;
+  width: 178px;
+  height: 120px;
+}
+
+.splash__block {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: block;
+  width: 34px;
+  height: 40px;
+  transform-origin: 50% 100%;
+  animation: block-queue 2.8s infinite;
+  animation-delay: calc(var(--i) * -0.7s);
+}
+
+@keyframes block-queue {
+  0% { transform: translate3d(0, 0, 0); animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
+  10% { transform: translate3d(24px, -12px, 0) scale(0.97, 1.04); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
+  20% { transform: translate3d(48px, 0, 0) scale(1.08, 0.9); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  25% { transform: translate3d(48px, 0, 0) scale(1, 1); animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
+  35% { transform: translate3d(72px, -12px, 0) scale(0.97, 1.04); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
+  45% { transform: translate3d(96px, 0, 0) scale(1.08, 0.9); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  50% { transform: translate3d(96px, 0, 0) scale(1, 1); animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
+  60% { transform: translate3d(120px, -12px, 0) scale(0.97, 1.04); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
+  70% { transform: translate3d(144px, 0, 0) scale(1.08, 0.9); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  75% { transform: translate3d(144px, 0, 0) scale(1, 1); animation-timing-function: cubic-bezier(0.25, 0, 0.5, 1); }
+  85% { transform: translate3d(72px, -74px, 0) rotate(-180deg) scale(1.02); animation-timing-function: cubic-bezier(0.5, 0, 0.85, 0.5); }
+  95% { transform: translate3d(0, 0, 0) rotate(-360deg) scale(1.12, 0.84); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  100% { transform: translate3d(0, 0, 0) rotate(-360deg) scale(1, 1); }
+}
+.splash__cube {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin-top: 6px;
+  transform-style: preserve-3d;
+  transform: rotateX(-28deg) rotateY(45deg);
+}
+
+.splash__face {
+  position: absolute;
+  inset: 0;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  backface-visibility: hidden;
+}
+
+.splash__face--top { transform: rotateX(90deg) translateZ(17px); filter: brightness(1.1); }
+.splash__face--left { transform: rotateY(-90deg) translateZ(17px); filter: brightness(0.72); }
+.splash__face--right { transform: translateZ(17px); filter: brightness(0.88); }
+
+.splash__status {
+  min-height: 18px;
+  color: var(--color-text-soft);
+  font-family: var(--font-pixel);
+  font-size: 14px;
+}
+
+.splash__track {
+  width: 260px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.splash__bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-accent-strong), var(--color-accent));
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.6);
+  transition: width 420ms var(--ease-out);
 }

@@ -9,6 +9,7 @@ import { refreshInstances, selectedInstance } from '../state/actions.js';
 import { createProjectBrowser } from '../components/projectBrowser.js';
 import { openCreateInstanceModal } from '../components/createInstanceModal.js';
 import { toast } from '../components/toast.js';
+import { beginInstall } from '../core/installQueue.js';
 
 /**
  * Library: modpacks, mods, resource packs, shaders and data packs from Modrinth and CurseForge.
@@ -151,14 +152,20 @@ export function createBrowsePage() {
     if (!(await confirmCompatibility(request))) {
       return;
     }
-    const result = await api.content.install(request);
-    installed.add(hit.id);
-    const extra = result.installed.length > 1 ? ` и зависимости: ${result.installed.slice(1).join(', ')}` : '';
-    toast(`«${hit.title}»${extra} → ${current.name}`, 'success', 4800, { title: 'Установлено', icon: type === 'shader' ? 'ender_eye' : type === 'resourcepack' ? 'map' : 'enchanted_book' });
-    if (result.skipped.length > 0) {
-      toast(`Не найдены подходящие версии зависимостей: ${result.skipped.join(', ')}`, 'error', 7000);
+    // One sound when the queue starts and one when it is done (core/installQueue.js), silent toasts.
+    const done = beginInstall();
+    try {
+      const result = await api.content.install(request);
+      installed.add(hit.id);
+      const extra = result.installed.length > 1 ? ` и зависимости: ${result.installed.slice(1).join(', ')}` : '';
+      toast(`«${hit.title}»${extra} → ${current.name}`, 'success', 4800, { title: 'Установлено', icon: type === 'shader' ? 'ender_eye' : type === 'resourcepack' ? 'map' : 'enchanted_book', silent: true });
+      if (result.skipped.length > 0) {
+        toast(`Не найдены подходящие версии зависимостей: ${result.skipped.join(', ')}`, 'error', 7000);
+      }
+      loadInstalled();
+    } finally {
+      done();
     }
-    loadInstalled();
   }
 
   store.subscribe(['instances'], () => renderTargets());

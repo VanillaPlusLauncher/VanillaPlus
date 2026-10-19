@@ -98,6 +98,8 @@ const bridge = {
     identify: (instanceId, type) => invoke(CHANNELS.content.identify, instanceId, type),
     checkUpdates: (instanceId, type) => invoke(CHANNELS.content.checkUpdates, instanceId, type),
     updateMany: (instanceId, type, updates) => invoke(CHANNELS.content.updateMany, instanceId, type, updates),
+    /** An icon for a project without one: { title, slug, type } → URL or null. */
+    findIcon: (query) => invoke(CHANNELS.content.findIcon, query),
     setEnabledMany: (instanceId, type, files, enabled) => invoke(CHANNELS.content.setEnabledMany, instanceId, type, files, enabled),
     resolveSides: (instanceId) => invoke(CHANNELS.content.resolveSides, instanceId),
     checkCompatibility: (request) => invoke(CHANNELS.content.checkCompatibility, request),

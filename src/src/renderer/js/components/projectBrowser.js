@@ -6,6 +6,7 @@ import { go } from '../core/nav.js';
 import { openProjectModal } from './projectModal.js';
 import { toast } from './toast.js';
 import { loadingState } from './controls.js';
+import { projectIcon } from '../core/projectIcon.js';
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 350;
@@ -164,7 +165,7 @@ export function createProjectBrowser(options) {
           }
         },
       },
-      hit.iconUrl ? h('img', { class: 'project-card__icon', src: hit.iconUrl, alt: '', loading: 'lazy' }) : h('div', { class: 'project-card__icon project-card__icon--empty' }, icon('cube')),
+      projectIcon({ iconUrl: hit.iconUrl, title: hit.title, slug: hit.slug, type: state.type }, 'project-card__icon'),
       h(
         'div',
         { class: 'project-card__body' },

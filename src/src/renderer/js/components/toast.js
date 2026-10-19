@@ -67,8 +67,8 @@ function layout() {
   // The count sits in the newest toast's corner while the others wait behind it.
   const newest = newestFirst[0];
   if (newest && live.length >= 2 && !hovered) {
-    if (badge.parentElement !== newest.element || badge.textContent !== String(live.length)) {
-      badge.textContent = String(live.length);
+    if (badge.parentElement !== newest.element || badge.textContent !== `×${live.length}`) {
+      badge.textContent = `×${live.length}`;
       newest.element.append(badge);
       badge.classList.remove('toast__count--pop');
       void badge.offsetWidth;

@@ -6,7 +6,7 @@ import { formatBytes } from '../core/content.js';
 import { store } from '../state/appStore.js';
 import { openModal, confirmDialog } from './modal.js';
 import { toast } from './toast.js';
-import { createSegmented } from './controls.js';
+import { createSegmented, loadingState } from './controls.js';
 
 /*
  * Instance page tabs that show the instance folder: Screenshots, Files and the Journal (logs with
@@ -350,7 +350,7 @@ function createServerExportCard(getInstance) {
   async function load() {
     const instance = getInstance();
     if (!instance) return;
-    element.replaceChildren(h('div', { class: 'loading-state' }, h('span', { class: 'loading-state__block' }), h('span', null, 'Смотрим, какие моды нужны серверу…')));
+    element.replaceChildren(loadingState('Смотрим, какие моды нужны серверу…'));
     try {
       [mods, worlds] = await Promise.all([api.server.modsForServer(instance.id), api.instances.worlds(instance.id).catch(() => [])]);
     } catch (error) {

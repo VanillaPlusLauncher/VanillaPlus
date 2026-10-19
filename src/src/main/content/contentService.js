@@ -102,6 +102,61 @@ function getVersions(settings, platform, id, filters) {
   return platformApi(settings, platform).getVersions(id, filters ?? {});
 }
 
+/** Icons found for projects that have none of their own (name → URL or null), for this run. */
+const iconCache = new Map();
+const normalName = (value) => String(value ?? '').toLowerCase().replace(/[^a-z0-9а-яё]/gi, '');
+
+/**
+ * An icon for a project that has none where it came from (BadOptimizations has no icon on
+ * Modrinth, but one on CurseForge): looked up by name on CurseForge, then on Modrinth, and only a
+ * project with the same name or slug counts. Resolves with a URL or null.
+ */
+async function findIcon(settings, query = {}) {
+  const key = `${query.type ?? 'mod'}:${normalName(query.slug || query.title)}`;
+  if (key.endsWith(':')) return null;
+  // The same name asked twice at once waits for one answer; three look-ups at a time at most
+  // (a list of 200 mods without pictures must not flood the sites).
+  if (!iconCache.has(key)) iconCache.set(key, iconQueue.run(() => lookUpIcon(settings, query)));
+  return iconCache.get(key);
+}
+
+const iconQueue = (() => {
+  let running = 0;
+  const waiting = [];
+  const next = () => {
+    if (running >= 3 || waiting.length === 0) return;
+    running += 1;
+    const { job, resolve } = waiting.shift();
+    job()
+      .catch(() => null)
+      .then((value) => {
+        running -= 1;
+        resolve(value);
+        next();
+      });
+  };
+  return { run: (job) => new Promise((resolve) => { waiting.push({ job, resolve }); next(); }) };
+})();
+
+async function lookUpIcon(settings, { title, slug, type = 'mod' }) {
+  const wanted = new Set([normalName(title), normalName(slug)].filter(Boolean));
+  let url = null;
+  for (const platform of ['curseforge', 'modrinth']) {
+    if (platform === 'curseforge' && !curseforge.apiKey(settings)) continue;
+    try {
+      const { hits } = await platformApi(settings, platform).search({ type, query: title || slug, limit: 8 });
+      const same = hits.find((hit) => hit.iconUrl && (wanted.has(normalName(hit.title)) || wanted.has(normalName(hit.slug))));
+      if (same) {
+        url = same.iconUrl;
+        break;
+      }
+    } catch (error) {
+      log.warn(`Иконка «${title || slug}» на ${platform} не найдена: ${error.message}`);
+    }
+  }
+  return url;
+}
+
 /** Filters that make a version fit an instance: its Minecraft version and, for mods, its loader. */
 function instanceFilters(instance, type) {
   return { gameVersion: instance.minecraft, loader: type === 'mod' || type === 'modpack' ? instance.loader.type : null, type };
@@ -669,6 +724,7 @@ module.exports = {
   resolveSides,
   updateAllContent,
   updateMany,
+  findIcon,
   updateIndex,
   entryKey,
   CONTENT_TYPES,

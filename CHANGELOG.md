@@ -48,10 +48,14 @@
 - Ely.by sign-in on the Ely.by website; password sign-in stays as a fallback
 - Fixed: after opening the Wardrobe several times the player on the home screen turned into a white box (the 3D views were not released)
 - Fixed: NameMC sometimes reported an error before the skin came in (its Cloudflare check reloads the page); its 3D picture is no longer taken for a skin
-- A "Pet" tab: a little 3D creeper to look after, like a tamagotchi — it walks about on its grass block, looks at your mouse, eats, chases a slime ball, sleeps, likes being stroked and hisses when poked too often; food, mood and energy go down with real time, care brings experience and levels
+- A "Pet" tab: a little 3D creeper to look after, like a tamagotchi — it walks about on real Minecraft grass blocks, looks at your mouse, eats, chases a slime ball, sleeps, likes being stroked and hisses when poked too often; food, mood and energy go down with real time, care brings experience and levels
 - The Wardrobe has five places: your main skin (never written over) and four slots; a new skin goes into the slot you are looking at
+- A start screen: the X, the name and a queue of blocks in the theme colour while everything is loaded at once (the game's textures, instances, accounts, fonts, news); the launcher opens ready
+- "Loading" everywhere is the launcher's X; mods without a picture get one from CurseForge or Modrinth by their name (BadOptimizations, for example)
+- Installing several mods sounds once at the start and once when all are done
+- Home: "All instances" and "minecraft.net" readable over any panorama; a recent instance opens with a click (the one Home plays is chosen in the play bar)
 - The tray icon's menu in the launcher's own style
-- Toasts no longer cover each other: only the newest shows, with a number in its corner saying how many there are; pointing at it spreads them into a list
+- Toasts no longer cover each other: only the newest shows, with a small grey "×N" in its corner; pointing at it spreads them into a list
 - "Loading…" in the Library and Friends while the first answer is on its way; rows of the instance page come in, light up when ticked (a wave for "All"), and the selection bar slides in
 - The home player strolls a few steps now and then and points at your mouse; the skin no longer flickers where its layers overlap, and with arms up the head no longer turns into them
 - The instance memory slider moves right away and turns "Own value" on by itself; the "Note block" card is gone from Settings

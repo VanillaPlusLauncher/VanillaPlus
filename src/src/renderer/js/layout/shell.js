@@ -180,7 +180,7 @@ function setupTaskIndicator() {
   const bar = h('span', { class: 'task-pill__bar' });
   const more = h('span', { class: 'task-pill__more' });
   const instanceName = h('span', { class: 'task-pill__instance', 'data-i18n': 'off', hidden: true });
-  const pill = h('div', { class: 'task-pill', hidden: true }, h('span', { class: 'task-pill__spinner', 'aria-hidden': 'true' }), instanceName, h('span', { class: 'task-pill__text' }, label, percent), more, h('span', { class: 'task-pill__track' }, bar));
+  const pill = h('div', { class: 'task-pill', hidden: true }, h('img', { class: 'task-pill__spinner loading-mark', src: assetUrl('branding/amethyx-mark.png'), alt: '', 'aria-hidden': 'true' }), instanceName, h('span', { class: 'task-pill__text' }, label, percent), more, h('span', { class: 'task-pill__track' }, bar));
   host.append(pill);
 
   store.subscribe(['tasks'], ({ tasks }) => {

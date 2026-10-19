@@ -21,6 +21,16 @@
     <script src="vendor/skinview3d.bundle.js" defer></script>
   </head>
   <body>
+    <!-- The start screen: here from the first frame, filled and taken away by js/components/splash.js. -->
+    <div class="splash" id="splash" role="status" aria-live="polite">
+      <div class="splash__box">
+        <img class="splash__logo" src="../../assets/branding/amethyx-mark.png" alt="" />
+        <div class="splash__name" data-i18n="off">Amethy<span class="brand-x">x</span></div>
+        <div class="splash__blocks" aria-hidden="true"></div>
+        <div class="splash__status">Загрузка…</div>
+        <div class="splash__track"><span class="splash__bar"></span></div>
+      </div>
+    </div>
     <div class="app-background" id="app-background" aria-hidden="true"></div>
     <div class="app-vignette" aria-hidden="true"></div>
 

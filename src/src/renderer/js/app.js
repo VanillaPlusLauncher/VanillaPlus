@@ -3,6 +3,7 @@ import { LANGUAGES, setLanguage } from './core/i18n.js';
 import { askLanguageOnce } from './components/languagePicker.js';
 import { installTooltips } from './components/tooltip.js';
 import { installAliveUi } from './components/alive.js';
+import { runSplash } from './components/splash.js';
 import { store } from './state/appStore.js';
 import { applyGameState, applyTaskEvent, appendLogLine, loadCatalog, loadInitialData, refreshInstances } from './state/actions.js';
 import { createRouter } from './router/router.js';
@@ -164,53 +165,6 @@ function setupDragAndDrop(router) {
   });
 }
 
-/**
- * First start only: a short loading screen while the game's look (panorama, textures, sounds)
- * is fetched from Mojang, instead of showing the plain fallback look. Never blocks for long.
- */
-const FIRST_RUN_LOADER_MAX_MS = 12000;
-
-function showFirstRunLoader() {
-  const bar = document.createElement('span');
-  bar.className = 'first-run__bar';
-  const status = document.createElement('span');
-  status.className = 'first-run__status';
-  status.textContent = 'Загрузка…';
-  const box = document.createElement('div');
-  box.className = 'first-run__box';
-  const logo = document.createElement('img');
-  logo.className = 'first-run__logo';
-  logo.src = new URL('../../../assets/branding/amethyx-mark.png', import.meta.url).href;
-  const track = document.createElement('span');
-  track.className = 'first-run__track';
-  track.append(bar);
-  box.append(logo, status, track);
-  const overlay = document.createElement('div');
-  overlay.className = 'first-run';
-  overlay.append(box);
-  document.body.append(overlay);
-
-  let closed = false;
-  const close = () => {
-    if (closed) return;
-    closed = true;
-    unsubscribe();
-    stopReady();
-    overlay.classList.add('first-run--leaving');
-    setTimeout(() => overlay.remove(), 450);
-  };
-  const unsubscribe = store.subscribe(['tasks'], ({ tasks }) => {
-    const task = tasks['mc-resources'];
-    if (task?.state === 'running') {
-      bar.style.width = `${task.percent}%`;
-    } else if (task?.state === 'error') {
-      close();
-    }
-  });
-  const stopReady = onMcReady(() => setTimeout(close, 250));
-  setTimeout(close, FIRST_RUN_LOADER_MAX_MS);
-}
-
 async function start() {
   let router;
   const shell = createShell({
@@ -274,21 +228,41 @@ async function start() {
   installDropdowns();
   installTooltips();
   installAliveUi();
-  initMc().then((ready) => {
-    if (!ready) {
-      showFirstRunLoader();
-    }
-  });
 
-  // Home is shown at once and fills in as data arrives; a page the user opens meanwhile stays open.
+  // Home is built at once behind the start screen, which stays until everything is loaded.
   router.navigate('home');
-  try {
-    await loadInitialData();
-  } catch (error) {
-    toast(errorMessage(error), 'error', 8000);
-  }
+  let dataError = null;
+  await runSplash({
+    tasks: [
+      // The game's textures, panorama and sounds (fetched from Mojang on the very first start).
+      { label: 'Текстуры Minecraft', run: () => initMc().then((ready) => ready || waitForMc(14000)) },
+      { label: 'Сборки и аккаунты', run: () => loadInitialData().catch((error) => { dataError = error; }) },
+      { label: 'Шрифты', run: () => Promise.all([document.fonts.load('16px Tiny5'), document.fonts.load('16px Inter')]) },
+      { label: 'Новости Minecraft', run: () => api.minecraft.news() },
+      { label: '3D-модели', run: () => waitFor(() => Boolean(window.skinview3d), 6000) },
+    ],
+  });
+  if (dataError) toast(errorMessage(dataError), 'error', 8000);
   // The very first start: which language (Windows' one is offered first).
   askLanguageOnce(resolveLanguage(null));
+}
+
+/** Resolves when the game's look is ready (onMcReady), or after `ms` at most. */
+function waitForMc(ms) {
+  let stop = null;
+  return new Promise((resolve) => {
+    stop = onMcReady(() => resolve(true));
+    setTimeout(() => resolve(false), ms);
+  }).finally(() => stop?.());
+}
+
+/** Resolves once `check()` is true (looked at every 100 ms), or after `ms` at most. */
+function waitFor(check, ms) {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const look = () => (check() || Date.now() - started > ms ? resolve() : setTimeout(look, 100));
+    look();
+  });
 }
 
 start();
