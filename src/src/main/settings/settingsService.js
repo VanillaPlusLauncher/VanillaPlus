@@ -12,7 +12,7 @@ const JAVA_MODES = ['auto', 'custom'];
 const JAVA_VENDORS = ['mojang', 'temurin', 'zulu', 'corretto', 'microsoft', 'liberica', 'oracle'];
 const VERSION_TYPES = ['release', 'snapshot', 'old_beta', 'old_alpha'];
 const AFTER_LAUNCH = ['keep', 'minimize', 'hide'];
-const ACCENTS = ['vanilla', 'berry', 'lavender', 'diamond', 'gold', 'redstone', 'amethyst', 'lapis', 'copper'];
+const ACCENTS = ['amethyst', 'vanilla', 'berry', 'lavender', 'diamond', 'gold', 'redstone', 'lapis', 'copper'];
 // Only Minecraft panoramas: the latest one, one of a given version, or a random one each start.
 // Old values (valley, forest, village, dirt) fall back to the latest panorama.
 const BACKGROUND = /^panorama(:(random|[0-9][0-9.]{0,15}))?$/;
@@ -63,7 +63,7 @@ function buildDefaults() {
     contentSource: 'modrinth',
     curseforgeApiKey: '',
     ui: {
-      accent: 'vanilla',
+      accent: 'amethyst',
       background: 'panorama',
       // null: the system's language until one is chosen (renderer/js/core/i18n.js).
       language: null,
@@ -98,13 +98,13 @@ function buildDefaults() {
       feedUrl: '',
     },
     social: {
-      /** CustomSkinLoader in modded instances: Vanilla+ skins and capes in the game. */
+      /** CustomSkinLoader in modded instances: Amethyx skins and capes in the game. */
       skinsInMods: true,
-      /** Skins, capes and friends through the Vanilla+ server. */
+      /** Skins, capes and friends through the Amethyx server. */
       online: true,
       /** Friends see which instance and server you play. */
       shareActivity: true,
-      /** Address of the Vanilla+ server; empty = the built-in one. */
+      /** Address of the Amethyx server; empty = the built-in one. */
       serverUrl: '',
     },
   };

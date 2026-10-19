@@ -18,7 +18,7 @@ const { getSettings } = require('../settings/settingsService');
  *
  * Every release publishes, next to its installer, a small "latest.json":
  *   { "version": "1.3.1", "date": "2026-10-20", "notes": "что нового…",
- *     "installer": { "url": "https://…/VanillaPlus-Setup-1.3.1.exe", "sha256": "…", "size": 178000000 } }
+ *     "installer": { "url": "https://…/Amethyx-Setup-1.3.1.exe", "sha256": "…", "size": 178000000 } }
  * (installer/publish-update.ps1 writes it). The launcher reads that file on start and every few
  * hours, downloads a newer installer in the background, checks its SHA-256 and, when the user
  * agrees (or on the next exit), runs it silently: the installer replaces the files and starts
@@ -30,11 +30,11 @@ const DEFAULT_FEED_URL = 'https://github.com/VanillaPlusLauncher/VanillaPlus/rel
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const FIRST_CHECK_DELAY_MS = 8000;
 const log = createLogger('updates');
-/** Plain http is accepted only for a local test server named in VANILLAPLUS_UPDATE_FEED. */
+/** Plain http is accepted only for a local test server named in AMETHYX_UPDATE_FEED. */
 const LOCAL_TEST_URL = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i;
 
 function isAllowedUrl(url) {
-  return /^https:\/\//i.test(url) || (Boolean(process.env.VANILLAPLUS_UPDATE_FEED) && LOCAL_TEST_URL.test(url));
+  return /^https:\/\//i.test(url) || (Boolean(process.env.AMETHYX_UPDATE_FEED) && LOCAL_TEST_URL.test(url));
 }
 
 /**
@@ -75,7 +75,7 @@ function compareVersions(a, b) {
 }
 
 function feedUrl(settings) {
-  return settings.updates?.feedUrl || process.env.VANILLAPLUS_UPDATE_FEED || DEFAULT_FEED_URL;
+  return settings.updates?.feedUrl || process.env.AMETHYX_UPDATE_FEED || DEFAULT_FEED_URL;
 }
 
 function updatesDirectory() {
@@ -161,7 +161,7 @@ function downloadUpdate() {
   downloading = (async () => {
     const directory = updatesDirectory();
     await fsp.mkdir(directory, { recursive: true });
-    const target = path.join(directory, `VanillaPlus-Setup-${latest.version.replace(/[^\w.-]/g, '')}.exe`);
+    const target = path.join(directory, `Amethyx-Setup-${latest.version.replace(/[^\w.-]/g, '')}.exe`);
     // Installers of older updates are not needed any more.
     for (const name of await fsp.readdir(directory).catch(() => [])) {
       if (path.join(directory, name) !== target) {
@@ -208,7 +208,7 @@ function downloadUpdate() {
 
 /**
  * Runs the downloaded installer silently and quits. The installer waits for the launcher to close,
- * replaces its files and starts it again (/relaunch=1, see installer/VanillaPlus.iss).
+ * replaces its files and starts it again (/relaunch=1, see installer/Amethyx.iss).
  */
 async function installUpdate({ isGameRunning = () => false } = {}) {
   if (status.state !== 'ready' || !status.installerPath) {
@@ -235,7 +235,7 @@ async function installUpdate({ isGameRunning = () => false } = {}) {
 
 /** Starts the automatic checks (on start and every few hours). */
 function startUpdateChecks() {
-  if (!app.isPackaged && !process.env.VANILLAPLUS_UPDATE_FEED) {
+  if (!app.isPackaged && !process.env.AMETHYX_UPDATE_FEED) {
     // A development run never updates itself.
     setStatus({ state: 'disabled' });
     return;

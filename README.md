@@ -1,10 +1,10 @@
-# Vanilla+ Launcher
+# Amethyx Launcher
 
 An open-source Minecraft: Java Edition launcher for Windows.
 
 **English** · [Русский](README.ru.md)
 
-**Download:** [latest release](https://github.com/VanillaPlusLauncher/VanillaPlus/releases/latest) → `VanillaPlus-Setup-<version>.exe`.
+**Download:** [latest release](https://github.com/VanillaPlusLauncher/VanillaPlus/releases/latest) → `Amethyx-Setup-<version>.exe`.
 The installed launcher updates itself: a new version downloads in the background and installs with one click.
 
 ![Home](docs/screenshots/home.png)
@@ -16,7 +16,7 @@ The installed launcher updates itself: a new version downloads in the background
 - **Import from other launchers:** Prism, ElyPrism, PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher and the official launcher — instances are found automatically
 - **Instances like in Prism Launcher:** tabs for mods, resource packs, shaders, worlds, your own server, screenshots and the log; change the game version and loader, per-instance Java and memory, notes, custom groups with drag and drop
 - **Game log** explains common errors and shows the cause right after a crash
-- **Wardrobe:** ready-made skins from a PNG, by player name or from The Skindex and NameMC (a skin downloaded there appears in the launcher by itself), 3D preview with animations; a skin per account, a Vanilla+ skin for Microsoft and Ely.by accounts (the real skin stays unchanged)
+- **Wardrobe:** ready-made skins from a PNG, by player name or from The Skindex and NameMC (a skin downloaded there appears in the launcher by itself), 3D preview with animations; a skin per account, an Amethyx skin for Microsoft and Ely.by accounts (the real skin stays unchanged)
 - **Friends:** requests, who is online and what they play, chat, joining a friend's world through the e4mc mod (no public IP needed) or their server in one click
 - Minecraft look and feel: panoramas from different game versions, sounds (one per action, your choice) and music
 - Seven languages: English, Russian, Spanish, Portuguese, German, French, Chinese
@@ -28,14 +28,14 @@ The installed launcher updates itself: a new version downloads in the background
 - **Friends and chat:** who is online and what they play, messages, in-game screenshots, invites with an instance your friend builds in one click
 - **Friends join your world** without a public IP: open the world to LAN, the launcher installs the e4mc mod and sends your friend the address
 - **3D player on the home screen:** follows the mouse, waves and does gestures; under it, a Bedrock-style **Wardrobe**
-- **Ready-made skins:** from a PNG, by player name, from The Skindex and NameMC — a skin downloaded on the site appears in the Wardrobe by itself; other Vanilla+ players see your **Vanilla+ skin** even on Microsoft and Ely.by accounts
+- **Ready-made skins:** from a PNG, by player name, from The Skindex and NameMC — a skin downloaded on the site appears in the Wardrobe by itself; other Amethyx players see your **Amethyx skin** even on Microsoft and Ely.by accounts
 - **Import from other launchers:** Prism, ElyPrism, MultiMC, Modrinth App, CurseForge, TLauncher and more — instances are found automatically
 - **One-click optimization:** performance mods, memory, Java flags and graphics settings for your PC; never suggests mods the instance is incompatible with
 - **Faster modpack installs:** 12 parallel downloads and a shared mod cache
 - **One-click own server**, **instance export** as a code or a file (.mrpack, CurseForge .zip, .zip), **world backups**, **mod compatibility checks**
-- **Tray:** the close button hides the launcher next to the clock; **own notifications** in the Vanilla+ style
+- **Tray:** the close button hides the launcher next to the clock; **own notifications** in the Amethyx style
 - **Panoramas** from 19 Minecraft versions, **seven languages**, **a sound per action**, **Ely.by sign-in on the website**
-- New name, logo and warm look; data of the previous version moves over by itself
+- New name, pixel X logo and an amethyst look; data of Vanilla+ Launcher and RichLauncher moves over by itself
 
 | Instances | Library | Wardrobe | Friends |
 | --- | --- | --- | --- |
@@ -53,7 +53,7 @@ cd ..
 ```
 
 On the first run `build.ps1` downloads Electron (checking its SHA-256), packs `src` into `app.asar` and builds the installer in `build\`.
-To run without installing: `build\VanillaPlus\VanillaPlus.exe` after the same script.
+To run without installing: `build\Amethyx\Amethyx.exe` after the same script.
 
 Releasing a new version: raise `version` in `src/package.json`, build, then
 `.\installer\publish-update.ps1 -Repo VanillaPlusLauncher/VanillaPlus -Notes "What's new" -Publish`.
@@ -64,10 +64,10 @@ Releasing a new version: raise `version` in `src/package.json`, build, then
 - `src/src/renderer` — the interface (no frameworks, ES modules)
 - `src/src/preload` — the bridge between them: everything goes through IPC with input checks
 - `installer` — the installer (Inno Setup), build and publishing
-- `server` — the Vanilla+ server for friends, chat and shared skins (Cloudflare Workers + D1); how to run it is in [server/README.md](server/README.md)
+- `server` — the Amethyx server for friends, chat and shared skins (Cloudflare Workers + D1); how to run it is in [server/README.md](server/README.md)
 
 ## License
 
 [GPL-3.0](LICENSE). Third-party components and their licenses are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
-Vanilla+ Launcher is an unofficial launcher. It is not affiliated with or endorsed by Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.
+Amethyx Launcher is an unofficial launcher. It is not affiliated with or endorsed by Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.

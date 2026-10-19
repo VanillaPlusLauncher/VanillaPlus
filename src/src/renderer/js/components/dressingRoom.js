@@ -12,7 +12,7 @@ import { confirmDialog, openModal } from './modal.js';
 import { toast } from './toast.js';
 
 /**
- * The skin the account shows now: the launcher's own (offline skin, or the Vanilla+ skin of a
+ * The skin the account shows now: the launcher's own (offline skin, or the Amethyx skin of a
  * Microsoft / Ely.by account), else the profile's. { pngBase64, model, capeBase64 } or null.
  */
 export async function currentSkin(account) {
@@ -234,12 +234,12 @@ export function openDressingRoom({ onApplied } = {}) {
     if (!chosen) return;
     wearButton.disabled = true;
     try {
-      // Offline: the skin in the game. Microsoft / Ely.by: the Vanilla+ skin (the profile stays).
+      // Offline: the skin in the game. Microsoft / Ely.by: the Amethyx skin (the profile stays).
       await api.skins.save(account.uuid, chosen.pngBase64, chosen.model);
       forgetAccountHead(account.id);
       store.set({ accounts: [...store.get().accounts] });
       sfx('skinSaved');
-      toast(account.type === 'offline' ? `Скин «${chosen.name}» надет` : `Скин «${chosen.name}» надет как скин Vanilla+`, 'success');
+      toast(account.type === 'offline' ? `Скин «${chosen.name}» надет` : `Скин «${chosen.name}» надет как скин Amethyx`, 'success');
       onApplied?.(chosen);
       modal.close();
     } catch (error) {

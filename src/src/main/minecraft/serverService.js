@@ -25,7 +25,9 @@ const serverList = require('./serverList');
  * The Minecraft EULA is accepted only by the user, with a tick in the window.
  */
 
-const META_FILE = 'vanillaplus-server.json';
+const META_FILE = 'amethyx-server.json';
+/** Written by Vanilla+ Launcher; read when the new file is not there yet. */
+const OLD_META_FILE = 'vanillaplus-server.json';
 const LOG_LIMIT = 3000;
 const STOP_TIMEOUT_MS = 30000;
 const EXTRA_FOLDERS = ['config', 'defaultconfigs', 'kubejs'];
@@ -41,7 +43,7 @@ function serverDirectory(settings, instanceId) {
 }
 
 async function readMeta(directory) {
-  return readJsonFile(path.join(directory, META_FILE), null);
+  return (await readJsonFile(path.join(directory, META_FILE), null)) ?? readJsonFile(path.join(directory, OLD_META_FILE), null);
 }
 
 function lanAddress() {
@@ -190,7 +192,7 @@ async function createServer(settings, instanceId, options = {}) {
     const start = await installCore({ instance, directory, java, report: (stage, percent, detail) => reporter.report(stage, percent, detail) });
     reporter.report('Моды и настройки', 75, '');
     const { copied, skipped } = await syncContent(settings, instance, directory);
-    await fsp.writeFile(path.join(directory, 'eula.txt'), `# Принято в Vanilla+ Launcher ${new Date().toISOString()} (https://aka.ms/MinecraftEULA)\neula=true\n`);
+    await fsp.writeFile(path.join(directory, 'eula.txt'), `# Принято в Amethyx Launcher ${new Date().toISOString()} (https://aka.ms/MinecraftEULA)\neula=true\n`);
     const propertiesFile = path.join(directory, 'server.properties');
     const existing = await fsp.readFile(propertiesFile, 'utf8').catch(() => '');
     const properties = new Map(existing.split(/\r?\n/).filter((line) => line && !line.startsWith('#') && line.includes('=')).map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));

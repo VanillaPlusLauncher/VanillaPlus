@@ -1,10 +1,10 @@
 ﻿# Turns a logo picture into the launcher's mark: the plain background around the logo is removed
 # (flood fill from the picture's edges, so light parts inside the logo stay), the empty margins are
 # cut, and the result is centred on a transparent square.
-# Writes src\assets\branding\vanillaplus-mark.png (512 px) and installer\art\setup.ico (16-256 px).
+# Writes src\assets\branding\amethyx-mark.png (512 px) and installer\art\setup.ico (16-256 px).
 #
 # Usage: .\import-logo.ps1 -Source <picture> [-Tolerance 40]
-# The current logo's original is installer\art\logo-source.png (-Tolerance 30).
+# The current logo's original is installer\art\logo-source.png (-Tolerance 40).
 param(
   [Parameter(Mandatory = $true)][string]$Source,
   [int]$Tolerance = 40
@@ -95,7 +95,7 @@ function Save-Square([int]$size, [string]$path) {
   return $square
 }
 
-$mark = Join-Path $root 'src\assets\branding\vanillaplus-mark.png'
+$mark = Join-Path $root 'src\assets\branding\amethyx-mark.png'
 (Save-Square 512 $mark).Dispose()
 
 # Windows icon: several sizes as PNG entries in one .ico.

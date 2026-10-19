@@ -21,7 +21,7 @@ function getAppPaths() {
 
 /**
  * Default Minecraft game folder, equivalent to %APPDATA%\.minecraft but separate from it:
- * %APPDATA%\.vanillaplus (the old .richlauncher folder is renamed to it once, see migration.js).
+ * %APPDATA%\.amethyx (the old .vanillaplus or .richlauncher folder is renamed to it once, see migration.js).
  */
 function getDefaultGameDirectory() {
   return defaultGameDirectory(app);

@@ -148,7 +148,7 @@ export function createShell({ onNavigate, onOpenAccounts }) {
   renderAccount();
 
   const brandLogo = document.getElementById('brand-logo');
-  brandLogo.src = assetUrl('branding/vanillaplus-mark.png');
+  brandLogo.src = assetUrl('branding/amethyx-mark.png');
   brandLogo.title = 'Главная';
   brandLogo.addEventListener('click', () => {
     sfx('navigate', 0);

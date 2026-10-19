@@ -102,7 +102,7 @@ export function openLauncherImportDialog() {
     content: h(
       'div',
       { class: 'modal__section' },
-      h('p', { class: 'text-soft' }, 'Выберите сборки: Vanilla+ создаст такие же (версия игры и загрузчик) и скопирует моды, настройки, ресурспаки и шейдеры. В другом лаунчере всё останется как было.'),
+      h('p', { class: 'text-soft' }, 'Выберите сборки: Amethyx создаст такие же (версия игры и загрузчик) и скопирует моды, настройки, ресурспаки и шейдеры. В другом лаунчере всё останется как было.'),
       h('div', { class: 'share-options' }, h('label', { class: 'compat-dialog__remember' }, worlds, h('span', null, 'Миры')), h('label', { class: 'compat-dialog__remember' }, screenshots, h('span', null, 'Скриншоты'))),
       host,
     ),

@@ -21,7 +21,7 @@ const MAX_OLD_LOGS = 15;
 /** Opening these would run them: they are shown in the file manager instead. */
 const RUNNABLE = /\.(exe|bat|cmd|com|ps1|vbs|vbe|js|jse|wsf|wsh|msi|scr|lnk|jar|sh|command|app)$/i;
 /** Launcher's own copy of the last game output (written by gameService). */
-const LAST_RUN_LOG = path.join('.vanillaplus', 'last-run.log');
+const LAST_RUN_LOG = path.join('.amethyx', 'last-run.log');
 
 function insideInstance(directory, relative = '') {
   const root = path.resolve(directory);
@@ -153,7 +153,7 @@ async function listLogs(directory) {
 /** Text of one log (the end of it when huge) with the problems found in it. */
 async function readLog(directory, id) {
   const relative = String(id);
-  if (!/^(logs\/[\w.-]+\.log(\.gz)?|crash-reports\/[\w.-]+\.txt|\.vanillaplus\/last-run\.log)$/.test(relative)) {
+  if (!/^(logs\/[\w.-]+\.log(\.gz)?|crash-reports\/[\w.-]+\.txt|\.amethyx\/last-run\.log)$/.test(relative)) {
     throw new Error('Неизвестный журнал.');
   }
   const target = insideInstance(directory, relative);

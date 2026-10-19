@@ -1,11 +1,11 @@
-﻿; Vanilla+ Launcher installer (Inno Setup 6). Pictures come from make-art.ps1.
-#define AppName "Vanilla+ Launcher"
+﻿; Amethyx Launcher installer (Inno Setup 6). Pictures come from make-art.ps1.
+#define AppName "Amethyx Launcher"
 #ifndef AppVersion
   #define AppVersion "1.3.0"
 #endif
 ; Folder with the built launcher; the build script can point it elsewhere (/DSourceDir=...).
 #ifndef SourceDir
-  #define SourceDir "..\build\VanillaPlus"
+  #define SourceDir "..\build\Amethyx"
 #endif
 #define SlideCount 5
 
@@ -15,17 +15,17 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppName}
-; A new install goes to Programs\VanillaPlus; an update of RichLauncher stays in its folder (same AppId).
-DefaultDirName={localappdata}\Programs\VanillaPlus
+; A new install goes to Programs\Amethyx; an update of an older install stays in its folder (same AppId).
+DefaultDirName={localappdata}\Programs\Amethyx
 DefaultGroupName={#AppName}
 DisableWelcomePage=no
 DisableProgramGroupPage=yes
 DisableReadyPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\build
-OutputBaseFilename=VanillaPlus-Setup-{#AppVersion}
+OutputBaseFilename=Amethyx-Setup-{#AppVersion}
 SetupIconFile=art\setup.ico
-UninstallDisplayIcon={app}\VanillaPlus.exe
+UninstallDisplayIcon={app}\Amethyx.exe
 UninstallDisplayName={#AppName}
 WizardStyle=modern
 WizardSizePercent=140
@@ -56,21 +56,26 @@ Source: "art\wizard-full.bmp"; Flags: dontcopy
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [InstallDelete]
-; The launcher used to be called RichLauncher: its program and shortcuts go away on update.
+; The launcher used to be called RichLauncher, then Vanilla+ Launcher: their programs and
+; shortcuts go away on update.
 Type: files; Name: "{app}\RichLauncher.exe"
 Type: files; Name: "{autoprograms}\RichLauncher.lnk"
 Type: files; Name: "{autoprograms}\Удалить RichLauncher.lnk"
 Type: files; Name: "{autodesktop}\RichLauncher.lnk"
+Type: files; Name: "{app}\VanillaPlus.exe"
+Type: files; Name: "{autoprograms}\Vanilla+ Launcher.lnk"
+Type: files; Name: "{autoprograms}\Удалить Vanilla+ Launcher.lnk"
+Type: files; Name: "{autodesktop}\Vanilla+ Launcher.lnk"
 
 [Icons]
-Name: "{autoprograms}\{#AppName}"; Filename: "{app}\VanillaPlus.exe"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\VanillaPlus.exe"; Tasks: desktopicon
+Name: "{autoprograms}\{#AppName}"; Filename: "{app}\Amethyx.exe"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\Amethyx.exe"; Tasks: desktopicon
 Name: "{autoprograms}\Удалить {#AppName}"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\VanillaPlus.exe"; Description: "Запустить {#AppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\Amethyx.exe"; Description: "Запустить {#AppName}"; Flags: nowait postinstall skipifsilent
 ; An update started from the launcher (/SILENT /relaunch=1) opens the launcher again when done.
-Filename: "{app}\VanillaPlus.exe"; Flags: nowait; Check: IsUpdateRelaunch
+Filename: "{app}\Amethyx.exe"; Flags: nowait; Check: IsUpdateRelaunch
 
 [Code]
 function IsUpdateRelaunch: Boolean;
@@ -120,7 +125,7 @@ begin
   Slide.Bitmap.LoadFromFile(SlidePath(SlideIndex));
   for I := 0 to GetArrayLength(Dots) - 1 do
     if I = SlideIndex then
-      Dots[I].Color := $9CD37A
+      Dots[I].Color := $F678AC
     else
       Dots[I].Color := $5A5A5A;
 end;

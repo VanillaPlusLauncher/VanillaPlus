@@ -5,8 +5,8 @@ const { createLogger } = require('../core/logger');
 const { loadSkin, loadCape } = require('../skins/skinStore');
 
 /*
- * Keeps the Vanilla+ server in step with the skins and capes saved in the launcher, so other
- * Vanilla+ players see them (CustomSkinLoader asks the server by player name). What was sent last
+ * Keeps the Amethyx server in step with the skins and capes saved in the launcher, so other
+ * Amethyx players see them (CustomSkinLoader asks the server by player name). What was sent last
  * is remembered in cloud.json, so an unchanged skin is not uploaded again.
  */
 
@@ -53,7 +53,7 @@ function publishSoon(uuid) {
           await syncAccount(account.id);
         }
       } catch (error) {
-        log.warn(`Скин не отправлен на сервер Vanilla+: ${error.message}`);
+        log.warn(`Скин не отправлен на сервер Amethyx: ${error.message}`);
       }
     }, DELAY_MS),
   );

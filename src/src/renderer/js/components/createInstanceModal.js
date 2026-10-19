@@ -137,7 +137,7 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
   const filePanel = h(
     'div',
     { class: 'create-file' },
-    h('div', { class: 'create-file__drop' }, icon('download'), h('p', null, 'Перетащите файл модпака в окно лаунчера или выберите его'), h('p', { class: 'text-muted' }, 'Modrinth (.mrpack), CurseForge (.zip) и архивы сборок Prism Launcher и Vanilla+ (.zip)'),
+    h('div', { class: 'create-file__drop' }, icon('download'), h('p', null, 'Перетащите файл модпака в окно лаунчера или выберите его'), h('p', { class: 'text-muted' }, 'Modrinth (.mrpack), CurseForge (.zip) и архивы сборок Prism Launcher и Amethyx (.zip)'),
       h('button', { class: 'btn btn--secondary', type: 'button', onclick: () => pickPackFile() }, icon('folder'), 'Выбрать файл…')),
   );
 

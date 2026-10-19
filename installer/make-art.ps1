@@ -32,7 +32,7 @@ $bmp, $g = New-Canvas 410 785
 $side = [Math]::Min($pano.Width, $pano.Height)
 $cropW = [int]($side * 410 / 785)
 $g.DrawImage($pano, (New-Object System.Drawing.Rectangle 0, 0, 410, 785), (New-Object System.Drawing.Rectangle ([int](($pano.Width - $cropW) / 2)), 0, $cropW, $side), [System.Drawing.GraphicsUnit]::Pixel)
-$shade = New-Object System.Drawing.Drawing2D.LinearGradientBrush (New-Object System.Drawing.Rectangle 0, 0, 410, 785), ([System.Drawing.Color]::FromArgb(40, 0, 0, 0)), ([System.Drawing.Color]::FromArgb(225, 8, 12, 11)), 90
+$shade = New-Object System.Drawing.Drawing2D.LinearGradientBrush (New-Object System.Drawing.Rectangle 0, 0, 410, 785), ([System.Drawing.Color]::FromArgb(40, 0, 0, 0)), ([System.Drawing.Color]::FromArgb(225, 10, 8, 15)), 90
 $g.FillRectangle($shade, 0, 0, 410, 785)
 $g.DrawImage($markImage, (New-Object System.Drawing.Rectangle 125, 560, 160, 160))
 $bmp.Save((Join-Path $Out 'wizard-side.bmp'), [System.Drawing.Imaging.ImageFormat]::Bmp)
@@ -44,7 +44,7 @@ $fullW = 1392; $fullH = 915
 $bmp, $g = New-Canvas $fullW $fullH
 $cropH = [int]($pano.Width * $fullH / $fullW)
 $g.DrawImage($pano, (New-Object System.Drawing.Rectangle 0, 0, $fullW, $fullH), (New-Object System.Drawing.Rectangle 0, ([int](($pano.Height - $cropH) * 0.45)), $pano.Width, $cropH), [System.Drawing.GraphicsUnit]::Pixel)
-$veil = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(110, 6, 10, 9))
+$veil = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(110, 8, 6, 12))
 $g.FillRectangle($veil, 0, 0, $fullW, $fullH)
 $glow = New-Object System.Drawing.Drawing2D.GraphicsPath
 $glow.AddEllipse(($fullW / 2 - 420), ($fullH / 2 - 330), 840, 640)
@@ -60,14 +60,14 @@ $format.Alignment = 'Center'
 $nameBox = New-Object System.Drawing.RectangleF 0, 540, $fullW, 120
 $font = New-Object System.Drawing.Font 'Segoe UI Semibold', 64, ([System.Drawing.FontStyle]::Regular), ([System.Drawing.GraphicsUnit]::Pixel)
 $shadowBox = New-Object System.Drawing.RectangleF 0, 544, $fullW, 120
-$g.DrawString('Vanilla+ Launcher', $font, (New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(150, 0, 0, 0))), $shadowBox, $format)
-$g.DrawString('Vanilla+ Launcher', $font, [System.Drawing.Brushes]::White, $nameBox, $format)
+$g.DrawString('Amethyx Launcher', $font, (New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(150, 0, 0, 0))), $shadowBox, $format)
+$g.DrawString('Amethyx Launcher', $font, [System.Drawing.Brushes]::White, $nameBox, $format)
 $bmp.Save((Join-Path $Out 'wizard-full.bmp'), [System.Drawing.Imaging.ImageFormat]::Bmp)
 $g.Dispose(); $bmp.Dispose()
 
 # Small picture in the top-right corner of the inner pages.
 $bmp, $g = New-Canvas 138 140
-$g.Clear([System.Drawing.Color]::FromArgb(255, 14, 18, 17))
+$g.Clear([System.Drawing.Color]::FromArgb(255, 10, 8, 15))
 $g.DrawImage($markImage, (New-Object System.Drawing.Rectangle 14, 15, 110, 110))
 $bmp.Save((Join-Path $Out 'wizard-small.bmp'), [System.Drawing.Imaging.ImageFormat]::Bmp)
 $g.Dispose(); $bmp.Dispose()

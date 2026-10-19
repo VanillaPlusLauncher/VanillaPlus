@@ -15,7 +15,7 @@ const { getLaunchSession } = require('../accounts/accountService');
 /** Skin editor storage and PNG export. */
 function registerSkinHandlers(handle) {
   // The skin the launcher keeps for a profile (offline: the skin in the game; Microsoft and Ely.by:
-  // the Vanilla+ skin) with its cape. Either part can be missing.
+  // the Amethyx skin) with its cape. Either part can be missing.
   handle(CHANNELS.skins.get, async (_event, uuid) => {
     const [skin, cape] = await Promise.all([loadSkin(uuid), loadCape(uuid)]);
     if (!skin && !cape) {

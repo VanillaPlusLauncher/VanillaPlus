@@ -169,7 +169,7 @@ function startSkinServer({ profiles, signingKey, services, onLog = () => {} }) {
 
       if (pathname === '/' && isGet) {
         sendJson(response, 200, {
-          meta: { serverName: 'Vanilla+ Launcher offline skins', implementationName: 'VanillaPlus', implementationVersion: '1.0' },
+          meta: { serverName: 'Amethyx Launcher offline skins', implementationName: 'Amethyx', implementationVersion: '1.0' },
           skinDomains: ['127.0.0.1'],
           signaturePublickey: publicKeyPem,
         });

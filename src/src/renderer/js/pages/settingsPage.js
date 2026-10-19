@@ -24,13 +24,13 @@ const SECTIONS = [
   { key: 'updates', label: 'Обновления', icon: 'item:clock_00' },
 ];
 const ACCENTS = [
+  { value: 'amethyst', label: 'Аметист', block: 'amethyst_block' },
   { value: 'vanilla', label: 'Ваниль', block: 'honeycomb_block' },
   { value: 'berry', label: 'Ягода', block: 'cherry_planks' },
   { value: 'lavender', label: 'Лаванда', block: 'purpur_block' },
   { value: 'diamond', label: 'Алмаз', block: 'diamond_block' },
   { value: 'gold', label: 'Золото', block: 'gold_block' },
   { value: 'redstone', label: 'Редстоун', block: 'redstone_block' },
-  { value: 'amethyst', label: 'Аметист', block: 'amethyst_block' },
   { value: 'lapis', label: 'Лазурит', block: 'lapis_block' },
   { value: 'copper', label: 'Медь', block: 'copper_block' },
 ];
@@ -285,7 +285,7 @@ export function createSettingsPage() {
   function onlineSection(settings) {
     const social = settings.social ?? {};
     const update = (patch) => save({ social: { ...social, ...patch } });
-    const serverInput = h('input', { class: 'input', type: 'text', placeholder: 'https://… (пусто — сервер Vanilla+)', value: social.serverUrl ?? '', spellcheck: 'false', 'data-i18n': 'off' });
+    const serverInput = h('input', { class: 'input', type: 'text', placeholder: 'https://… (пусто — сервер Amethyx)', value: social.serverUrl ?? '', spellcheck: 'false', 'data-i18n': 'off' });
     serverInput.addEventListener('change', () => {
       const value = serverInput.value.trim();
       if (value && !/^(https:\/\/\S+|http:\/\/(127\.0\.0\.1|localhost)(:\d+)?)$/i.test(value)) {
@@ -295,13 +295,13 @@ export function createSettingsPage() {
       save({ social: { ...social, serverUrl: value } }, false);
     });
     return [
-      card('Скины и плащи в игре', 'В сборках с модами (Fabric, Forge, NeoForge, Quilt) лаунчер ставит мод CustomSkinLoader: в игре видны ваш скин и плащ Vanilla+ и скины других игроков Vanilla+. В сборках без модов так нельзя — там офлайн-аккаунты получают свой скин и плащ, а Microsoft и Ely.by остаются со своими.',
-        row('Скины Vanilla+ в сборках с модами', 'Если выключить, мод больше не будет ставиться сам. Уже поставленный можно выключить на вкладке «Моды» сборки.', toggle(social.skinsInMods !== false, (value) => update({ skinsInMods: value }), 'Скины Vanilla+')),
+      card('Скины и плащи в игре', 'В сборках с модами (Fabric, Forge, NeoForge, Quilt) лаунчер ставит мод CustomSkinLoader: в игре видны ваш скин и плащ Amethyx и скины других игроков Amethyx. В сборках без модов так нельзя — там офлайн-аккаунты получают свой скин и плащ, а Microsoft и Ely.by остаются со своими.',
+        row('Скины Amethyx в сборках с модами', 'Если выключить, мод больше не будет ставиться сам. Уже поставленный можно выключить на вкладке «Моды» сборки.', toggle(social.skinsInMods !== false, (value) => update({ skinsInMods: value }), 'Скины Amethyx')),
       ),
-      card('Онлайн-функции', 'Друзья, статус «в сети» и скины, которые видят другие игроки Vanilla+, работают через сервер Vanilla+. На него уходят только ник, скин, плащ и (если разрешено) во что вы играете. Пароли и ключи входа туда не попадают.',
+      card('Онлайн-функции', 'Друзья, статус «в сети» и скины, которые видят другие игроки Amethyx, работают через сервер Amethyx. На него уходят только ник, скин, плащ и (если разрешено) во что вы играете. Пароли и ключи входа туда не попадают.',
         row('Друзья и общие скины', null, toggle(social.online !== false, (value) => update({ online: value }), 'Онлайн-функции')),
         row('Показывать друзьям, во что я играю', 'Сборку, версию игры и сервер.', toggle(social.shareActivity !== false, (value) => update({ shareActivity: value }), 'Показывать активность')),
-        h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Свой сервер Vanilla+ (необязательно)'), serverInput),
+        h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Свой сервер Amethyx (необязательно)'), serverInput),
       ),
     ];
   }
@@ -328,7 +328,7 @@ export function createSettingsPage() {
           h('button', { class: 'btn btn--secondary btn--compact btn--danger', type: 'button', onclick: resetAll }, 'Сбросить настройки'),
         ),
       ),
-      card('О лаунчере', null, h('p', { class: 'text-soft' }, `Vanilla+ Launcher ${info?.version ?? ''}. Звуки, текстуры и панорама загружаются из Minecraft с серверов Mojang. 3D-просмотр скинов — skinview3d (MIT).`)),
+      card('О лаунчере', null, h('p', { class: 'text-soft' }, `Amethyx Launcher ${info?.version ?? ''}. Звуки, текстуры и панорама загружаются из Minecraft с серверов Mojang. 3D-просмотр скинов — skinview3d (MIT).`)),
     ];
   }
 
@@ -387,13 +387,13 @@ export function createSettingsPage() {
     });
 
     return [
-      card('Версия', `Установлена Vanilla+ Launcher ${current}.`, statusBox),
+      card('Версия', `Установлена Amethyx Launcher ${current}.`, statusBox),
       card('Автоматически',
         null,
         row('Проверять обновления', 'При запуске лаунчера и раз в несколько часов.', toggle(updates.autoCheck !== false, (value) => save({ updates: { autoCheck: value } }), 'Проверять')),
         row('Скачивать сразу', 'Новая версия скачается в фоне — останется только нажать «Обновить».', toggle(updates.autoDownload !== false, (value) => save({ updates: { autoDownload: value } }), 'Скачивать')),
       ),
-      card('Адрес обновлений', 'Пусто — официальные релизы Vanilla+ Launcher на GitHub. Свой адрес нужен, только если вы выпускаете свою сборку.', feed),
+      card('Адрес обновлений', 'Пусто — официальные релизы Amethyx Launcher на GitHub. Свой адрес нужен, только если вы выпускаете свою сборку.', feed),
     ];
   }
 

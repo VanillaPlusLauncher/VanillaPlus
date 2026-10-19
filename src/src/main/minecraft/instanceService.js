@@ -29,7 +29,7 @@ const CUSTOM_ICON_SIZE = 128;
 const MAX_ICON_SOURCE_BYTES = 8 * 1024 * 1024;
 
 function customIconPath(layout, id) {
-  return path.join(layout.instanceDirectory(id), '.vanillaplus', 'icon.png');
+  return path.join(layout.instanceDirectory(id), '.amethyx', 'icon.png');
 }
 
 /** An instance's own picture becomes a data: URL for the window; the file stays in the instance. */

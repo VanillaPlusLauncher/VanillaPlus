@@ -67,7 +67,7 @@ async function makeShareCode(settings, instanceId) {
 function parseShareCode(code) {
   const text = String(code ?? '').trim().replace(/\s+/g, '');
   if (!text.startsWith(CODE_PREFIX)) {
-    throw new Error('Это не код сборки Vanilla+ (он начинается с VP1-).');
+    throw new Error('Это не код сборки Amethyx (он начинается с VP1-).');
   }
   let data;
   try {
@@ -159,7 +159,7 @@ async function exportMrpack(settings, instanceId, target, { includeConfigs = tru
     // Forge/NeoForge versions are stored with the Minecraft prefix in some cases ("1.20.1-47.4.10").
     dependencies[DEPENDENCY_KEYS[instance.loader.type]] = instance.loader.version.replace(`${instance.minecraft}-`, '');
   }
-  zip.addFile('modrinth.index.json', Buffer.from(JSON.stringify({ formatVersion: 1, game: 'minecraft', versionId: '1.0.0', name: instance.name, summary: 'Сборка из Vanilla+ Launcher', files, dependencies }, null, 2)));
+  zip.addFile('modrinth.index.json', Buffer.from(JSON.stringify({ formatVersion: 1, game: 'minecraft', versionId: '1.0.0', name: instance.name, summary: 'Сборка из Amethyx Launcher', files, dependencies }, null, 2)));
   await fsp.mkdir(path.dirname(target), { recursive: true });
   await new Promise((resolve, reject) => zip.writeZip(target, (error) => (error ? reject(error) : resolve())));
   log.info(`Сборка «${instance.name}» сохранена в ${target}: ${files.length} ссылок, ${overrides.length} файлов внутри`);
@@ -224,11 +224,11 @@ async function exportCurseForge(settings, instanceId, target, { includeConfigs =
 /** Prism Launcher / MultiMC component ids of the loaders. */
 const PRISM_LOADERS = { fabric: 'net.fabricmc.fabric-loader', quilt: 'org.quiltmc.quilt-loader', forge: 'net.minecraftforge', neoforge: 'net.neoforged' };
 // Never worth carrying: caches, logs, our world backups and the launcher's own record of the instance.
-const ZIP_ALWAYS_SKIP = new Set(['.fabric', '.cache', 'natives', 'logs', 'crash-reports', 'instance.json', '.vanillaplus/backups']);
+const ZIP_ALWAYS_SKIP = new Set(['.fabric', '.cache', 'natives', 'logs', 'crash-reports', 'instance.json', '.amethyx/backups']);
 
 /**
  * Writes the whole instance as a plain .zip: the game folder under ".minecraft" with instance.cfg
- * and mmc-pack.json beside it, the layout Prism Launcher and MultiMC import (Vanilla+ too).
+ * and mmc-pack.json beside it, the layout Prism Launcher and MultiMC import (Amethyx too).
  * Worlds, mod settings and screenshots go in when asked.
  */
 async function exportInstanceZip(settings, instanceId, target, { includeConfigs = true, includeWorlds = true, includeScreenshots = false } = {}) {

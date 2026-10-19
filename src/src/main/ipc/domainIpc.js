@@ -187,7 +187,7 @@ function registerDomainHandlers(handle) {
     return result;
   });
   handle(CHANNELS.content.installDatapack, async (_event, request) => contentService.installDatapack(await settings(), request ?? {}));
-  // Instances of other launchers on this computer, and moving one into Vanilla+.
+  // Instances of other launchers on this computer, and moving one into Amethyx.
   handle(CHANNELS.content.scanLaunchers, () => require('../content/launcherImport').scanLaunchers());
   handle(CHANNELS.content.importFromLauncher, async (_event, request) => {
     const result = await require('../content/launcherImport').importFromLauncher(await settings(), {

@@ -45,7 +45,7 @@ function elyOAuthAvailable() {
 }
 
 const page = (title, text) =>
-  `<!doctype html><meta charset="utf-8"><title>Vanilla+</title><body style="margin:0;display:grid;place-items:center;height:100vh;background:#15130f;color:#f2e3bd;font:16px system-ui,sans-serif"><div style="text-align:center"><h1 style="font-size:24px">${title}</h1><p style="opacity:.8">${text}</p></div></body>`;
+  `<!doctype html><meta charset="utf-8"><title>Amethyx</title><body style="margin:0;display:grid;place-items:center;height:100vh;background:#110e19;color:#f4f0fb;font:16px system-ui,sans-serif"><div style="text-align:center"><h1 style="font-size:24px">${title}</h1><p style="opacity:.8">${text}</p></div></body>`;
 
 /** Waits for Ely.by to send the browser back with a code. Resolves with the code. */
 function waitForCode(state, signal) {
@@ -59,7 +59,7 @@ function waitForCode(state, signal) {
       const code = url.searchParams.get('code');
       const ok = code && url.searchParams.get('state') === state;
       res.writeHead(ok ? 200 : 400, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(ok ? page('Готово!', 'Аккаунт Ely.by добавлен в Vanilla+. Эту вкладку можно закрыть.') : page('Вход не завершён', 'Вернитесь в Vanilla+ и попробуйте ещё раз.'));
+      res.end(ok ? page('Готово!', 'Аккаунт Ely.by добавлен в Amethyx. Эту вкладку можно закрыть.') : page('Вход не завершён', 'Вернитесь в Amethyx и попробуйте ещё раз.'));
       finish(ok ? null : new Error(url.searchParams.get('error_message') || 'Ely.by не подтвердил вход.'), code);
     });
     const timer = setTimeout(() => finish(new Error('Вход на сайте Ely.by не завершён за 5 минут.')), WAIT_MS);
@@ -124,7 +124,7 @@ async function signInWithElyBrowser({ signal } = {}) {
   if (!app) throw new Error('В этой сборке вход через сайт Ely.by не настроен.');
   const state = crypto.randomBytes(16).toString('hex');
   const waiting = waitForCode(state, signal);
-  const url = `${AUTHORIZE_URL}?${new URLSearchParams({ client_id: app.clientId, redirect_uri: REDIRECT_URI, response_type: 'code', scope: SCOPES, state, description: 'Vanilla+ Launcher' })}`;
+  const url = `${AUTHORIZE_URL}?${new URLSearchParams({ client_id: app.clientId, redirect_uri: REDIRECT_URI, response_type: 'code', scope: SCOPES, state, description: 'Amethyx Launcher' })}`;
   await shell.openExternal(url);
   log.info('Открыт вход на сайте Ely.by');
   const code = await waiting;

@@ -7,7 +7,7 @@ const { createLogger } = require('../core/logger');
 const { SerialQueue } = require('../core/serialQueue');
 
 /*
- * World backups of an instance: zip archives in <instance>/.vanillaplus/backups with an index.
+ * World backups of an instance: zip archives in <instance>/.amethyx/backups with an index.
  * Made by hand or automatically before risky changes (mod updates, another Minecraft version);
  * restoring keeps a copy of the current world first, so a restore can itself be undone.
  * Archives are written by the bsdtar that ships with Windows, in its own process: big worlds do
@@ -20,7 +20,7 @@ const log = createLogger('backups');
 const queue = new SerialQueue();
 
 function backupsDirectory(instanceDirectory) {
-  return path.join(instanceDirectory, '.vanillaplus', 'backups');
+  return path.join(instanceDirectory, '.amethyx', 'backups');
 }
 
 function tarPath() {
@@ -92,7 +92,7 @@ function createBackup(instanceDirectory, world, { reason = 'Вручную', aut
     }
     const createdAt = new Date().toISOString();
     const id = `${createdAt.replace(/[:.]/g, '-')}-${Math.random().toString(36).slice(2, 7)}`;
-    const relativeZip = path.join('.vanillaplus', 'backups', `${id}.zip`);
+    const relativeZip = path.join('.amethyx', 'backups', `${id}.zip`);
     await fsp.mkdir(backupsDirectory(instanceDirectory), { recursive: true });
     // -a picks the format from the extension (.zip); entries are "saves/<world>/…".
     await runTar(['-a', '-c', '-f', relativeZip, path.join('saves', name)], instanceDirectory);
@@ -144,14 +144,14 @@ function restoreBackup(instanceDirectory, id) {
       // A copy of what is replaced: the restore can be undone from the same list.
       const createdAt = new Date().toISOString();
       const safetyId = `${createdAt.replace(/[:.]/g, '-')}-before-restore`;
-      await runTar(['-a', '-c', '-f', path.join('.vanillaplus', 'backups', `${safetyId}.zip`), path.join('saves', world)], instanceDirectory);
+      await runTar(['-a', '-c', '-f', path.join('.amethyx', 'backups', `${safetyId}.zip`), path.join('saves', world)], instanceDirectory);
       const size = (await fsp.stat(path.join(backupsDirectory(instanceDirectory), `${safetyId}.zip`))).size;
       backups.push({ id: safetyId, world, createdAt, size, reason: 'Перед восстановлением', auto: false });
       await writeIndex(instanceDirectory, backups);
       await fsp.rename(worldDirectory, aside);
     }
     try {
-      await runTar(['-x', '-f', path.join('.vanillaplus', 'backups', `${backup.id}.zip`)], instanceDirectory);
+      await runTar(['-x', '-f', path.join('.amethyx', 'backups', `${backup.id}.zip`)], instanceDirectory);
     } catch (error) {
       await fsp.rm(worldDirectory, { recursive: true, force: true }).catch(() => {});
       if (exists) await fsp.rename(aside, worldDirectory).catch(() => {});

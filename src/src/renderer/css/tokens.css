@@ -4,27 +4,27 @@
   --font-display: "Inter", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   --font-pixel: "Tiny5", "Inter", "Segoe UI", system-ui, sans-serif;
 
-  /* Vanilla+: warm dark neutrals (cocoa, not green-black) and light cream text. */
-  --color-bg: #0e0b09;
-  --color-surface: rgba(20, 16, 13, 0.76);
-  --color-surface-strong: rgba(24, 19, 16, 0.96);
-  --color-surface-hover: rgba(255, 236, 214, 0.07);
-  --color-border: rgba(255, 236, 214, 0.1);
-  --color-border-strong: rgba(255, 236, 214, 0.2);
-  --color-text: #f7f1e8;
-  --color-text-soft: #cbbfb1;
-  --color-text-muted: #908477;
-  --color-text-on-accent: #2b1a08;
+  /* Amethyx: deep amethyst darks (violet-black, like the inside of a geode) and soft lilac-white text. */
+  --color-bg: #0a080f;
+  --color-surface: rgba(15, 12, 22, 0.76);
+  --color-surface-strong: rgba(18, 15, 26, 0.96);
+  --color-surface-hover: rgba(226, 214, 255, 0.07);
+  --color-border: rgba(226, 214, 255, 0.1);
+  --color-border-strong: rgba(226, 214, 255, 0.2);
+  --color-text: #f4f0fb;
+  --color-text-soft: #c4bbd8;
+  --color-text-muted: #8b83a2;
+  --color-text-on-accent: #1c0e3a;
   --color-danger: #ff6b5e;
   --color-warning: #ffd479;
   --color-success: #7de67d;
 
-  /* Accent: the theme colour chosen in Settings → Appearance (vanilla by default). */
-  --accent-rgb: 247, 215, 148;
-  --accent-strong-rgb: 236, 186, 92;
+  /* Accent: the theme colour chosen in Settings → Appearance (amethyst by default). */
+  --accent-rgb: 190, 160, 255;
+  --accent-strong-rgb: 150, 112, 245;
   --color-accent: rgb(var(--accent-rgb));
   --color-accent-strong: rgb(var(--accent-strong-rgb));
-  --color-accent-deep: #8a5a1c;
+  --color-accent-deep: #4b2e9e;
   --color-accent-glow: rgba(var(--accent-rgb), 0.35);
 
   /* Minecraft-like bevels: light top-left edge, dark bottom-right edge. */
@@ -50,7 +50,8 @@
   --gutter: 36px;
 }
 
-/* Vanilla+ accents. */
+/* Theme colours. Amethyst, the default, matches the X of the logo. */
+:root[data-accent="amethyst"] { --accent-rgb: 190, 160, 255; --accent-strong-rgb: 150, 112, 245; --color-accent-deep: #4b2e9e; --color-text-on-accent: #1c0e3a; }
 :root[data-accent="vanilla"] { --accent-rgb: 247, 215, 148; --accent-strong-rgb: 236, 186, 92; --color-accent-deep: #8a5a1c; --color-text-on-accent: #2b1a08; }
 :root[data-accent="berry"] { --accent-rgb: 255, 138, 168; --accent-strong-rgb: 242, 88, 128; --color-accent-deep: #8c1f42; --color-text-on-accent: #2b0812; }
 :root[data-accent="lavender"] { --accent-rgb: 194, 176, 255; --accent-strong-rgb: 150, 122, 250; --color-accent-deep: #45318f; --color-text-on-accent: #140b2e; }
@@ -58,7 +59,6 @@
 :root[data-accent="diamond"] { --accent-rgb: 124, 236, 255; --accent-strong-rgb: 74, 214, 238; --color-accent-deep: #1d7f92; }
 :root[data-accent="gold"] { --accent-rgb: 255, 216, 107; --accent-strong-rgb: 246, 192, 64; --color-accent-deep: #9a6f12; }
 :root[data-accent="redstone"] { --accent-rgb: 255, 120, 112; --accent-strong-rgb: 236, 72, 64; --color-accent-deep: #8f1d16; }
-:root[data-accent="amethyst"] { --accent-rgb: 206, 168, 255; --accent-strong-rgb: 172, 120, 246; --color-accent-deep: #5b3596; }
 :root[data-accent="lapis"] { --accent-rgb: 138, 172, 255; --accent-strong-rgb: 88, 128, 242; --color-accent-deep: #233f96; }
 :root[data-accent="copper"] { --accent-rgb: 255, 176, 128; --accent-strong-rgb: 226, 128, 80; --color-accent-deep: #8a4320; }
 

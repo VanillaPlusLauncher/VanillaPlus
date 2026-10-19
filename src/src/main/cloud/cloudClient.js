@@ -11,16 +11,16 @@ const { getSettings } = require('../settings/settingsService');
 const { loadAccountStore, encryptSecret, decryptSecret } = require('../accounts/accountStore');
 
 /*
- * Talks to the Vanilla+ server (server/ in this repository): sign-in per account, then JSON calls
+ * Talks to the Amethyx server (server/ in this repository): sign-in per account, then JSON calls
  * with the session token. How each kind of account proves who it is:
  *  - Microsoft / Ely.by: the launcher "joins" a one-time server id at Mojang / Ely.by with the
- *    game session, and the Vanilla+ server checks that with them. The game token is sent only to
- *    Mojang / Ely.by, never to the Vanilla+ server.
+ *    game session, and the Amethyx server checks that with them. The game token is sent only to
+ *    Mojang / Ely.by, never to the Amethyx server.
  *  - Offline: a random secret made on this computer holds the name.
  * Tokens and secrets are kept encrypted (Windows DPAPI) in cloud.json.
  */
 
-/** The Vanilla+ server built into releases (server/ deployed to Cloudflare, see server/README.md). */
+/** The Amethyx server built into releases (server/ deployed to Cloudflare, see server/README.md). */
 const BUILT_IN_SERVER = 'https://vanillaplus.vanillaplus-server.workers.dev';
 const JOIN_URL = {
   microsoft: 'https://sessionserver.mojang.com/session/minecraft/join',
@@ -78,7 +78,7 @@ function serverUrl(settings) {
 async function requireServer() {
   const url = serverUrl(await getSettings());
   if (!url) {
-    throw new CloudUnavailable('Сервер Vanilla+ не подключён: друзья и общие скины пока недоступны.');
+    throw new CloudUnavailable('Сервер Amethyx не подключён: друзья и общие скины пока недоступны.');
   }
   return url;
 }
@@ -104,7 +104,7 @@ async function callServer(base, method, pathname, { body, token } = {}) {
         throw friendly;
       }
     } else if (!(error instanceof Error && error.status)) {
-      throw new Error(`Сервер Vanilla+ не отвечает (${error.message}).`);
+      throw new Error(`Сервер Amethyx не отвечает (${error.message}).`);
     }
     throw error;
   }
@@ -172,7 +172,7 @@ async function tokenFor(base, account, { fresh = false } = {}) {
             store.sessions[account.id] = { server: base, token: sealed, userId: user.id };
           });
         }
-        log.info(`Вход на сервер Vanilla+: ${user.id}`);
+        log.info(`Вход на сервер Amethyx: ${user.id}`);
         return token;
       })().finally(() => signIns.delete(key)),
     );

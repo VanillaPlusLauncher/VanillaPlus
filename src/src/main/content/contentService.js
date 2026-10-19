@@ -15,7 +15,7 @@ const instanceService = require('../minecraft/instanceService');
 
 /*
  * Mods, resource packs and shaders of an instance, from Modrinth and CurseForge.
- * What the launcher installed is remembered in <instance>/.vanillaplus/content.json
+ * What the launcher installed is remembered in <instance>/.amethyx/content.json
  * (site, project, version), which makes updates and dependency checks possible.
  */
 
@@ -44,7 +44,7 @@ function assertFileName(file) {
 }
 
 function indexPath(directory) {
-  return path.join(directory, '.vanillaplus', 'content.json');
+  return path.join(directory, '.amethyx', 'content.json');
 }
 
 async function readIndex(directory) {

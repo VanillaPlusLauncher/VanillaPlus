@@ -1,8 +1,8 @@
 ﻿# Builds the launcher folder and its installer.
-#   1. copies the Electron runtime (build\VanillaPlus without app.asar) to a staging folder,
+#   1. copies the Electron runtime (build\Amethyx without app.asar) to a staging folder,
 #   2. packs src\ into resources\app.asar there (tools\asar.py),
-#   3. compiles installer\VanillaPlus.iss into build\VanillaPlus-Setup-<version>.exe.
-# A staging folder is used so the build works while build\VanillaPlus is open.
+#   3. compiles installer\Amethyx.iss into build\Amethyx-Setup-<version>.exe.
+# A staging folder is used so the build works while build\Amethyx is open.
 #
 # The Minecraft files in src\assets\mc-ui (a local cache) are never packed: the launcher downloads
 # them from Mojang on its first start.
@@ -15,7 +15,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$runtime = Join-Path $root 'build\VanillaPlus'
+$runtime = Join-Path $root 'build\Amethyx'
 if (-not $Version) { $Version = (Get-Content (Join-Path $root 'src\package.json') -Raw | ConvertFrom-Json).version }
 if (-not $Output) { $Output = Join-Path $root 'build' }
 if (-not $Iscc) {
@@ -25,7 +25,7 @@ if (-not $Iscc) {
 
 # A fresh clone has no runtime yet: Electron is downloaded from its GitHub releases and checked.
 $electronVersion = '44.9.0'
-if (-not (Test-Path (Join-Path $runtime 'VanillaPlus.exe'))) {
+if (-not (Test-Path (Join-Path $runtime 'Amethyx.exe'))) {
   $zipName = "electron-v$electronVersion-win32-x64.zip"
   $base = "https://github.com/electron/electron/releases/download/v$electronVersion"
   $download = Join-Path $env:TEMP $zipName
@@ -38,13 +38,13 @@ if (-not (Test-Path (Join-Path $runtime 'VanillaPlus.exe'))) {
   if (-not $expected -or $expected -ne $actual) { throw "Контрольная сумма Electron не совпала ($actual)." }
   New-Item -ItemType Directory -Force $runtime | Out-Null
   Expand-Archive $download $runtime -Force
-  Move-Item (Join-Path $runtime 'electron.exe') (Join-Path $runtime 'VanillaPlus.exe') -Force
+  Move-Item (Join-Path $runtime 'electron.exe') (Join-Path $runtime 'Amethyx.exe') -Force
   Remove-Item (Join-Path $runtime 'resources\default_app.asar') -Force -ErrorAction SilentlyContinue
 }
 if (-not (Test-Path (Join-Path $root 'src\node_modules\adm-zip'))) { throw 'Нет зависимостей: выполните `npm install --omit=dev` в папке src.' }
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw 'Нужен Python 3 (для упаковки app.asar).' }
 
-$stage = Join-Path $env:TEMP "vanillaplus-stage-$Version"
+$stage = Join-Path $env:TEMP "amethyx-stage-$Version"
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $stage | Out-Null
 Get-ChildItem $runtime | Where-Object { $_.Name -ne 'resources' } | Copy-Item -Destination $stage -Recurse
@@ -53,22 +53,22 @@ Get-ChildItem (Join-Path $runtime 'resources') | Where-Object { $_.Name -notlike
 
 # A copy of src is packed: without the Minecraft cache, and with the version set when -Version is given.
 $source = Join-Path $root 'src'
-$copy = Join-Path $env:TEMP "vanillaplus-src-$Version"
+$copy = Join-Path $env:TEMP "amethyx-src-$Version"
 Remove-Item $copy -Recurse -Force -ErrorAction SilentlyContinue
 robocopy $source $copy /E /XD mc-ui /NFL /NDL /NJH /NJS /NP | Out-Null
 $package = Join-Path $copy 'package.json'
 $text = [IO.File]::ReadAllText($package) -replace '"version":\s*"[^"]+"', "`"version`": `"$Version`""
 [IO.File]::WriteAllText($package, $text, (New-Object Text.UTF8Encoding $false))
 $source = $copy
-# The launcher's CurseForge API key, when there is one: from VANILLAPLUS_CURSEFORGE_KEY or
+# The launcher's CurseForge API key, when there is one: from AMETHYX_CURSEFORGE_KEY or
 # installer\curseforge.key (ignored by git). It goes only into the built app, never into the repository.
-$cfKey = $env:VANILLAPLUS_CURSEFORGE_KEY
+$cfKey = $env:AMETHYX_CURSEFORGE_KEY
 $cfKeyFile = Join-Path $PSScriptRoot 'curseforge.key'
 if (-not $cfKey -and (Test-Path $cfKeyFile)) { $cfKey = (Get-Content $cfKeyFile -Raw).Trim() }
 # The launcher's Ely.by application (sign-in on the Ely.by site): installer\ely-oauth.json
-# ({ "clientId": "...", "clientSecret": "..." }, ignored by git) or VANILLAPLUS_ELY_CLIENT_ID / _SECRET.
-$elyId = $env:VANILLAPLUS_ELY_CLIENT_ID
-$elySecret = $env:VANILLAPLUS_ELY_CLIENT_SECRET
+# ({ "clientId": "...", "clientSecret": "..." }, ignored by git) or AMETHYX_ELY_CLIENT_ID / _SECRET.
+$elyId = $env:AMETHYX_ELY_CLIENT_ID
+$elySecret = $env:AMETHYX_ELY_CLIENT_SECRET
 $elyFile = Join-Path $PSScriptRoot 'ely-oauth.json'
 if (-not $elyId -and (Test-Path $elyFile)) {
   $ely = Get-Content $elyFile -Raw | ConvertFrom-Json
@@ -88,7 +88,7 @@ if ($keys.Count) {
 python -I (Join-Path $PSScriptRoot 'tools\asar.py') pack $source (Join-Path $stage 'resources\app.asar') | Out-Null
 if (-not (Test-Path (Join-Path $stage 'resources\app.asar'))) { throw 'app.asar не собран.' }
 
-# Icon and file details of VanillaPlus.exe (Explorer, taskbar, "Properties"), set with Electron's
+# Icon and file details of Amethyx.exe (Explorer, taskbar, "Properties"), set with Electron's
 # rcedit. The download is checked against a pinned SHA-256 (the same file as in npm's "rcedit").
 $rcedit = Join-Path $env:TEMP 'rcedit-x64-2.0.0.exe'
 $rceditSha256 = '3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a'
@@ -97,19 +97,19 @@ if (-not (Test-Path $rcedit) -or (Get-FileHash $rcedit -Algorithm SHA256).Hash.T
   if ((Get-FileHash $rcedit -Algorithm SHA256).Hash.ToLower() -ne $rceditSha256) { Remove-Item $rcedit; throw 'Контрольная сумма rcedit не совпала.' }
 }
 $numericVersion = ($Version -replace '[^\d.].*$', '')
-& $rcedit (Join-Path $stage 'VanillaPlus.exe') --set-icon (Join-Path $PSScriptRoot 'art\setup.ico') `
+& $rcedit (Join-Path $stage 'Amethyx.exe') --set-icon (Join-Path $PSScriptRoot 'art\setup.ico') `
   --set-file-version $numericVersion --set-product-version $numericVersion `
-  --set-version-string ProductName 'Vanilla+ Launcher' --set-version-string FileDescription 'Vanilla+ Launcher' `
-  --set-version-string CompanyName 'Vanilla+' --set-version-string LegalCopyright 'GPL-3.0' `
-  --set-version-string OriginalFilename 'VanillaPlus.exe' --set-version-string InternalName 'VanillaPlus'
+  --set-version-string ProductName 'Amethyx Launcher' --set-version-string FileDescription 'Amethyx Launcher' `
+  --set-version-string CompanyName 'Amethyx' --set-version-string LegalCopyright 'GPL-3.0' `
+  --set-version-string OriginalFilename 'Amethyx.exe' --set-version-string InternalName 'Amethyx'
 if ($LASTEXITCODE -ne 0) { throw "rcedit завершился с кодом $LASTEXITCODE" }
-& $Iscc /Q "/DSourceDir=$stage" "/DAppVersion=$Version" "/O$Output" (Join-Path $PSScriptRoot 'VanillaPlus.iss')
+& $Iscc /Q "/DSourceDir=$stage" "/DAppVersion=$Version" "/O$Output" (Join-Path $PSScriptRoot 'Amethyx.iss')
 if ($LASTEXITCODE -ne 0) { throw "ISCC завершился с кодом $LASTEXITCODE" }
 # The runnable folder gets the same app (skipped while the launcher is open from there).
 try {
   Copy-Item (Join-Path $stage 'resources\app.asar') (Join-Path $runtime 'resources\app.asar') -Force -ErrorAction Stop
-  Copy-Item (Join-Path $stage 'VanillaPlus.exe') (Join-Path $runtime 'VanillaPlus.exe') -Force -ErrorAction Stop
+  Copy-Item (Join-Path $stage 'Amethyx.exe') (Join-Path $runtime 'Amethyx.exe') -Force -ErrorAction Stop
 } catch {
-  Write-Warning "build\VanillaPlus не обновлён: закройте лаунчер, запущенный оттуда."
+  Write-Warning "build\Amethyx не обновлён: закройте лаунчер, запущенный оттуда."
 }
-Write-Output (Join-Path $Output "VanillaPlus-Setup-$Version.exe")
+Write-Output (Join-Path $Output "Amethyx-Setup-$Version.exe")

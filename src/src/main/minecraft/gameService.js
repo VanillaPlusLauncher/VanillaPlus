@@ -73,17 +73,17 @@ function getActivity() {
 }
 
 /**
- * Vanilla+ skins and capes for this launch: the server gets the account's current skin (so others
+ * Amethyx skins and capes for this launch: the server gets the account's current skin (so others
  * see it), a modded instance gets CustomSkinLoader with the list of skin sources. Never blocks.
  */
-async function prepareVanillaPlusSkins({ settings, instance, session, selectedId, gameDirectory }) {
+async function prepareAmethyxSkins({ settings, instance, session, selectedId, gameDirectory }) {
   // Lazy: the cloud and content modules are only needed here.
   const { serverUrl } = require('../cloud/cloudClient');
   const base = serverUrl(settings);
   if (base && selectedId) {
     await require('../cloud/cloudSkins')
       .syncAccount(selectedId)
-      .catch((error) => pushLogLine(`Скин не отправлен на сервер Vanilla+: ${error.message}`));
+      .catch((error) => pushLogLine(`Скин не отправлен на сервер Amethyx: ${error.message}`));
   }
   const { prepareCustomSkins } = require('./customSkins');
   await prepareCustomSkins({
@@ -241,7 +241,7 @@ async function launch(requestedInstanceId, { server = null } = {}) {
     }
   }
   const afterLaunch = overrides.afterLaunch ?? settings.afterLaunch;
-  await prepareVanillaPlusSkins({ settings, instance, session, selectedId, gameDirectory });
+  await prepareAmethyxSkins({ settings, instance, session, selectedId, gameDirectory });
   await prepareWorldSharing({
     instance,
     gameDirectory,
@@ -355,7 +355,7 @@ async function explainCrash(run, startedAt, exitCode) {
     problems,
     crash: fromReport.crash ?? fromOutput.crash,
     exitText: describeExitCode(exitCode),
-    logId: report?.id ?? '.vanillaplus/last-run.log',
+    logId: report?.id ?? '.amethyx/last-run.log',
   };
 }
 

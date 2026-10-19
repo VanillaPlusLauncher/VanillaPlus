@@ -2,7 +2,7 @@
 
 /**
  * IPC channel names shared by the main process, the preload bridge and tests.
- * Renderer code never uses these strings directly: it calls window.vanillaplus.*.
+ * Renderer code never uses these strings directly: it calls window.amethyx.*.
  */
 const CHANNELS = Object.freeze({
   app: Object.freeze({

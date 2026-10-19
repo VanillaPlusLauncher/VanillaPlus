@@ -12,7 +12,7 @@ const instanceService = require('../minecraft/instanceService');
 /*
  * Moving instances from other launchers. Each launcher keeps its instances in its own place and
  * format; the scanner reads them (only reads) and lists name, Minecraft version, loader and what
- * is inside. Importing makes a Vanilla+ instance with the same version and loader and copies the
+ * is inside. Importing makes an Amethyx instance with the same version and loader and copies the
  * game folder: mods, configs, worlds, resource packs, shaders, screenshots, settings.
  *
  *  Prism Launcher, ElyPrismLauncher, PolyMC, MultiMC — instances/<dir>/{instance.cfg, mmc-pack.json, .minecraft|minecraft}
@@ -32,8 +32,8 @@ const HOME = os.homedir();
 
 /** Never copied: caches, logs and launcher files that the new instance makes itself. */
 const SKIP = new Set([
-  'logs', 'crash-reports', '.cache', '.mixin.out', '.fabric', '.quilt', 'natives', 'downloads', 'debug', 'webcache', 'webcache2', '.sable', '.milli', 'CustomSkinLoader', 'dynamic-resource-pack-cache', '.physics_mod_cache', '.vanillaplus',
-  // The other launcher's own description of the instance: instance.json would replace Vanilla+'s.
+  'logs', 'crash-reports', '.cache', '.mixin.out', '.fabric', '.quilt', 'natives', 'downloads', 'debug', 'webcache', 'webcache2', '.sable', '.milli', 'CustomSkinLoader', 'dynamic-resource-pack-cache', '.physics_mod_cache', '.amethyx', '.vanillaplus', '.richlauncher',
+  // The other launcher's own description of the instance: instance.json would replace Amethyx's.
   'instance.json', 'minecraftinstance.json', 'mmc-pack.json', 'instance.cfg', '.curseclient', 'millida-settings.json',
 ]);
 /** In a shared .minecraft folder these belong to the launcher, not to the instance. */
@@ -91,7 +91,7 @@ async function countDirs(directory) {
   return (await subdirectories(directory)).length;
 }
 
-/** Forge versions are stored as "<minecraft>-<forge>" by Vanilla+; NeoForge for 1.20.1 too. */
+/** Forge versions are stored as "<minecraft>-<forge>" by Amethyx; NeoForge for 1.20.1 too. */
 function normalizeLoader(type, version, minecraft) {
   const kind = String(type ?? 'vanilla').toLowerCase().replace(/[^a-z]/g, '');
   const known = { fabric: 'fabric', quilt: 'quilt', forge: 'forge', neoforge: 'neoforge', minecraftforge: 'forge', neoforged: 'neoforge', vanilla: 'vanilla', none: 'vanilla', '': 'vanilla' };
@@ -155,7 +155,7 @@ async function modrinthInstances(root) {
   const dbFile = path.join(root, 'app.db');
   if (!exists(dbFile)) return [];
   // A copy: the app may hold the database open.
-  const copy = path.join(os.tmpdir(), `vanillaplus-modrinth-${crypto.randomBytes(4).toString('hex')}.db`);
+  const copy = path.join(os.tmpdir(), `amethyx-modrinth-${crypto.randomBytes(4).toString('hex')}.db`);
   let rows = [];
   let profilesDir = path.join(root, 'profiles');
   try {
@@ -362,7 +362,7 @@ async function copyGameFolder(source, target, { shared, worlds, screenshots }, r
 }
 
 /**
- * Makes a Vanilla+ instance from another launcher's instance. The instance is looked up again by
+ * Makes an Amethyx instance from another launcher's instance. The instance is looked up again by
  * its key (the renderer only names it). Options: worlds, screenshots (both copied by default).
  */
 async function importFromLauncher(settings, { launcherId, key, name, worlds = true, screenshots = true }) {

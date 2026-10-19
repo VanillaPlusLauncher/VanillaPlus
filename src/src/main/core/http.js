@@ -1,7 +1,7 @@
 'use strict';
 
 // Sites like Modrinth ask launchers to say who they are and where to find them.
-const USER_AGENT = `VanillaPlusLauncher/${require('../../../package.json').version} (github.com/VanillaPlusLauncher/VanillaPlus)`;
+const USER_AGENT = `Amethyx/${require('../../../package.json').version} (github.com/VanillaPlusLauncher/VanillaPlus)`;
 const DEFAULT_TIMEOUT_MS = 30000;
 
 class HttpError extends Error {

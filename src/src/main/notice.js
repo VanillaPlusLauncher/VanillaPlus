@@ -4,7 +4,7 @@ const path = require('node:path');
 const { BrowserWindow, nativeImage, screen } = require('electron');
 
 /*
- * Vanilla+'s own notifications instead of Windows' toasts (slow, with a generic icon and the app id
+ * Amethyx's own notifications instead of Windows' toasts (slow, with a generic icon and the app id
  * on top): a soft card in the launcher's style — the mark, a cream title and the text in the
  * launcher's pixel font — in the bottom-right corner. It never takes the focus, hides by itself,
  * and a click runs `onClick`. Several stack upwards.
@@ -12,14 +12,14 @@ const { BrowserWindow, nativeImage, screen } = require('electron');
  * only by navigating to NOTICE_URL (ready, click), and those navigations are stopped.
  */
 
-const ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'vanillaplus-mark.png');
+const ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'amethyx-mark.png');
 const WIDTH = 360;
 const HEIGHT = 76;
 const GAP = 8;
 const SHOW_MS = 6000;
 /** Shown even if the pixel font did not arrive (no network). */
 const FONT_WAIT_MS = 900;
-const NOTICE_URL = 'vanillaplus-notice://';
+const NOTICE_URL = 'amethyx-notice://';
 
 const open = [];
 let iconUrl = null;
@@ -32,16 +32,16 @@ function page({ title, text }) {
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=block">
   <style>
   html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; cursor: pointer; }
-  /* The launcher's soft style: a rounded warm-dark card with a cream edge; text in its pixel font. */
+  /* The launcher's soft style: a rounded amethyst-dark card with a lilac edge; text in its pixel font. */
   .toast { box-sizing: border-box; height: ${HEIGHT}px; display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 12px;
-    border-radius: 12px; background: #1d1813; border: 1px solid rgba(247, 215, 148, 0.28);
+    border-radius: 12px; background: #161220; border: 1px solid rgba(190, 160, 255, 0.3);
     font-family: "Tiny5", "Segoe UI", sans-serif;
     animation: in 240ms cubic-bezier(.2, .9, .3, 1.15) both; }
-  .toast:hover { border-color: rgba(247, 215, 148, 0.6); }
-  img { width: 42px; height: 42px; flex: none; image-rendering: pixelated; }
+  .toast:hover { border-color: rgba(190, 160, 255, 0.65); }
+  img { width: 42px; height: 42px; flex: none; image-rendering: auto; }
   .lines { min-width: 0; }
-  .title { color: #f7d794; font-size: 17px; line-height: 20px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .text { color: #f3ead9; font-size: 15px; line-height: 18px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .title { color: #cbb4ff; font-size: 17px; line-height: 20px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .text { color: #f4f0fb; font-size: 15px; line-height: 18px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .out { animation: out 200ms ease-in both; }
   @keyframes in { from { opacity: 0; transform: translateX(28px); } }
   @keyframes out { to { opacity: 0; transform: translateX(28px); } }

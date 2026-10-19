@@ -1,6 +1,6 @@
 {
-  "name": "vanillaplus-launcher",
-  "productName": "Vanilla+ Launcher",
+  "name": "amethyx-launcher",
+  "productName": "Amethyx Launcher",
   "version": "1.7.0",
   "description": "Minecraft Java Edition launcher for Windows",
   "main": "src/main/index.js",

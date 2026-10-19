@@ -16,7 +16,7 @@ const { createGameLogFormatter } = require('./gameLogFormatter');
 const { prepareLegacyAssets } = require('./assetInstaller');
 const { prepareLegacyHome } = require('./legacyGameHome');
 
-const LAUNCHER_NAME = 'VanillaPlus';
+const LAUNCHER_NAME = 'Amethyx';
 const LAUNCHER_VERSION = '1.0.0';
 const log = createLogger('game');
 

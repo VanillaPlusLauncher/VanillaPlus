@@ -15,7 +15,7 @@ const { ensureDefaultAccount } = require('./accounts/accountService');
 const { startUpdateChecks } = require('./updates/updateService');
 const { startVersionWatch } = require('./minecraft/versionWatcher');
 
-const APP_USER_MODEL_ID = 'dev.vanillaplus.launcher';
+const APP_USER_MODEL_ID = 'dev.amethyx.launcher';
 
 // Must run before the app is ready: lets the renderer load ES modules and fetch assets over app://.
 protocol.registerSchemesAsPrivileged([
@@ -46,7 +46,7 @@ if (!singleInstance) {
     // Electron's "JavaScript error in the main process" box: it is logged and the launcher goes on.
     process.on('uncaughtException', (error) => log.error(`Необработанная ошибка: ${error?.stack ?? error}`));
     process.on('unhandledRejection', (reason) => log.warn(`Необработанный отказ: ${reason?.stack ?? reason}`));
-    log.info(`Vanilla+ Launcher ${app.getVersion()} запущен`);
+    log.info(`Amethyx Launcher ${app.getVersion()} запущен`);
     // Folders of the old name: the game folder, then paths saved in settings and instances.
     getDefaultGameDirectory();
     await finishMigration({ settingsFile: getAppPaths().settingsFile, gameDirectory: async () => (await getSettings()).gameDirectory }).catch((error) =>
@@ -70,10 +70,10 @@ if (!singleInstance) {
       .catch((error) => log.warn(`Ресурсы Minecraft для интерфейса не подготовлены: ${error.message}`));
 
     // New launcher versions: checked a few seconds after start and then every few hours.
-    if (!process.env.VANILLAPLUS_SCREENSHOT && !process.env.VANILLAPLUS_MAIN_SCRIPT) {
+    if (!process.env.AMETHYX_SCREENSHOT && !process.env.AMETHYX_MAIN_SCRIPT) {
       startUpdateChecks();
       startVersionWatch();
-      // "Online" for friends on the Vanilla+ server (nothing happens while no server is set up).
+      // "Online" for friends on the Amethyx server (nothing happens while no server is set up).
       require('./cloud/cloudFriends').startPresence();
       // Instant messages and friend requests.
       require('./cloud/cloudLive').startLive();

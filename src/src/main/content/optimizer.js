@@ -25,7 +25,7 @@ const { CATALOG, PROBLEMS, VIDEO, VIDEO_LABELS } = require('./optimizerCatalog')
 
 const log = createLogger('optimizer');
 const GPU_VENDORS = { 0x10de: 'NVIDIA', 0x1002: 'AMD', 0x1022: 'AMD', 0x8086: 'Intel', 0x13b5: 'ARM', 0x5143: 'Qualcomm' };
-const BACKUP_FOLDER = path.join('.vanillaplus', 'optimizer');
+const BACKUP_FOLDER = path.join('.amethyx', 'optimizer');
 const SODIUM_FILES = ['config/sodium-options.json', 'config/embeddium-options.json', 'config/rubidium-options.json'];
 
 // --- The computer ----------------------------------------------------------------------

@@ -11,10 +11,10 @@ const { showNotice } = require('./notice');
  * quits for real. With the setting off, closing the window quits as before.
  */
 
-const ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'vanillaplus-mark.png');
+const ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'amethyx-mark.png');
 const TEXTS = {
-  ru: { open: 'Открыть Vanilla+', quit: 'Выйти', title: 'Vanilla+ свёрнут в трей', hint: 'Выйти совсем: правой кнопкой по значку → «Выйти»' },
-  en: { open: 'Open Vanilla+', quit: 'Quit', title: 'Vanilla+ is in the tray', hint: 'To quit: right-click its icon → "Quit"' },
+  ru: { open: 'Открыть Amethyx', quit: 'Выйти', title: 'Amethyx свёрнут в трей', hint: 'Выйти совсем: правой кнопкой по значку → «Выйти»' },
+  en: { open: 'Open Amethyx', quit: 'Quit', title: 'Amethyx is in the tray', hint: 'To quit: right-click its icon → "Quit"' },
 };
 
 let tray = null;
@@ -39,7 +39,7 @@ async function ensureTray(window) {
   if (tray) return;
   const text = await texts();
   tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 }));
-  tray.setToolTip('Vanilla+ Launcher');
+  tray.setToolTip('Amethyx Launcher');
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: text.open, click: () => showWindow(window) },
@@ -67,7 +67,7 @@ function setupTray(window) {
         }
         await ensureTray(window);
         window.hide();
-        // Once per run: where the launcher went and how to quit it (Vanilla+'s own card, see notice.js).
+        // Once per run: where the launcher went and how to quit it (Amethyx's own card, see notice.js).
         if (!hintShown) {
           hintShown = true;
           const text = await texts();

@@ -9,12 +9,12 @@ import { toast } from './toast.js';
 import { createSegmented } from './controls.js';
 
 const FORMATS = [
-  { value: 'modrinth', logo: 'modrinth', title: 'Modrinth (.mrpack)', text: 'Для Modrinth App, Prism Launcher и Vanilla+. Моды с Modrinth — ссылками, остальные внутри.' },
+  { value: 'modrinth', logo: 'modrinth', title: 'Modrinth (.mrpack)', text: 'Для Modrinth App, Prism Launcher и Amethyx. Моды с Modrinth — ссылками, остальные внутри.' },
   { value: 'curseforge', logo: 'curseforge', title: 'CurseForge (.zip)', text: 'Для приложения CurseForge. Моды с CurseForge — ссылками, остальные внутри.' },
-  { value: 'zip', logo: null, title: 'Обычный .zip', text: 'Вся папка сборки целиком: открывают Prism Launcher, MultiMC и Vanilla+.' },
+  { value: 'zip', logo: null, title: 'Обычный .zip', text: 'Вся папка сборки целиком: открывают Prism Launcher, MultiMC и Amethyx.' },
 ];
 
-/** "Экспортировать": a share code to paste into Vanilla+, or a file in one of three formats. */
+/** "Экспортировать": a share code to paste into Amethyx, or a file in one of three formats. */
 export function openShareDialog(instance) {
   const codeArea = h('textarea', { class: 'textarea mono share-code', rows: '5', readonly: true, placeholder: 'Готовим код…' });
   const codeInfo = h('div', { class: 'text-muted share-info' });
@@ -30,7 +30,7 @@ export function openShareDialog(instance) {
   const codePanel = h(
     'div',
     { class: 'share-panel' },
-    h('p', { class: 'text-soft' }, 'Друг вставляет код в Vanilla+ («Сборки» → «Вставить код») и получает ту же сборку: версию игры, загрузчик и те же версии модов, ресурспаков и шейдеров.'),
+    h('p', { class: 'text-soft' }, 'Друг вставляет код в Amethyx («Сборки» → «Вставить код») и получает ту же сборку: версию игры, загрузчик и те же версии модов, ресурспаков и шейдеров.'),
     codeArea,
     codeInfo,
     h('div', { class: 'share-actions' }, sendButton, copyButton),
@@ -41,7 +41,7 @@ export function openShareDialog(instance) {
     try {
       const status = await api.friends.status();
       if (!status.available || !status.enabled) {
-        toast('Друзья работают через сервер Vanilla+: включите их в настройках.', 'info');
+        toast('Друзья работают через сервер Amethyx: включите их в настройках.', 'info');
         return;
       }
       friends = (await api.friends.list()).friends;

@@ -178,7 +178,7 @@ function showFirstRunLoader() {
   box.className = 'first-run__box';
   const logo = document.createElement('img');
   logo.className = 'first-run__logo';
-  logo.src = new URL('../../../assets/branding/vanillaplus-mark.png', import.meta.url).href;
+  logo.src = new URL('../../../assets/branding/amethyx-mark.png', import.meta.url).href;
   const track = document.createElement('span');
   track.className = 'first-run__track';
   track.append(bar);

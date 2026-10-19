@@ -23,12 +23,12 @@ let lastAccountId = null;
 
 async function selectedAccountId() {
   const { selectedId } = await loadAccountStore();
-  if (!selectedId) throw new Error('Добавьте аккаунт, чтобы дружить в Vanilla+.');
+  if (!selectedId) throw new Error('Добавьте аккаунт, чтобы дружить в Amethyx.');
   return selectedId;
 }
 
 /**
- * The skin a player shows (for the head in the list): the Vanilla+ skin when there is one, else
+ * The skin a player shows (for the head in the list): the Amethyx skin when there is one, else
  * the Mojang or Ely.by skin. Cached for a while: the list is refreshed often.
  */
 async function skinOf(base, user) {

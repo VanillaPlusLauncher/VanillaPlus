@@ -21,7 +21,7 @@ const KIND_LABELS = Object.fromEntries(KINDS.map((kind) => [kind.value, kind.lab
 const ACCOUNT_KIND = { microsoft: 'ms', ely: 'ely', offline: 'offline' };
 
 /**
- * Friends on the Vanilla+ server, like Essential: the list with who is online and what they play
+ * Friends on the Amethyx server, like Essential: the list with who is online and what they play
  * on the left, the conversation on the right — messages, screenshots from the instances and
  * invites to play (with the instance's share code, so a friend gets the same mods in a click).
  */
@@ -246,7 +246,7 @@ export function createFriendsPage() {
     } else if (message.kind === 'invite') {
       const invite = message.body ?? {};
       const what = [invite.instance, invite.minecraft ? `Minecraft ${invite.minecraft}${invite.loader && invite.loader !== 'vanilla' ? ` (${LOADER_LABELS[invite.loader] ?? invite.loader})` : ''}` : null].filter(Boolean).join(' · ');
-      // Old invites of the removed Vanilla+ tunnel carry `tunnel` instead of an address.
+      // Old invites of the removed Amethyx tunnel carry `tunnel` instead of an address.
       const intoWorld = Boolean(invite.world || invite.tunnel);
       content = [
         h('b', null, intoWorld ? (mine ? 'Вы позвали в свой мир' : 'Зовёт в свой мир') : mine ? 'Вы позвали играть' : 'Зовёт играть'),
@@ -552,15 +552,15 @@ export function createFriendsPage() {
     try {
       const status = await api.friends.status();
       if (!status.enabled) {
-        showMessage('Онлайн-функции выключены', 'Друзья и общие скины работают через сервер Vanilla+. Включите их в настройках.', h('button', { class: 'btn btn--primary', type: 'button', onclick: () => go('settings') }, 'Открыть настройки'));
+        showMessage('Онлайн-функции выключены', 'Друзья и общие скины работают через сервер Amethyx. Включите их в настройках.', h('button', { class: 'btn btn--primary', type: 'button', onclick: () => go('settings') }, 'Открыть настройки'));
         return;
       }
       if (!status.available) {
-        showMessage('Скоро', 'Друзья работают через сервер Vanilla+, а он ещё не подключён. Скины и плащи Vanilla+ уже можно сохранять — друзья увидят их, когда сервер заработает.');
+        showMessage('Скоро', 'Друзья работают через сервер Amethyx, а он ещё не подключён. Скины и плащи Amethyx уже можно сохранять — друзья увидят их, когда сервер заработает.');
         return;
       }
       if (!store.get().selectedAccountId) {
-        showMessage('Нет аккаунта', 'Добавьте аккаунт, чтобы дружить в Vanilla+.');
+        showMessage('Нет аккаунта', 'Добавьте аккаунт, чтобы дружить в Amethyx.');
         return;
       }
       const first = !state.data;

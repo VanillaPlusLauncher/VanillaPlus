@@ -5,7 +5,7 @@ const { BrowserWindow, shell } = require('electron');
 const { appUrl, APP_SCHEME } = require('./appProtocol');
 
 const PRELOAD_SCRIPT = path.join(__dirname, '..', 'preload', 'preload.js');
-const WINDOW_ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'vanillaplus-mark.png');
+const WINDOW_ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'amethyx-mark.png');
 const RENDERER_PAGE = appUrl('src/renderer/index.html');
 
 /** Creates the frameless main window. The renderer draws its own title bar. */
@@ -17,8 +17,8 @@ function createMainWindow() {
     minHeight: 640,
     frame: false,
     show: false,
-    backgroundColor: '#0e0b09',
-    title: 'Vanilla+ Launcher',
+    backgroundColor: '#0a080f',
+    title: 'Amethyx Launcher',
     icon: WINDOW_ICON,
     webPreferences: {
       preload: PRELOAD_SCRIPT,

@@ -58,8 +58,8 @@ async function deleteSkin(rawUuid) {
 
 /*
  * The cape of a profile. For an offline account it is the cape in the game; for Microsoft and
- * Ely.by it is shown only by Vanilla+ (CustomSkinLoader in modded instances), like the
- * Vanilla+ skin stored above for those accounts.
+ * Ely.by it is shown only by Amethyx (CustomSkinLoader in modded instances), like the
+ * Amethyx skin stored above for those accounts.
  */
 async function saveCape(rawUuid, pngBuffer) {
   const paths = skinPaths(normalizeUuid(rawUuid));

@@ -212,7 +212,7 @@ function findPrismPack(zip) {
     .sort((a, b) => a.entryName.length - b.entryName.length)[0];
 }
 
-/** An instance zip of Prism Launcher, MultiMC or Vanilla+ («Обычный .zip»): the game folder copied as is. */
+/** An instance zip of Prism Launcher, MultiMC or Amethyx («Обычный .zip»): the game folder copied as is. */
 async function importInstanceZip({ settings, zip, fields, reporter, created }) {
   const packEntry = findPrismPack(zip);
   const root = packEntry.entryName.slice(0, -'mmc-pack.json'.length);
@@ -260,7 +260,7 @@ async function importPackFile(settings, filePath, fields = {}, reporter = null) 
     } else if (findPrismPack(zip)) {
       instance = await importInstanceZip({ settings, zip, fields, reporter: ownReporter, created });
     } else {
-      throw new Error('Это не сборка: лаунчер открывает .mrpack (Modrinth), .zip CurseForge и архивы сборок Prism Launcher и Vanilla+.');
+      throw new Error('Это не сборка: лаунчер открывает .mrpack (Modrinth), .zip CurseForge и архивы сборок Prism Launcher и Amethyx.');
     }
     ownReporter.report('Установка Minecraft и загрузчика', 95, instance.minecraft);
     try {

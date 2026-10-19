@@ -7,14 +7,14 @@ const { createLogger } = require('./core/logger');
 const log = createLogger('screenshot');
 
 /**
- * Developer aid: when VANILLAPLUS_SCREENSHOT is set to a file path, the window
+ * Developer aid: when AMETHYX_SCREENSHOT is set to a file path, the window
  * is captured after the first render and the app exits. Used for visual checks.
- * VANILLAPLUS_SCREENSHOT_ROUTE clicks a sidebar route before capturing.
- * VANILLAPLUS_SCREENSHOT_SCRIPT runs renderer JavaScript (async allowed) before capturing.
+ * AMETHYX_SCREENSHOT_ROUTE clicks a sidebar route before capturing.
+ * AMETHYX_SCREENSHOT_SCRIPT runs renderer JavaScript (async allowed) before capturing.
  */
 function setupScreenshotMode(window) {
   setupMainScript(window);
-  const target = process.env.VANILLAPLUS_SCREENSHOT;
+  const target = process.env.AMETHYX_SCREENSHOT;
   if (!target) {
     return;
   }
@@ -25,7 +25,7 @@ function setupScreenshotMode(window) {
       log.warn(`renderer: ${details.message} (${details.sourceId ?? ''}:${details.lineNumber ?? ''})`);
     }
   });
-  const route = process.env.VANILLAPLUS_SCREENSHOT_ROUTE;
+  const route = process.env.AMETHYX_SCREENSHOT_ROUTE;
   // A covered window stops painting and capturePage returns an old frame: keep it on top.
   window.webContents.setBackgroundThrottling(false);
   window.setAlwaysOnTop(true, 'screen-saver');
@@ -36,7 +36,7 @@ function setupScreenshotMode(window) {
         await window.webContents.executeJavaScript(`document.querySelector('[data-route="${route}"]')?.click()`);
         await new Promise((resolve) => setTimeout(resolve, 1200));
       }
-      const script = process.env.VANILLAPLUS_SCREENSHOT_SCRIPT;
+      const script = process.env.AMETHYX_SCREENSHOT_SCRIPT;
       if (script) {
         await window.webContents.executeJavaScript(`(async () => { ${script} })()`);
         await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -50,12 +50,12 @@ function setupScreenshotMode(window) {
 }
 
 /**
- * Developer aid: VANILLAPLUS_MAIN_SCRIPT names a CommonJS file exporting async (context) => {},
+ * Developer aid: AMETHYX_MAIN_SCRIPT names a CommonJS file exporting async (context) => {},
  * run in the main process once the window has loaded; the app exits afterwards. The context gives
  * `load(modulePath)` for the launcher's own modules (relative to src/main) and `log(text)`.
  */
 function setupMainScript(window) {
-  const script = process.env.VANILLAPLUS_MAIN_SCRIPT;
+  const script = process.env.AMETHYX_MAIN_SCRIPT;
   if (!script) {
     return;
   }

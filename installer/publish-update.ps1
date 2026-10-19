@@ -10,14 +10,14 @@
 param(
   [Parameter(Mandatory = $true)][string]$Repo,
   [string]$Notes = '',
-  # build\VanillaPlus-Setup-<version>.exe (from build.ps1) by default.
+  # build\Amethyx-Setup-<version>.exe (from build.ps1) by default.
   [string]$Installer = '',
   [switch]$Publish
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $version = (Get-Content (Join-Path $root 'src\package.json') -Raw | ConvertFrom-Json).version
-$installer = if ($Installer) { $Installer } else { Join-Path $root "build\VanillaPlus-Setup-$version.exe" }
+$installer = if ($Installer) { $Installer } else { Join-Path $root "build\Amethyx-Setup-$version.exe" }
 if (-not (Test-Path $installer)) { throw "Нет установщика $installer — сначала соберите его: .\build.ps1" }
 
 $tag = "v$version"
@@ -39,5 +39,5 @@ Write-Output "Адрес для лаунчера: https://github.com/$Repo/relea
 
 if ($Publish) {
   if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'Для -Publish нужен GitHub CLI (gh).' }
-  gh release create $tag $installer $latest --repo $Repo --title "Vanilla+ Launcher $version" --notes $Notes
+  gh release create $tag $installer $latest --repo $Repo --title "Amethyx Launcher $version" --notes $Notes
 }

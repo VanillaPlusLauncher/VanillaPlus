@@ -5,22 +5,24 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 
 /*
- * The launcher used to be called RichLauncher. Its folders are renamed on the first start of
- * Vanilla+ Launcher, so settings, accounts, skins, downloaded Java and instances carry over:
- *   %APPDATA%\RichLauncher   -> %APPDATA%\VanillaPlus      (launcher data)
- *   %APPDATA%\.richlauncher  -> %APPDATA%\.vanillaplus     (default game folder)
- *   <instance>\.richlauncher -> <instance>\.vanillaplus    (installed content, icon, last run log)
- * Full paths saved in settings.json and instance.json (a picked Java, a chosen game folder) are
- * rewritten to the new folders. When a folder cannot be renamed (something holds it open), the
- * old one keeps being used.
+ * The launcher used to be called RichLauncher, then Vanilla+ Launcher. Their folders are renamed on
+ * the first start of Amethyx, so settings, accounts, skins, downloaded Java and instances carry over:
+ *   %APPDATA%\VanillaPlus or RichLauncher      -> %APPDATA%\Amethyx      (launcher data)
+ *   %APPDATA%\.vanillaplus or .richlauncher    -> %APPDATA%\.amethyx     (default game folder)
+ *   <instance>\.vanillaplus or .richlauncher   -> <instance>\.amethyx    (installed content, icon, last run log)
+ * The newer old name is tried first. Full paths saved in settings.json and instance.json (a picked
+ * Java, a chosen game folder) are rewritten to the new folders. When a folder cannot be renamed
+ * (something holds it open), the old one keeps being used.
  */
 
-const USER_DATA_NAME = 'VanillaPlus';
-const OLD_USER_DATA_NAME = 'RichLauncher';
-const GAME_FOLDER = '.vanillaplus';
-const OLD_GAME_FOLDER = '.richlauncher';
-const INSTANCE_META = '.vanillaplus';
-const OLD_INSTANCE_META = '.richlauncher';
+const USER_DATA_NAME = 'Amethyx';
+const OLD_USER_DATA_NAMES = ['VanillaPlus', 'RichLauncher'];
+const GAME_FOLDER = '.amethyx';
+const OLD_GAME_FOLDERS = ['.vanillaplus', '.richlauncher'];
+const INSTANCE_META = '.amethyx';
+const OLD_INSTANCE_METAS = ['.vanillaplus', '.richlauncher'];
+/** Default theme colours of the old names; they become Amethyx's amethyst. A colour picked by hand stays. */
+const OLD_DEFAULT_ACCENTS = ['emerald', 'vanilla'];
 
 const notes = [];
 /** [old absolute path, new absolute path] of every folder moved in this start. */
@@ -89,6 +91,22 @@ function renameIfNeeded(from, to, kind) {
   }
 }
 
+/**
+ * Moves the first old folder (in `parent`) that holds data to `name`. Returns the folder to use:
+ * the new one, an old one that could not be moved, or null when none of them exists.
+ */
+function renameFromOldNames(parent, oldNames, name, kind) {
+  const target = path.join(parent, name);
+  let result = null;
+  for (const oldName of oldNames) {
+    result = renameIfNeeded(path.join(parent, oldName), target, kind) ?? result;
+    if (result && (result !== target || HOLDS_DATA[kind](target))) {
+      return result;
+    }
+  }
+  return result;
+}
+
 /** Rewrites moved folder paths inside a JSON file (paths are stored with escaped backslashes). */
 async function rewritePaths(file) {
   if (moved.length === 0) {
@@ -118,30 +136,29 @@ function setupUserData(app) {
     return;
   }
   const appData = app.getPath('appData');
-  const target = path.join(appData, USER_DATA_NAME);
-  app.setPath('userData', renameIfNeeded(path.join(appData, OLD_USER_DATA_NAME), target, 'userData') ?? target);
+  app.setPath('userData', renameFromOldNames(appData, OLD_USER_DATA_NAMES, USER_DATA_NAME, 'userData') ?? path.join(appData, USER_DATA_NAME));
 }
 
-/** Default game folder: the new name, or the old one when it could not be renamed. */
+/** Default game folder: the new name, or an old one when it could not be renamed. */
 function defaultGameDirectory(app) {
   if (!gameDirectoryCache) {
     const appData = app.getPath('appData');
     const target = path.join(appData, GAME_FOLDER);
     // A run with its own --user-data-dir (portable or test copy) never moves the real game folder.
-    gameDirectoryCache = app.commandLine.hasSwitch('user-data-dir') ? target : (renameIfNeeded(path.join(appData, OLD_GAME_FOLDER), target, 'game') ?? target);
+    gameDirectoryCache = app.commandLine.hasSwitch('user-data-dir') ? target : (renameFromOldNames(appData, OLD_GAME_FOLDERS, GAME_FOLDER, 'game') ?? target);
   }
   return gameDirectoryCache;
 }
 
-/** RichLauncher's default mint colour becomes Vanilla+'s cream one; a colour picked by hand stays. */
-async function switchToVanillaAccent(settingsFile) {
+/** The old names' default colours become the amethyst one; a colour picked by hand stays. */
+async function switchToAmethystAccent(settingsFile) {
   if (!moved.some(([, to]) => settingsFile.startsWith(to + path.sep))) {
     return;
   }
   try {
     const settings = JSON.parse(await fsp.readFile(settingsFile, 'utf8'));
-    if (settings?.ui?.accent === 'emerald') {
-      settings.ui.accent = 'vanilla';
+    if (OLD_DEFAULT_ACCENTS.includes(settings?.ui?.accent)) {
+      settings.ui.accent = 'amethyst';
       await fsp.writeFile(settingsFile, JSON.stringify(settings, null, 2));
     }
   } catch {
@@ -155,7 +172,7 @@ async function switchToVanillaAccent(settingsFile) {
  */
 async function finishMigration({ settingsFile, gameDirectory }) {
   await rewritePaths(settingsFile);
-  await switchToVanillaAccent(settingsFile);
+  await switchToAmethystAccent(settingsFile);
   // Read after the rewrite: a game folder chosen by hand may have been one of the moved ones.
   const instances = path.join(await gameDirectory(), 'instances');
   let entries = [];
@@ -169,7 +186,7 @@ async function finishMigration({ settingsFile, gameDirectory }) {
       continue;
     }
     const directory = path.join(instances, entry.name);
-    renameIfNeeded(path.join(directory, OLD_INSTANCE_META), path.join(directory, INSTANCE_META), 'instance');
+    renameFromOldNames(directory, OLD_INSTANCE_METAS, INSTANCE_META, 'instance');
     await rewritePaths(path.join(directory, 'instance.json'));
   }
 }

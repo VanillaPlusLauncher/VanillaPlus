@@ -199,4 +199,4 @@ const bridge = {
   },
 };
 
-contextBridge.exposeInMainWorld('vanillaplus', bridge);
+contextBridge.exposeInMainWorld('amethyx', bridge);

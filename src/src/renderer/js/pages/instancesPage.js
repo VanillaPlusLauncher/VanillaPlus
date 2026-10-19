@@ -16,7 +16,7 @@ import { toast } from '../components/toast.js';
 import { sfx } from '../core/sound.js';
 
 const NO_GROUP = '';
-const DRAG_TYPE = 'application/x-vanillaplus-instance';
+const DRAG_TYPE = 'application/x-amethyx-instance';
 const SORTS = [
   { value: 'recent', label: 'Недавние' },
   { value: 'name', label: 'По имени' },

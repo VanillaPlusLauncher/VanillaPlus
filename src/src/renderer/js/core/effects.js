@@ -1,6 +1,6 @@
 /** Small visual effects: pixel bursts on Play and floating sparks behind the home screen. */
 
-const BURST_COLORS = ['var(--color-accent)', 'var(--color-accent-strong)', '#ffffff', '#ffd479'];
+const BURST_COLORS = ['var(--color-accent)', 'var(--color-accent-strong)', '#ffffff', '#ffc4e6'];
 
 function animationsEnabled() {
   return document.documentElement.dataset.animations !== 'off';

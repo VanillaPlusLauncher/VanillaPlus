@@ -23,7 +23,7 @@ const SITES = {
   namemc: 'https://namemc.com/minecraft-skins/trending',
 };
 const PARTITION = 'persist:skin-site';
-const WINDOW_ICON = path.join(__dirname, '..', '..', '..', 'assets', 'branding', 'vanillaplus-mark.png');
+const WINDOW_ICON = path.join(__dirname, '..', '..', '..', 'assets', 'branding', 'amethyx-mark.png');
 
 let siteWindow = null;
 let siteKey = null;
@@ -97,7 +97,7 @@ function prepareSession(siteSession) {
       handlers.onError(new Error('Это не скин: нужен PNG-файл скина.'));
       return;
     }
-    const target = path.join(os.tmpdir(), `vanillaplus-skin-${crypto.randomUUID()}.png`);
+    const target = path.join(os.tmpdir(), `amethyx-skin-${crypto.randomUUID()}.png`);
     item.setSavePath(target);
     item.once('done', async (_doneEvent, state) => {
       try {
@@ -144,9 +144,9 @@ function openSkinSite(parent, nextHandlers, key = 'skindex') {
     height: 800,
     minWidth: 800,
     minHeight: 560,
-    title: 'Скины с сайта — Vanilla+',
+    title: 'Скины с сайта — Amethyx',
     autoHideMenuBar: true,
-    backgroundColor: '#1b1712',
+    backgroundColor: '#15111e',
     icon: WINDOW_ICON,
     webPreferences: { partition: PARTITION, sandbox: true, contextIsolation: true, nodeIntegration: false, spellcheck: false },
   });

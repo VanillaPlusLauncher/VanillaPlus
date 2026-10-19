@@ -7,7 +7,7 @@
 | [skinview3d](https://github.com/bs-community/skinview3d) 3.4.2 with [three.js](https://threejs.org) | `src/src/renderer/vendor` | MIT — text in `skinview3d.LICENSE.txt` |
 | [Tiny5](https://fonts.google.com/specimen/Tiny5) font | loaded from Google Fonts | SIL Open Font License 1.1 |
 | [authlib-injector](https://github.com/yushijinhun/authlib-injector) | downloaded when signing in with Ely.by | AGPL-3.0 |
-| [CustomSkinLoader](https://github.com/xfl03/MCCustomSkinLoader) | downloaded from Modrinth into modded instances (Vanilla+ skins), not shipped with the launcher | GPL-3.0 |
+| [CustomSkinLoader](https://github.com/xfl03/MCCustomSkinLoader) | downloaded from Modrinth into modded instances (Amethyx skins), not shipped with the launcher | GPL-3.0 |
 | [e4mc](https://modrinth.com/mod/e4mc) | downloaded from Modrinth into modded instances (friends join a world opened to LAN through the e4mc relay), not shipped with the launcher | MIT |
 | [Inno Setup](https://jrsoftware.org/isinfo.php) | building the installer | Inno Setup License |
 | Modrinth and CurseForge logos from [Simple Icons](https://simpleicons.org) 13.21 | `src/assets/platforms` | CC0 1.0 |

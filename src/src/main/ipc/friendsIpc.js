@@ -9,7 +9,7 @@ const { followAccount } = require('../cloud/cloudLive');
 const { syncAccount } = require('../cloud/cloudSkins');
 const worldShare = require('../minecraft/worldShare');
 
-/** Friends, messages and Vanilla+ skins on the Vanilla+ server. */
+/** Friends, messages and Amethyx skins on the Amethyx server. */
 function registerFriendsHandlers(handle) {
   handle(CHANNELS.friends.status, async () => {
     const settings = await getSettings();

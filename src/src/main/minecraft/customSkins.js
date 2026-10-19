@@ -6,11 +6,11 @@ const { createLogger } = require('../core/logger');
 const { loadSkin, loadCape, normalizeUuid } = require('../skins/skinStore');
 
 /*
- * Vanilla+ skins and capes in modded instances, through CustomSkinLoader (GPL-3.0, by xfl03;
+ * Amethyx skins and capes in modded instances, through CustomSkinLoader (GPL-3.0, by xfl03;
  * downloaded from Modrinth like any other mod, never bundled). The mod asks a list of skin sources
  * by player name, in order; the launcher writes that list before every launch:
- *  1. the player's own Vanilla+ skin and cape, from files next to the config (works offline);
- *  2. the Vanilla+ server: skins and capes of other Vanilla+ players (when it is configured);
+ *  1. the player's own Amethyx skin and cape, from files next to the config (works offline);
+ *  2. the Amethyx server: skins and capes of other Amethyx players (when it is configured);
  *  3. the usual source of the account type (Mojang or Ely.by), so everyone else looks as always.
  * Vanilla instances cannot load mods: there the skin of an offline account still comes from the
  * local profile server (skinAgent.js), Microsoft and Ely.by accounts keep their normal skins.
@@ -19,10 +19,10 @@ const { loadSkin, loadCape, normalizeUuid } = require('../skins/skinStore');
 const MODRINTH_PROJECT = 'idMHQ4n2';
 const MOD_FILE = /customskinloader/i;
 const DATA_FOLDER = 'CustomSkinLoader';
-const OWN_FOLDER = 'VanillaPlus';
+const OWN_FOLDER = 'Amethyx';
 const log = createLogger('custom-skins');
 
-/** Namespace on the Vanilla+ server: players are looked up among accounts of the viewer's kind. */
+/** Namespace on the Amethyx server: players are looked up among accounts of the viewer's kind. */
 function namespaceOf(provider) {
   if (provider === 'microsoft') return 'ms';
   if (provider === 'ely') return 'ely';
@@ -32,7 +32,7 @@ function namespaceOf(provider) {
 function loadList({ session, model, serverUrl }) {
   const list = [
     {
-      name: 'Vanilla+',
+      name: 'Amethyx',
       type: 'Legacy',
       checkPNG: false,
       skin: `${OWN_FOLDER}/skins/{USERNAME}.png`,
@@ -42,7 +42,7 @@ function loadList({ session, model, serverUrl }) {
     },
   ];
   if (serverUrl) {
-    list.push({ name: 'Vanilla+ Online', type: 'CustomSkinAPI', root: `${serverUrl}/csl/${namespaceOf(session.provider)}/` });
+    list.push({ name: 'Amethyx Online', type: 'CustomSkinAPI', root: `${serverUrl}/csl/${namespaceOf(session.provider)}/` });
   }
   // The names "Mojang" and "ElyBy" are the mod's own: it fills in their addresses itself.
   list.push(session.provider === 'ely' ? { name: 'ElyBy', type: 'ElyByAPI', root: 'http://skinsystem.ely.by/textures/' } : { name: 'Mojang', type: 'MojangAPI' });
@@ -93,16 +93,16 @@ async function prepareCustomSkins({ settings, instance, session, gameDirectory, 
   try {
     let state = await modState(path.join(gameDirectory, 'mods'));
     if (state === 'disabled') {
-      onLog('Скины Vanilla+: CustomSkinLoader выключен в этой сборке');
+      onLog('Скины Amethyx: CustomSkinLoader выключен в этой сборке');
       return;
     }
     if (!state) {
-      onLog('Скины Vanilla+: ставим мод CustomSkinLoader…');
+      onLog('Скины Amethyx: ставим мод CustomSkinLoader…');
       try {
         await installMod(MODRINTH_PROJECT);
         state = 'enabled';
       } catch (error) {
-        onLog(`Скины Vanilla+: CustomSkinLoader не поставлен (${error.message})`);
+        onLog(`Скины Amethyx: CustomSkinLoader не поставлен (${error.message})`);
         return;
       }
     }
@@ -118,11 +118,11 @@ async function prepareCustomSkins({ settings, instance, session, gameDirectory, 
     config.loadlist = loadList({ session, model: skin?.model, serverUrl });
     config.enableCape = true;
     await fsp.writeFile(configPath, JSON.stringify(config, null, 2));
-    const parts = [skin ? 'свой скин' : null, cape ? 'свой плащ' : null, serverUrl ? 'скины других игроков Vanilla+' : null].filter(Boolean);
-    onLog(`Скины Vanilla+: ${parts.length ? parts.join(', ') : 'обычные скины'} (CustomSkinLoader)`);
+    const parts = [skin ? 'свой скин' : null, cape ? 'свой плащ' : null, serverUrl ? 'скины других игроков Amethyx' : null].filter(Boolean);
+    onLog(`Скины Amethyx: ${parts.length ? parts.join(', ') : 'обычные скины'} (CustomSkinLoader)`);
   } catch (error) {
     log.warn(`CustomSkinLoader не настроен: ${error.message}`);
-    onLog(`Скины Vanilla+ не настроены: ${error.message}`);
+    onLog(`Скины Amethyx не настроены: ${error.message}`);
   }
 }
 

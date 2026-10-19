@@ -207,7 +207,7 @@
 
 .surface--panel {
   border: 2px solid rgba(0, 0, 0, 0.6);
-  background: linear-gradient(180deg, rgba(27, 23, 19, 0.86), rgba(16, 12, 8, 0.92));
+  background: linear-gradient(180deg, rgba(21, 17, 31, 0.86), rgba(11, 9, 16, 0.92));
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), var(--shadow-card);
 }
 
@@ -246,7 +246,7 @@
 }
 
 .select option {
-  background: #1a1512;
+  background: #14101d;
 }
 
 .chip {
@@ -328,7 +328,7 @@
  * icons  — icons only, compact.
  */
 .sidebar {
-  background: rgba(14, 10, 6, 0.82);
+  background: rgba(9, 7, 13, 0.82);
   border-right: 2px solid rgba(0, 0, 0, 0.6);
 }
 
@@ -582,7 +582,7 @@
   align-items: center;
   gap: 12px;
   border-radius: 4px;
-  background: rgba(21, 17, 13, 0.95);
+  background: rgba(16, 13, 23, 0.95);
   border: 2px solid #000;
   box-shadow: inset 0 0 0 2px #555, var(--shadow-card);
   font-family: var(--font-ui);

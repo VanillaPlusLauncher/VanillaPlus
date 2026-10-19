@@ -4,7 +4,7 @@
   inset: -40px;
   z-index: 0;
   /* Warm dark until the chosen background (the panorama) is in: no green flash at start. */
-  background: #120e0b center / cover no-repeat;
+  background: #0d0b13 center / cover no-repeat;
   transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0);
   transition: transform 600ms var(--ease-out);
 }
@@ -14,8 +14,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(14, 11, 9, 0.92) 0%, rgba(14, 11, 9, 0.55) 45%, rgba(14, 11, 9, 0.2) 100%),
-    linear-gradient(180deg, rgba(14, 11, 9, 0.2) 0%, rgba(14, 11, 9, 0.86) 100%);
+    linear-gradient(90deg, rgba(10, 8, 15, 0.92) 0%, rgba(10, 8, 15, 0.55) 45%, rgba(10, 8, 15, 0.2) 100%),
+    linear-gradient(180deg, rgba(10, 8, 15, 0.2) 0%, rgba(10, 8, 15, 0.86) 100%);
 }
 
 .app-shell {
@@ -34,7 +34,7 @@
   flex-direction: column;
   align-items: center;
   padding: 16px 0 20px;
-  background: rgba(18, 14, 11, 0.78);
+  background: rgba(13, 11, 19, 0.78);
   border-right: 1px solid var(--color-border);
   backdrop-filter: blur(18px);
 }

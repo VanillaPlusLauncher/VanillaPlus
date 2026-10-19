@@ -11,9 +11,9 @@ const { loadAccountStore } = require('../accounts/accountStore');
 const { serverUrl, sessionFor } = require('./cloudClient');
 
 /*
- * The live connection to the Vanilla+ server (a WebSocket per open launcher): new messages,
+ * The live connection to the Amethyx server (a WebSocket per open launcher): new messages,
  * friend requests and read marks arrive at once. Events go to the window; when the window is not
- * in focus Vanilla+'s own notice card (notice.js) shows the message. Reconnects by itself with a growing pause.
+ * in focus Amethyx's own notice card (notice.js) shows the message. Reconnects by itself with a growing pause.
  */
 
 const PING_MS = 45 * 1000;
@@ -44,9 +44,9 @@ function onEvent(event) {
   if (event.type !== 'message') return;
   const window = mainWindow();
   if (window?.isFocused()) return;
-  // Vanilla+'s own card in the corner of the screen (main/notice.js), not a Windows toast.
+  // Amethyx's own card in the corner of the screen (main/notice.js), not a Windows toast.
   showNotice({
-    title: event.from?.name ?? 'Vanilla+',
+    title: event.from?.name ?? 'Amethyx',
     text: preview(event.message),
     onClick: () => {
       if (!window || window.isDestroyed()) return;
@@ -83,7 +83,7 @@ async function connect() {
     socket = current;
     current.addEventListener('open', () => {
       pause = 5000;
-      log.info('Живое соединение с сервером Vanilla+ открыто');
+      log.info('Живое соединение с сервером Amethyx открыто');
       pingTimer = setInterval(() => current.readyState === WebSocket.OPEN && current.send('ping'), PING_MS);
     });
     current.addEventListener('message', (message) => {
