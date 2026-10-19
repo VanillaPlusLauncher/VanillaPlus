@@ -71,9 +71,10 @@ export const GESTURES = {
     player.skin.body.rotation.y = -hit * 0.3;
     return t > 0.7;
   },
+  /** The game's sneak: eases down, holds, eases back up. */
   crouch(player, t) {
-    lean(player, Math.sin(Math.min(t / 1.0, 1) * Math.PI));
-    return t > 1.05;
+    lean(player, 0.9 * envelope(t, 1.7, 0.35, 0.45));
+    return t > 1.7;
   },
   dance(player, t) {
     const beat = Math.sin(t * 8);
@@ -183,14 +184,15 @@ export const GESTURES = {
     player.skin.head.rotation.x += 0.1 * toFace - 0.12 * send;
     return t > 1.6;
   },
+  /** A polite bow: a gentle lean, one hand to the chest, the other behind the back. */
   bow(player, t) {
-    const down = envelope(t, 1.6, 0.4, 0.5);
-    lean(player, down);
-    player.skin.head.rotation.x += 0.35 * down;
-    // One hand to the chest, the other behind the back.
-    player.skin.rightArm.rotation.x -= 0.6 * down;
-    player.skin.leftArm.rotation.x += 0.25 * down;
-    return t > 1.6;
+    const down = envelope(t, 2.0, 0.55, 0.6);
+    lean(player, 0.7 * down);
+    player.skin.head.rotation.x += 0.25 * down;
+    player.skin.rightArm.rotation.x -= 0.45 * down;
+    player.skin.rightArm.rotation.z += 0.35 * down;
+    player.skin.leftArm.rotation.x += 0.35 * down;
+    return t > 2.0;
   },
   /** A confident pose: hands on the hips, the body swaying. */
   pose(player, t) {
@@ -227,10 +229,11 @@ export const GESTURES = {
 /** The little effect that goes with a gesture (see particles.js), if any. */
 export const GESTURE_EFFECTS = { hello: 'sparkles', kiss: 'hearts', dance: 'notes', victory: 'sparkles', flex: 'stars', dab: 'stars', jumpSpin: 'sparkles', clap: 'notes' };
 
-export const IDLE_GESTURES = ['wave', 'nod', 'dance', 'clap', 'stretch', 'shrug', 'lookAround', 'walk', 'salute', 'think', 'jumpSpin', 'dab', 'flex', 'kiss', 'bow', 'pose', 'facepalm', 'victory'];
-export const GREETINGS = ['wave', 'hello', 'kiss', 'flex', 'bow', 'salute'];
+// Crouch and bow are the game's sneak lean: fine on request, odd on a big model on its own — not used here.
+export const IDLE_GESTURES = ['wave', 'nod', 'dance', 'clap', 'stretch', 'shrug', 'lookAround', 'walk', 'salute', 'think', 'jumpSpin', 'dab', 'flex', 'kiss', 'pose', 'facepalm', 'victory'];
+export const GREETINGS = ['wave', 'hello', 'kiss', 'flex', 'salute'];
 /** What a skin does when it comes to the middle of the Wardrobe. */
-export const SHOWCASE = ['hello', 'pose', 'flex', 'dab', 'victory', 'kiss', 'bow', 'dance', 'jumpSpin'];
+export const SHOWCASE = ['hello', 'pose', 'flex', 'dab', 'victory', 'kiss', 'dance', 'jumpSpin'];
 
 const PARTS = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'];
 

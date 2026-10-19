@@ -212,7 +212,7 @@ export function createHomePage({ navigate }) {
       splash.textContent = SPLASHES[Math.floor(Math.random() * SPLASHES.length)];
       // Back on Home: the player greets you (a different gesture each time).
       player?.setActive(true);
-      player?.play(['wave', 'nod', 'dance', 'punch', 'crouch'][Math.floor(Math.random() * 5)]);
+      player?.play(['wave', 'hello', 'nod', 'dance', 'flex'][Math.floor(Math.random() * 5)]);
     },
     onHide: () => player?.setActive(false),
   };
