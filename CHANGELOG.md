@@ -37,7 +37,7 @@
 - Vanilla+'s own notifications: a soft card in the corner of the screen with the launcher's icon and text in its pixel font; appears at once and hides by itself
 - Background: panoramas from 19 Minecraft versions (1.7.10 to 26.3), loaded quickly and applied at once
 - The music is silent while the game runs and pauses when the window is not in focus; a sound of your choice for every action
-- Seven languages: English, Russian, Spanish, Portuguese, German, French and Chinese
+- Seven languages: English, Russian, Spanish, Portuguese, German, French and Chinese; on the first start the launcher asks which one (Windows' language is offered first)
 - Top left: the version, a floating logo (leads Home) and the name; a "Full screen" button (F11); more light animations (can be turned off in settings)
 - Ely.by sign-in on the Ely.by website; password sign-in stays as a fallback
 - New installer pictures; the installer checks for 64-bit Windows 10 (1803+) or 11

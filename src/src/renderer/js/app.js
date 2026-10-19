@@ -1,5 +1,6 @@
 import { api } from './services/api.js';
 import { LANGUAGES, setLanguage } from './core/i18n.js';
+import { askLanguageOnce } from './components/languagePicker.js';
 import { store } from './state/appStore.js';
 import { applyGameState, applyTaskEvent, appendLogLine, loadCatalog, loadInitialData, refreshInstances } from './state/actions.js';
 import { createRouter } from './router/router.js';
@@ -280,6 +281,8 @@ async function start() {
   } catch (error) {
     toast(errorMessage(error), 'error', 8000);
   }
+  // The very first start: which language (Windows' one is offered first).
+  askLanguageOnce(resolveLanguage(null));
 }
 
 start();
