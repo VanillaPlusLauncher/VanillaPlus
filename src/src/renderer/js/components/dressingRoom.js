@@ -39,11 +39,11 @@ const POSITIONS = { '-1': 'left', 0: 'center', 1: 'right' };
 
 /**
  * "Гардероб", like the Bedrock dressing room, and the only place for skins: skins are chosen, never
- * drawn. Your skin in the middle, Steve and Alex at the sides, then the skins of your library. New
- * ones come from a PNG file, a player's nick or a skin site (The Skindex, NameMC) (a skin downloaded there appears here
- * by itself). Four real 3D models of one size stand on a stage; turning the carousel moves them (the
- * middle one steps aside and shrinks, the side one comes forward, the fourth comes in from the edge).
- * "Надеть" keeps the one in the middle.
+ * drawn. Five places: 1 — your main skin (the one you wear, never written over), 2–5 — slots. A new
+ * skin (a PNG file, a player's nick, The Skindex or NameMC — a skin downloaded there arrives by
+ * itself) is written into the slot in the middle. Four real 3D models of one size stand on a stage;
+ * turning the carousel moves them (the middle one steps aside and shrinks, the side one comes
+ * forward, the fourth comes in from the edge). "Надеть" makes the skin in the middle the main one.
  */
 export function openDressingRoom({ onApplied } = {}) {
   const { accounts, selectedAccountId } = store.get();
@@ -54,7 +54,7 @@ export function openDressingRoom({ onApplied } = {}) {
   }
   const nameLabel = h('div', { class: 'wardrobe__name' }, '…');
   const wearButton = h('button', { class: 'btn btn--primary btn--compact', type: 'button', disabled: true }, 'Надеть');
-  const removeButton = h('button', { class: 'btn btn--ghost btn--compact wardrobe__remove', type: 'button', hidden: true }, icon('close'), h('span', null, 'Удалить'));
+  const removeButton = h('button', { class: 'btn btn--ghost btn--compact wardrobe__remove', type: 'button', hidden: true }, icon('close'), h('span', null, 'Очистить слот'));
   // Until the skins are in, the stage says "Загрузка…" (no default Steve jumping in first).
   const stage = h('div', { class: 'wardrobe__stage wardrobe__stage--loading' }, h('span', { class: 'wardrobe__loading' }, 'Загрузка…'));
   let presets = [];
@@ -85,6 +85,14 @@ export function openDressingRoom({ onApplied } = {}) {
   function dress(model) {
     const preset = presets[wrap(index + model.offset)];
     if (preset) model.viewer?.setSkin(`data:image/png;base64,${preset.pngBase64}`, preset.model);
+    // An empty slot stands as a faint Steve.
+    model.element.classList.toggle('wardrobe__model--empty', Boolean(preset?.empty));
+  }
+
+  /** The slot (1…4) a new skin is written into: the one in the middle; null on the main skin. */
+  function targetSlot() {
+    const slot = presets[index]?.slot;
+    return slot >= 1 ? slot : null;
   }
 
   function place(model) {
@@ -100,11 +108,25 @@ export function openDressingRoom({ onApplied } = {}) {
     const middle = models.find((model) => model.element.dataset.pos === 'center');
     for (const model of models) model.viewer?.setNameTag(model === middle ? account.username : null);
     const current = presets[index];
-    nameLabel.replaceChildren(...[current?.libraryId ? h('span', { 'data-i18n': 'off' }, current.name) : h('span', null, current?.name ?? ''), current?.current && h('span', { class: 'wardrobe__worn' }, 'надет')].filter(Boolean));
-    wearButton.disabled = !current || current.current;
+    nameLabel.replaceChildren(
+      ...[
+        h('span', { class: 'wardrobe__slot' }, `${(current?.slot ?? 0) + 1}/5`),
+        current?.libraryId ? h('span', { 'data-i18n': 'off' }, current.name) : h('span', null, current?.name ?? ''),
+        current?.current && h('span', { class: 'wardrobe__worn' }, 'надет'),
+      ].filter(Boolean),
+    );
+    wearButton.disabled = !current || current.current || current.empty;
     wearButton.textContent = current?.current ? 'Надет' : 'Надеть';
-    if (elyButton) elyButton.disabled = !current;
+    if (elyButton) elyButton.disabled = !current || current.empty;
     removeButton.hidden = !current?.libraryId;
+    // New skins are written only into the slot in the middle, never over the main one.
+    const target = targetSlot();
+    for (const button of tools.querySelectorAll('button')) button.disabled = target === null && button !== elyButton;
+    writeHint.textContent = target === null
+      ? 'Это ваш основной скин, его не перезаписать. Чтобы записать новый скин, стрелками перейдите на слот 2–5.'
+      : current.empty
+        ? `Новый скин запишется в слот ${target + 1}.`
+        : `Новый скин запишется в слот ${target + 1} вместо «${current.name}».`;
     // The skin in the middle shows itself: "hello" when the Wardrobe opens, then each skin its own move.
     if (middle) {
       const gesture = greeted ? SHOWCASE[index % SHOWCASE.length] : 'hello';
@@ -150,27 +172,30 @@ export function openDressingRoom({ onApplied } = {}) {
     });
   }
 
-  /** Reads the skins; `focus` is the library id to put in the middle (else your skin). */
-  async function load(focus = null) {
+  /**
+   * Five places: 1 — the main skin (the one you wear; it cannot be removed or written over), 2–5 —
+   * slots that skins are written into. `focusSlot` is the place to put in the middle (else the main).
+   */
+  async function load(focusSlot = null) {
     if (!defaults) {
       const skins = getMcManifest()?.textures.skins ?? {};
-      const preset = async (key, name, model) => (skins[key] ? { name, model, pngBase64: await urlToBase64(mcUrl(skins[key])).catch(() => null) } : null);
-      const [steve, alex, current] = await Promise.all([preset('steve', 'Стив', 'classic'), preset('alex', 'Алекс', 'slim'), currentSkin(account)]);
-      const mine = current ? { name: 'Ваш скин', model: current.model, pngBase64: current.pngBase64, capeBase64: current.capeBase64, current: true } : steve ? { ...steve, name: 'Ваш скин (Стив)', current: true } : null;
-      defaults = { steve, alex, mine };
+      const [steve, current] = await Promise.all([skins.steve ? urlToBase64(mcUrl(skins.steve)).catch(() => null) : null, currentSkin(account)]);
+      defaults = { steve, main: current ?? (steve ? { pngBase64: steve, model: 'classic', capeBase64: null } : null) };
     }
-    const library = await api.skins.library.list().catch(() => []);
-    const { steve, alex, mine } = defaults;
-    const skins = [steve && { ...steve }, alex && { ...alex }, ...library.map((item) => ({ name: item.name, model: item.model, pngBase64: item.pngBase64, libraryId: item.id }))].filter((item) => item?.pngBase64);
-    // The skin you wear is marked where it already is (Steve, Alex or a skin of the wardrobe), so
-    // wearing one never adds a copy; only a skin from nowhere else (the profile's) gets a place of its own.
-    const worn = mine ? skins.find((item) => item.pngBase64 === mine.pngBase64) : null;
-    if (worn) Object.assign(worn, { current: true, capeBase64: mine.capeBase64 });
-    presets = worn || !mine ? skins : [skins[0], mine, ...skins.slice(1)].filter(Boolean);
-    const focused = focus ? presets.findIndex((item) => item.libraryId === focus) : -1;
-    index = focused >= 0 ? focused : Math.max(0, presets.findIndex((item) => item.current));
+    const slots = await api.skins.slots.list().catch(() => [null, null, null, null]);
+    const { steve, main } = defaults;
+    presets = [
+      main && { slot: 0, main: true, current: true, name: 'Основной скин', model: main.model, pngBase64: main.pngBase64, capeBase64: main.capeBase64 },
+      ...slots.map((item, position) =>
+        item
+          ? { slot: position + 1, name: item.name, model: item.model, pngBase64: item.pngBase64, libraryId: item.id, current: item.pngBase64 === main?.pngBase64 }
+          : { slot: position + 1, empty: true, name: 'Пустой слот', model: 'classic', pngBase64: steve },
+      ),
+    ].filter((item) => item?.pngBase64);
+    const focused = focusSlot === null ? -1 : presets.findIndex((item) => item.slot === focusSlot);
+    index = Math.max(0, focused);
     layout();
-    if (presets[index]?.current && presets[index].capeBase64) {
+    if (presets[index]?.main && presets[index].capeBase64) {
       const middle = models.find((model) => model.element.dataset.pos === 'center');
       middle?.viewer?.setCape(`data:image/png;base64,${presets[index].capeBase64}`);
     }
@@ -178,19 +203,21 @@ export function openDressingRoom({ onApplied } = {}) {
 
   const added = (item) => {
     if (item.duplicate) {
-      toast(`«${item.name}» уже есть в гардеробе`, 'info');
+      toast(`«${item.name}» уже есть в слоте ${item.slot + 1}`, 'info');
     } else {
       sfx('skinSaved');
-      toast(`Скин «${item.name}» в гардеробе`, 'success');
+      toast(`Скин «${item.name}» записан в слот ${item.slot + 1}`, 'success');
     }
-    return load(item.id);
+    return load(item.slot ?? null);
   };
 
   // --- Getting ready skins ----------------------------------------------------------------
 
   async function fromFile() {
+    const slot = targetSlot();
+    if (slot === null) return;
     try {
-      const item = await api.skins.library.importFile();
+      const item = await api.skins.library.importFile(slot);
       if (item) await added(item);
     } catch (error) {
       toast(errorMessage(error), 'error');
@@ -203,11 +230,12 @@ export function openDressingRoom({ onApplied } = {}) {
   nickRow.addEventListener('submit', async (event) => {
     event.preventDefault();
     const name = nickInput.value.trim();
-    if (!name) return;
+    const slot = targetSlot();
+    if (!name || slot === null) return;
     nickButton.disabled = true;
     try {
       const skin = await api.skins.byName(name, account.type === 'ely' ? 'ely' : 'mojang');
-      const item = await api.skins.library.save(name, skin.pngBase64, skin.model);
+      const item = await api.skins.slots.save(slot, name, skin.pngBase64, skin.model);
       nickInput.value = '';
       nickRow.hidden = true;
       await added(item);
@@ -225,14 +253,12 @@ export function openDressingRoom({ onApplied } = {}) {
 
   removeButton.addEventListener('click', async () => {
     const chosen = presets[index];
-    if (!chosen?.libraryId) return;
-    const yes = await confirmDialog({ title: 'Убрать скин из гардероба?', message: `«${chosen.name}» пропадёт из гардероба. Если он надет, он останется надетым.`, confirmLabel: 'Убрать', danger: true });
+    if (!chosen?.libraryId || !(chosen.slot >= 1)) return;
+    const yes = await confirmDialog({ title: `Очистить слот ${chosen.slot + 1}?`, message: `«${chosen.name}» пропадёт из гардероба. Основной скин это не затронет.`, confirmLabel: 'Очистить', danger: true });
     if (!yes) return;
     try {
-      await api.skins.library.remove(chosen.libraryId);
-      // The next skin of the library comes to the middle, or your own one when there is none.
-      const next = presets.slice(index + 1).find((item) => item.libraryId) ?? presets.slice(0, index).reverse().find((item) => item.libraryId);
-      await load(next?.libraryId ?? null);
+      await api.skins.slots.clear(chosen.slot);
+      await load(chosen.slot);
     } catch (error) {
       toast(errorMessage(error), 'error');
     }
@@ -301,7 +327,12 @@ export function openDressingRoom({ onApplied } = {}) {
 
   const arrow = (step) =>
     h('button', { class: `icon-button wardrobe__arrow wardrobe__arrow--${step < 0 ? 'left' : 'right'}`, type: 'button', 'aria-label': step < 0 ? 'Предыдущий' : 'Следующий', onclick: () => move(step) }, h('span', { class: `wardrobe__chevron${step < 0 ? ' wardrobe__chevron--left' : ''}` }, icon('chevron')));
-  const openSite = (site) => api.skins.openSite(site).catch((error) => toast(errorMessage(error), 'error'));
+  // The site's download goes into the slot that is in the middle now.
+  const openSite = (site) => {
+    const slot = targetSlot();
+    if (slot !== null) api.skins.openSite(site, slot).catch((error) => toast(errorMessage(error), 'error'));
+  };
+  const writeHint = h('p', { class: 'wardrobe__hint text-soft' });
   const tool = (iconName, label, onclick) => h('button', { class: 'btn btn--ghost btn--compact wardrobe__tool', type: 'button', onclick }, icon(iconName), h('span', null, label));
   const tools = h(
     'div',
@@ -333,9 +364,9 @@ export function openDressingRoom({ onApplied } = {}) {
   const help = h(
     'ol',
     { class: 'wardrobe__steps' },
-    step(1, 'Нажмите The Skindex или NameMC — откроется сайт скинов'),
+    step(1, 'Стрелками выберите слот 2–5 и нажмите The Skindex или NameMC'),
     step(2, 'Выберите скин и нажмите на нём «Download»'),
-    step(3, 'Скин сам появится здесь — нажмите «Надеть»'),
+    step(3, 'Скин запишется в этот слот — нажмите «Надеть»'),
   );
   const modal = openModal({
     title: 'Гардероб',
@@ -346,6 +377,7 @@ export function openDressingRoom({ onApplied } = {}) {
       h('div', { class: 'wardrobe__frame' }, arrow(-1), stage, arrow(1)),
       h('div', { class: 'wardrobe__caption' }, nameLabel, removeButton),
       tools,
+      writeHint,
       nickRow,
       help,
     ),

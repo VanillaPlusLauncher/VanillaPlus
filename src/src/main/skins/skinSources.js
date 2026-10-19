@@ -196,6 +196,88 @@ function saveToLibrary(name, png, model) {
   });
 }
 
+// --- Wardrobe slots ------------------------------------------------------------------
+// The Wardrobe has five places: the main skin (the one worn, kept by skinStore) and four slots
+// that skins are written into. A slot is a library item with `slot` 1…4.
+
+const SLOT_COUNT = 4;
+
+/**
+ * The four slots: [item or null] × 4, item = { id, name, model, slot, pngBase64 }. Skins saved
+ * before slots existed take the free slots in their order (once, written back to the index).
+ */
+function listSlots() {
+  return libraryQueue.run(async () => {
+    const index = await readLibraryIndex();
+    const taken = new Set(index.filter((item) => item.slot >= 1 && item.slot <= SLOT_COUNT).map((item) => item.slot));
+    let changed = false;
+    for (const item of index) {
+      if (item.slot >= 1 && item.slot <= SLOT_COUNT) continue;
+      const free = [1, 2, 3, 4].find((slot) => !taken.has(slot));
+      if (!free) break;
+      item.slot = free;
+      taken.add(free);
+      changed = true;
+    }
+    if (changed) await writeJsonFileAtomic(libraryIndexPath(), index);
+    const slots = [null, null, null, null];
+    for (const item of index) {
+      if (!(item.slot >= 1 && item.slot <= SLOT_COUNT) || slots[item.slot - 1]) continue;
+      try {
+        const png = await fsp.readFile(path.join(libraryDirectory(), `${item.id}.png`));
+        slots[item.slot - 1] = { ...item, pngBase64: png.toString('base64') };
+      } catch {
+        // The file was removed by hand: the slot is empty.
+      }
+    }
+    return slots;
+  });
+}
+
+/**
+ * Writes a skin into slot 1…4, replacing what was there. The same picture already in another slot
+ * is not written twice: that slot's item comes back with `duplicate`.
+ */
+function saveToSlot(slot, name, png, model) {
+  const number = Number(slot);
+  if (!Number.isInteger(number) || number < 1 || number > SLOT_COUNT) {
+    throw new Error('Скин записывается только в слоты 2–5 гардероба.');
+  }
+  assertSkinPng(png);
+  return libraryQueue.run(async () => {
+    const index = await readLibraryIndex();
+    const hash = hashOf(png);
+    const same = index.find((item) => item.slot >= 1 && item.slot <= SLOT_COUNT && item.hash === hash);
+    if (same) return { ...same, duplicate: true };
+    for (const old of index.filter((item) => item.slot === number)) {
+      await fsp.rm(path.join(libraryDirectory(), `${old.id}.png`), { force: true });
+    }
+    const item = {
+      id: crypto.randomUUID(),
+      name: String(name ?? '').trim().slice(0, 40) || `Скин ${number + 1}`,
+      model: MODELS.includes(model) ? model : 'classic',
+      hash,
+      slot: number,
+      createdAt: new Date().toISOString(),
+    };
+    await writeFileAtomic(path.join(libraryDirectory(), `${item.id}.png`), png);
+    await writeJsonFileAtomic(libraryIndexPath(), [item, ...index.filter((old) => old.slot !== number)]);
+    return item;
+  });
+}
+
+/** Empties a slot (the main skin has no slot and cannot be emptied). */
+function clearSlot(slot) {
+  const number = Number(slot);
+  return libraryQueue.run(async () => {
+    const index = await readLibraryIndex();
+    for (const old of index.filter((item) => item.slot === number)) {
+      await fsp.rm(path.join(libraryDirectory(), `${old.id}.png`), { force: true });
+    }
+    await writeJsonFileAtomic(libraryIndexPath(), index.filter((item) => item.slot !== number));
+  });
+}
+
 function removeFromLibrary(id) {
   return libraryQueue.run(async () => {
     const index = await readLibraryIndex();
@@ -208,4 +290,4 @@ function removeFromLibrary(id) {
   });
 }
 
-module.exports = { skinByName, accountSkin, uploadMicrosoftSkin, resetMicrosoftSkin, listLibrary, saveToLibrary, removeFromLibrary };
+module.exports = { skinByName, accountSkin, uploadMicrosoftSkin, resetMicrosoftSkin, listLibrary, saveToLibrary, removeFromLibrary, listSlots, saveToSlot, clearSlot };

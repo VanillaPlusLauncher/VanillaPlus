@@ -5,6 +5,7 @@ import { blockIcon, getMcManifest, hasItem, mcUrl, onMcReady } from '../core/mc.
 import { accountHead, headRevision } from '../core/skinHead.js';
 import { sfx } from '../core/sound.js';
 import { store } from '../state/appStore.js';
+import { creeperFaceIcon } from '../pet/creeperArt.js';
 
 /** Sidebar entries: route, fallback icon, Minecraft item (or block) shown once textures are ready, label. */
 const NAV_ITEMS = [
@@ -13,6 +14,8 @@ const NAV_ITEMS = [
   { route: 'browse', icon: 'download', block: 'bookshelf', label: 'Библиотека', short: 'Библиотека' },
   { route: 'friends', icon: 'user', item: 'cake', label: 'Друзья', short: 'Друзья' },
   { route: 'settings', icon: 'gear', item: 'redstone', label: 'Настройки', short: 'Настройки' },
+  // The pet creeper's face, drawn by the launcher (pet/creeperArt.js), so it is there at once.
+  { route: 'pet', icon: 'cube', image: creeperFaceIcon, label: 'Питомец', short: 'Питомец' },
 ];
 /** Pages without their own sidebar entry highlight their parent. */
 const PARENT_ROUTES = { instance: 'builds' };
@@ -30,7 +33,7 @@ export function createShell({ onNavigate, onOpenAccounts }) {
   document.body.append(tooltip);
 
   const buttons = NAV_ITEMS.map((item, index) => {
-    const iconSlot = h('span', { class: 'nav-button__icon' }, icon(item.icon));
+    const iconSlot = h('span', { class: 'nav-button__icon' }, item.image ? h('img', { class: 'nav-button__img nav-button__img--pixel', src: item.image(), alt: '' }) : icon(item.icon));
     const button = h(
       'button',
       {
@@ -49,6 +52,7 @@ export function createShell({ onNavigate, onOpenAccounts }) {
       h('span', { class: 'nav-button__label' }, item.short),
     );
     onMcReady(async () => {
+      if (item.image) return;
       const src = item.block ? await blockIcon(item.block) : hasItem(item.item) ? mcUrl(`item/${item.item}.png`) : null;
       if (src) {
         iconSlot.replaceChildren(h('img', { class: `nav-button__img${item.block ? ' is-smooth' : ''}`, src, alt: '' }));
@@ -189,7 +193,8 @@ function setupTaskIndicator() {
     // Which instance it is for: the task goes on when you leave that instance's page.
     instanceName.textContent = first.instance ?? '';
     instanceName.hidden = !first.instance;
-    label.textContent = `${first.label}: ${first.stage ?? ''}`;
+    // "Zoomify: Zoomify" says nothing new: the stage only when it differs from the name.
+    label.textContent = first.stage && first.stage !== first.label ? `${first.label}: ${first.stage}` : first.label;
     percent.textContent = `${first.percent ?? 0}%`;
     bar.style.width = `${first.percent ?? 0}%`;
     more.textContent = running.length > 1 ? `+${running.length - 1}` : '';

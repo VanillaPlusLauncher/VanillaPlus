@@ -45,9 +45,9 @@
   --duration-base: 280ms;
   --duration-slow: 560ms;
 
-  /* The launcher's own pixel cursors in amethyst (made by installer/tools/make-cursors.ps1). */
-  --cursor-arrow: url("../../../assets/cursors/amethyst-arrow.png") 1 1, default;
-  --cursor-hand: url("../../../assets/cursors/amethyst-hand.png") 9 1, pointer;
+  /* The system's own cursors (one place to change them for the whole launcher). */
+  --cursor-arrow: default;
+  --cursor-hand: pointer;
 
   --sidebar-width: 92px;
   --topbar-height: 64px;

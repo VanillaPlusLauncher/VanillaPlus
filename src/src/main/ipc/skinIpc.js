@@ -8,7 +8,7 @@ const { saveSkin, loadSkin, deleteSkin, saveCape, loadCape, deleteCape } = requi
 const { publishSoon } = require('../cloud/cloudSkins');
 const { assertSkinPng, MAX_SKIN_BYTES } = require('../skins/pngValidation');
 const { openSkinSite, modelOf, nameOf } = require('../skins/skinSite');
-const { skinByName, accountSkin, uploadMicrosoftSkin, resetMicrosoftSkin, listLibrary, saveToLibrary, removeFromLibrary } = require('../skins/skinSources');
+const { skinByName, accountSkin, uploadMicrosoftSkin, resetMicrosoftSkin, listLibrary, saveToLibrary, removeFromLibrary, listSlots, saveToSlot, clearSlot } = require('../skins/skinSources');
 const { loadAccountStore } = require('../accounts/accountStore');
 const { getLaunchSession } = require('../accounts/accountService');
 
@@ -123,8 +123,14 @@ function registerSkinHandlers(handle) {
   handle(CHANNELS.skins.librarySave, (_event, name, pngBase64, model) => saveToLibrary(name, Buffer.from(String(pngBase64 ?? ''), 'base64'), model));
   handle(CHANNELS.skins.libraryRemove, (_event, id) => removeFromLibrary(String(id)));
 
-  // "Скины с сайта": every skin downloaded there lands in the library and is reported to the window.
-  handle(CHANNELS.skins.openSite, (event, site) => {
+  // The Wardrobe's slots 1…4 (slot 0, the main skin, is the account's own skin above).
+  handle(CHANNELS.skins.slotsList, () => listSlots());
+  handle(CHANNELS.skins.slotSave, (_event, slot, name, pngBase64, model) => saveToSlot(slot, name, Buffer.from(String(pngBase64 ?? ''), 'base64'), model));
+  handle(CHANNELS.skins.slotClear, (_event, slot) => clearSlot(slot));
+
+  // "Скины с сайта": a skin downloaded there goes into the Wardrobe slot that was open (`slot`)
+  // and is reported to the window.
+  handle(CHANNELS.skins.openSite, (event, site, slot) => {
     const sender = event.sender;
     const send = (payload) => {
       if (!sender.isDestroyed()) sender.send(CHANNELS.events.skinImported, payload);
@@ -132,11 +138,13 @@ function registerSkinHandlers(handle) {
     openSkinSite(BrowserWindow.fromWebContents(sender), {
       onImported: (item) => send({ item }),
       onError: (error) => send({ error: error.message }),
+      save: Number.isInteger(slot) ? (png, name, model) => saveToSlot(slot, name, png, model) : null,
     }, site === 'namemc' ? 'namemc' : 'skindex');
   });
 
-  // "Загрузить PNG": a ready skin from the computer goes into the library (model found by itself).
-  handle(CHANNELS.skins.importFile, async (event) => {
+  // "Загрузить PNG": a ready skin from the computer goes into the open Wardrobe slot (or the
+  // library), the model found by itself.
+  handle(CHANNELS.skins.importFile, async (event, slot) => {
     const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
       title: 'Загрузить скин',
       filters: [{ name: 'PNG', extensions: ['png'] }],
@@ -152,7 +160,7 @@ function registerSkinHandlers(handle) {
     }
     const png = await fsp.readFile(file);
     assertSkinPng(png);
-    return saveToLibrary(nameOf(path.basename(file)), png, modelOf(png));
+    return Number.isInteger(slot) ? saveToSlot(slot, nameOf(path.basename(file)), png, modelOf(png)) : saveToLibrary(nameOf(path.basename(file)), png, modelOf(png));
   });
 
   handle(CHANNELS.skins.exportPng, async (event, pngBase64, suggestedName) => {

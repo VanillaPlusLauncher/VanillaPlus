@@ -254,7 +254,7 @@ export function createSettingsPage() {
       card('Загрузки', 'Сколько файлов качать одновременно (моды, сборки, файлы игры) и на сколько частей делить большой файл — как в браузере: каждая часть идёт своим соединением, это заметно быстрее. Если интернет слабый или сайт ругается, уменьшите.',
         h('span', { class: 'settings-row__title' }, 'Файлов одновременно'),
         slider({ min: 1, max: 32, step: 1, value: settings.downloads?.parallel ?? 8, format: (value) => String(value), onCommit: (value) => save({ downloads: { parallel: value } }, false) }),
-        h('span', { class: 'settings-row__title' }, 'Частей у большого файла (от 8 МБ)'),
+        h('span', { class: 'settings-row__title' }, 'Частей у файла (от 1 МБ)'),
         slider({ min: 1, max: 16, step: 1, value: settings.downloads?.segments ?? 4, format: (value) => (value === 1 ? 'целиком' : String(value)), onCommit: (value) => save({ downloads: { segments: value } }, false) }),
       ),
       card('Совместимость модов', 'Перед установкой лаунчер предупреждает о возможных конфликтах: мод для другого загрузчика или версии, несовместимость, указанная авторами, известные пары вроде Sodium и Embeddium.',

@@ -132,9 +132,16 @@ const bridge = {
       list: () => invoke(CHANNELS.skins.libraryList),
       save: (name, pngBase64, model) => invoke(CHANNELS.skins.librarySave, name, pngBase64, model),
       remove: (id) => invoke(CHANNELS.skins.libraryRemove, id),
-      importFile: () => invoke(CHANNELS.skins.importFile),
+      /** `slot` (1…4): the Wardrobe slot the file goes into; without it, the library. */
+      importFile: (slot) => invoke(CHANNELS.skins.importFile, slot),
     },
-    openSite: (site) => invoke(CHANNELS.skins.openSite, site),
+    /** The Wardrobe's four slots: [item | null] × 4. */
+    slots: {
+      list: () => invoke(CHANNELS.skins.slotsList),
+      save: (slot, name, pngBase64, model) => invoke(CHANNELS.skins.slotSave, slot, name, pngBase64, model),
+      clear: (slot) => invoke(CHANNELS.skins.slotClear, slot),
+    },
+    openSite: (site, slot) => invoke(CHANNELS.skins.openSite, site, slot),
   },
   friends: {
     status: () => invoke(CHANNELS.friends.status),

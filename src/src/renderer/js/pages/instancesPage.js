@@ -190,7 +190,8 @@ export function createInstancesPage() {
           openMenu(instance, event.currentTarget, event);
         },
       },
-      h('div', { class: 'instance-card__art' }, iconImage(instance.icon, 'instance-card__icon'), playButton),
+      // No play button over the picture (it covered it): play from the menu, the page or Home.
+      h('div', { class: 'instance-card__art' }, iconImage(instance.icon, 'instance-card__icon')),
       h(
         'div',
         { class: 'instance-card__body' },

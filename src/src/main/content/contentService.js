@@ -221,11 +221,9 @@ async function installProject(settings, { instanceId, platform, projectId, versi
     }
     const index = await readIndex(instance.directory);
     const present = new Set(Object.values(index.entries).map((entry) => entry.projectId));
-    for (const dependency of version.dependencies.filter((candidate) => candidate.type === 'required' && candidate.projectId)) {
-      if (!present.has(dependency.projectId)) {
-        await installOne(dependency.projectId, platform === 'modrinth' ? dependency.versionId : null, null, depth + 1);
-      }
-    }
+    // Required libraries all at once (Zoomify needs three), not one after another.
+    const missing = version.dependencies.filter((candidate) => candidate.type === 'required' && candidate.projectId && !present.has(candidate.projectId));
+    await runWithConcurrency(missing, parallelDownloads(), (dependency) => installOne(dependency.projectId, platform === 'modrinth' ? dependency.versionId : null, null, depth + 1));
   }
 
   try {

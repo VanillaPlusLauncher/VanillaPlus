@@ -14,6 +14,7 @@ import { createBrowsePage } from './pages/browsePage.js';
 import { createJavaPage } from './pages/javaPage.js';
 import { createFriendsPage } from './pages/friendsPage.js';
 import { createSettingsPage } from './pages/settingsPage.js';
+import { createPetPage } from './pages/petPage.js';
 import { openAccountsModal } from './components/accountsModal.js';
 import { openLogModal } from './components/logModal.js';
 import { createBackground } from './components/background.js';
@@ -226,6 +227,7 @@ async function start() {
       friends: createFriendsPage,
       java: createJavaPage,
       settings: createSettingsPage,
+      pet: createPetPage,
     },
     onChange: (route) => shell.setRoute(route),
   });

@@ -10,6 +10,9 @@ const SPRITES = {
   sparkles: { colors: ['#d6c2ff', '#fff3b0', '#b18cff'], rows: ['...#...', '...#...', '..###..', '#######', '..###..', '...#...', '...#...'] },
   stars: { colors: ['#ffd23f', '#ffb703'], rows: ['..#..', '.###.', '#####', '.###.', '.#.#.'] },
   notes: { colors: ['#9be7ff', '#c3a6ff', '#ffb3dc'], rows: ['..###', '..#.#', '..#..', '..#..', '###..', '###..'] },
+  // The pet creeper's sleep and its "puff".
+  zzz: { colors: ['#e6dcff', '#b9a6ff'], rows: ['#####', '...#.', '..#..', '.#...', '#####'] },
+  smoke: { colors: ['#e2e2e2', '#b4b4b4', '#ffffff', '#8c8c8c'], rows: ['.##.', '####', '####', '.##.'] },
 };
 
 const cache = new Map();

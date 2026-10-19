@@ -27,7 +27,7 @@ const WINDOW_ICON = path.join(__dirname, '..', '..', '..', 'assets', 'branding',
 
 let siteWindow = null;
 let siteKey = null;
-let handlers = { onImported: () => {}, onError: () => {} };
+let handlers = { onImported: () => {}, onError: () => {}, save: null };
 const prepared = new WeakSet();
 
 /** Slim (Alex) or classic (Steve): slim arms leave the 4th pixel column of the arm empty. */
@@ -74,7 +74,8 @@ function titleFromUrl(url) {
 
 async function importSkin(png, name) {
   assertSkinPng(png);
-  const item = await saveToLibrary(name, png, modelOf(png));
+  // Into the Wardrobe slot that was open when the site was (handlers.save), else the library.
+  const item = handlers.save ? await handlers.save(png, name, modelOf(png)) : await saveToLibrary(name, png, modelOf(png));
   log.info(item.duplicate ? `Скин с сайта уже в библиотеке: ${item.name}` : `Скин с сайта добавлен в библиотеку: ${item.name} (${item.model})`);
   handlers.onImported(item);
   // The skin is taken: the site closes and the dressing room comes forward with it in the middle.

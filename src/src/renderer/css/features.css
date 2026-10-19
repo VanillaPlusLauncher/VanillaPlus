@@ -4935,13 +4935,20 @@
   animation: logo-in 700ms var(--ease-spring) both, logo-float 4.5s ease-in-out 700ms infinite;
 }
 
+/* Floated on the GPU (will-change), so the picture moves smoothly instead of hopping pixel by pixel. */
 @keyframes logo-float {
-  0%, 100% { translate: 0 0; }
-  50% { translate: 0 -4px; }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -4px, 0); }
+}
+
+.sidebar__logo {
+  will-change: transform;
+  transition: scale 420ms var(--ease-spring), rotate 420ms var(--ease-spring);
 }
 
 .sidebar__logo:hover {
-  transform: scale(1.12) rotate(-4deg);
+  scale: 1.1;
+  rotate: -5deg;
 }
 /* --- Wardrobe: four models on a stage, the carousel moves them ----------------------------- */
 .wardrobe {
@@ -5448,12 +5455,12 @@
 /* The X of the name glints now and then, like a crystal catching the light. */
 .brand-x {
   display: inline-block;
-  animation: x-glint 4s ease-in-out infinite;
+  animation: x-glint 3.2s ease-in-out infinite;
 }
 
 @keyframes x-glint {
-  0%, 70%, 100% { scale: 1; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 8px rgba(180, 140, 255, 0.45); }
-  80% { scale: 1.25; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 16px rgba(214, 190, 255, 0.95); }
+  0%, 100% { text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 6px rgba(180, 140, 255, 0.35); }
+  50% { text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 14px rgba(214, 190, 255, 0.9); }
 }
 
 /* Buttons give a little under the click. */
@@ -5898,4 +5905,278 @@ input[type="range"] {
 
 button:disabled {
   cursor: var(--cursor-arrow);
+}
+/* --- Wardrobe slots: 1 main + 4 to write into ------------------------------------------------------ */
+.wardrobe__slot {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+/* An empty slot: a faint Steve waiting for a skin. */
+.wardrobe__model--empty canvas {
+  opacity: 0.32;
+  filter: grayscale(1) brightness(0.8);
+  transition: opacity 300ms, filter 300ms;
+}
+
+.wardrobe__tools .btn:disabled {
+  opacity: 0.45;
+}
+/* --- "Питомец": the creeper on its grass block (pages/petPage.js) ------------------------------------ */
+.pet-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.pet-stage {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.pet-scene {
+  position: relative;
+  height: 420px;
+  overflow: hidden;
+  perspective: 1100px;
+  perspective-origin: 50% 35%;
+  background:
+    radial-gradient(ellipse at 50% 85%, rgba(var(--accent-rgb), 0.18), transparent 60%),
+    linear-gradient(180deg, rgba(120, 170, 255, 0.12), rgba(10, 8, 15, 0.2));
+  transition: background 900ms;
+  user-select: none;
+}
+
+.pet-scene--night {
+  background:
+    radial-gradient(ellipse at 50% 85%, rgba(80, 60, 160, 0.25), transparent 60%),
+    linear-gradient(180deg, rgba(8, 6, 20, 0.85), rgba(10, 8, 15, 0.6));
+}
+
+.pet3d__world {
+  position: absolute;
+  left: 50%;
+  top: 74%;
+  transform-style: preserve-3d;
+}
+
+.pet3d__joint,
+.pet3d__box {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+}
+
+.pet3d__face {
+  position: absolute;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  backface-visibility: hidden;
+  /* The game's light: tops brightest, sides darker, the bottom darkest; --flash whitens it. */
+  filter: brightness(calc(var(--shade, 1) + var(--flash, 0)));
+}
+
+.pet3d__face--top { --shade: 1.08; }
+.pet3d__face--side { --shade: 0.8; }
+.pet3d__face--bottom { --shade: 0.55; }
+
+.pet3d__creeper {
+  cursor: var(--cursor-hand);
+  transition: opacity 120ms;
+}
+
+.pet3d__creeper--gone {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pet3d__floor .pet3d__face {
+  background-repeat: repeat;
+}
+
+.pet3d__shadow {
+  position: absolute;
+  width: 110px;
+  height: 70px;
+  left: -55px;
+  top: -35px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
+  pointer-events: none;
+}
+
+.pet3d__shadow--gone {
+  visibility: hidden;
+}
+
+.pet3d__item {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  left: -20px;
+  top: -20px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.pet-stage__caption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.pet-name {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-pixel);
+  font-size: 20px;
+  cursor: var(--cursor-hand);
+}
+
+.pet-name:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+.pet-name__input {
+  width: 180px;
+}
+
+.pet-level {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(127, 230, 100, 0.16);
+  color: #9be37f;
+  font-size: 12px;
+}
+
+.pet-mood {
+  margin-left: auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+}
+
+.pet-mood--happy { background: rgba(127, 230, 100, 0.16); color: #9be37f; }
+.pet-mood--sad { background: rgba(255, 107, 94, 0.16); color: #ffb3a8; }
+.pet-mood--sleep { background: rgba(var(--accent-rgb), 0.16); color: var(--color-accent); }
+
+.pet-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+
+.pet-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.pet-meter,
+.pet-xp {
+  display: grid;
+  grid-template-columns: 96px 1fr 30px;
+  align-items: center;
+  gap: 10px;
+}
+
+.pet-xp {
+  grid-template-columns: 96px 1fr;
+}
+
+.pet-meter__label {
+  font-size: 13px;
+  color: var(--color-text-soft);
+}
+
+.pet-meter__track,
+.pet-xp__track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.pet-meter__fill,
+.pet-xp__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  transition: width 700ms var(--ease-out);
+}
+
+.pet-meter__fill--food { background: linear-gradient(90deg, #d9822b, #f2b354); }
+.pet-meter__fill--fun { background: linear-gradient(90deg, #e2508a, #ff8fb8); }
+.pet-meter__fill--energy { background: linear-gradient(90deg, #3f8fe6, #7fc2ff); }
+.pet-xp__fill { background: linear-gradient(90deg, #6fcf3a, #b4f06b); }
+
+.pet-meter__value {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  text-align: right;
+}
+
+.pet-meter--low .pet-meter__track {
+  animation: meter-warn 1.4s ease-in-out infinite;
+}
+
+@keyframes meter-warn {
+  50% { box-shadow: inset 0 0 0 1px rgba(255, 107, 94, 0.7), 0 0 10px rgba(255, 107, 94, 0.35); }
+}
+
+.pet-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.pet-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  font-size: 12px;
+}
+
+.pet-action__icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  transition: transform 260ms var(--ease-spring);
+}
+
+.pet-action:hover:not(:disabled) .pet-action__icon {
+  transform: translateY(-4px) rotate(-8deg) scale(1.1);
+}
+
+.pet-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.nav-button__img--pixel {
+  image-rendering: pixelated;
+  border-radius: 3px;
+}
+
+@media (max-width: 1000px) {
+  .pet-layout {
+    grid-template-columns: 1fr;
+  }
 }

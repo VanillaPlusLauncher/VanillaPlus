@@ -72,9 +72,6 @@
   transition: transform var(--duration-slow) var(--ease-spring);
 }
 
-.sidebar__logo:hover {
-  transform: rotate(-8deg) scale(1.08);
-}
 
 .sidebar__nav {
   position: relative;
