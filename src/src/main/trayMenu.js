@@ -1,7 +1,7 @@
 'use strict';
 
-const path = require('node:path');
-const { BrowserWindow, nativeImage, screen } = require('electron');
+const { BrowserWindow, screen } = require('electron');
+const { brandIconDataUrl } = require('./brandIcon');
 
 /*
  * The tray icon's menu in the launcher's own style instead of Windows' grey one: the same soft
@@ -11,19 +11,17 @@ const { BrowserWindow, nativeImage, screen } = require('electron');
  * process only as a navigation to MENU_URL, which is stopped.
  */
 
-const ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'amethyx-mark.png');
 const WIDTH = 230;
 const MENU_URL = 'amethyx-menu://';
 /** Shown even if the pixel font did not arrive (no network). */
 const FONT_WAIT_MS = 400;
 
 let menuWindow = null;
-let iconUrl = null;
 
 const escape = (text) => String(text ?? '').replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
 function page(items) {
-  iconUrl ??= nativeImage.createFromPath(ICON).resize({ width: 64, height: 64 }).toDataURL();
+  const iconUrl = brandIconDataUrl();
   const rows = items
     .map((item, index) => (item.separator ? '<div class="line"></div>' : `<button class="item${item.danger ? ' item--danger' : ''}" data-index="${index}">${escape(item.label)}</button>`))
     .join('');
@@ -45,7 +43,7 @@ function page(items) {
   .line { height: 1px; margin: 6px 6px; background: rgba(226, 214, 255, 0.1); }
   @keyframes in { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
   </style></head><body><div class="menu" id="menu">
-  <div class="head"><img src="${iconUrl}" alt=""><span>Amethy<b>x</b></span></div>${rows}</div>
+  <div class="head">${iconUrl ? `<img src="${iconUrl}" alt="" onerror="this.remove()">` : ''}<span>Amethy<b>x</b></span></div>${rows}</div>
   <script>
     let ready = false;
     const show = () => { if (!ready) { ready = true; location.href = '${MENU_URL}ready/' + document.getElementById('menu').offsetHeight; } };

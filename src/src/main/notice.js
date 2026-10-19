@@ -1,7 +1,7 @@
 'use strict';
 
-const path = require('node:path');
-const { BrowserWindow, nativeImage, screen } = require('electron');
+const { BrowserWindow, screen } = require('electron');
+const { brandIconDataUrl } = require('./brandIcon');
 
 /*
  * Amethyx's own notifications instead of Windows' toasts (slow, with a generic icon and the app id
@@ -12,7 +12,6 @@ const { BrowserWindow, nativeImage, screen } = require('electron');
  * only by navigating to NOTICE_URL (ready, click), and those navigations are stopped.
  */
 
-const ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'amethyx-mark.png');
 const WIDTH = 360;
 const HEIGHT = 76;
 const GAP = 8;
@@ -22,12 +21,11 @@ const FONT_WAIT_MS = 900;
 const NOTICE_URL = 'amethyx-notice://';
 
 const open = [];
-let iconUrl = null;
 
 const escape = (text) => String(text ?? '').replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
 function page({ title, text }) {
-  iconUrl ??= nativeImage.createFromPath(ICON).resize({ width: 80, height: 80 }).toDataURL();
+  const iconUrl = brandIconDataUrl();
   return `<!doctype html><html><head><meta charset="utf-8">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=block">
   <style>
@@ -45,7 +43,7 @@ function page({ title, text }) {
   .out { animation: out 200ms ease-in both; }
   @keyframes in { from { opacity: 0; transform: translateX(28px); } }
   @keyframes out { to { opacity: 0; transform: translateX(28px); } }
-  </style></head><body><div class="toast" id="toast"><img src="${iconUrl}" alt="">
+  </style></head><body><div class="toast" id="toast">${iconUrl ? `<img src="${iconUrl}" alt="" onerror="this.remove()">` : ''}
   <div class="lines">${title ? `<div class="title">${escape(title)}</div>` : ''}<div class="text">${escape(text)}</div></div></div>
   <script>
     let ready = false;
