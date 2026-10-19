@@ -164,7 +164,7 @@
     revealing.forEach(function (node) { node.classList.add('is-in'); });
   }
 
-  // The promo: silent in the hero window and behind the page; a click opens it large, with sound
+  // The promo: silent in the hero window; a click opens it large, with sound
   // (a little quieter than full volume). Closing pauses it.
   var player = document.getElementById('player');
   var playerVideo = player.querySelector('video');
@@ -184,9 +184,9 @@
   });
   player.addEventListener('click', function (event) { if (event.target !== playerVideo) closePlayer(); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape') closePlayer(); });
-  // Calm mode: the silent videos stand still on their first picture.
+  // Calm mode: the silent video stands still on its first picture.
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    Array.prototype.forEach.call(document.querySelectorAll('.bg-video video, .window__video video'), function (video) {
+    Array.prototype.forEach.call(document.querySelectorAll('.window__video video'), function (video) {
       video.removeAttribute('autoplay');
       video.pause();
     });

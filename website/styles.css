@@ -494,34 +494,7 @@ img { max-width: 100%; height: auto; display: block; }
 .shot:hover { box-shadow: inset 0 -3px 0 var(--accent-strong); }
 .feature__icon { box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3); }
 .window { border: 0; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.06); }
-/* --- The promo video: dimmed behind the whole page, silent in the hero window, large with sound -- */
-.bg-video {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-}
-.bg-video video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.32;
-  filter: blur(3px) saturate(1.15);
-  transform: scale(1.04);
-}
-.bg-video::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(150, 112, 245, 0.18), transparent 70%),
-    linear-gradient(180deg, rgba(10, 8, 15, 0.55), rgba(10, 8, 15, 0.86) 70%);
-}
-
-/* The page's own background stays as the colour under the video. */
-body { background-attachment: fixed; }
-
+/* --- The promo video: silent in the hero window, large with sound ---------------------------- */
 .hero { align-items: start; }
 .window { margin-top: 6px; }
 
