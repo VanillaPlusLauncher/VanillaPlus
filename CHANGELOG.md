@@ -48,9 +48,8 @@
 - Ely.by sign-in on the Ely.by website; password sign-in stays as a fallback
 - Fixed: after opening the Wardrobe several times the player on the home screen turned into a white box (the 3D views were not released)
 - Fixed: NameMC sometimes reported an error before the skin came in (its Cloudflare check reloads the page); its 3D picture is no longer taken for a skin
-- A "Pet" tab: a little 3D creeper to look after, like a tamagotchi — it walks about on real Minecraft grass blocks, looks at your mouse, eats, chases a slime ball, sleeps, likes being stroked and hisses when poked too often; food, mood and energy go down with real time, care brings experience and levels
 - The Wardrobe has five places: your main skin (never written over) and four slots; a new skin goes into the slot you are looking at
-- A start screen: the X, the name and a queue of blocks in the theme colour while everything is loaded at once (the game's textures, instances, accounts, fonts, news); the launcher opens ready
+- A start screen: the X, the name and a sliding-block puzzle of 3D cubes in the theme colour while everything is loaded at once (the game's textures, instances, accounts, fonts, news); the launcher opens ready
 - "Loading" everywhere is the launcher's X; mods without a picture get one from CurseForge or Modrinth by their name (BadOptimizations, for example)
 - Installing several mods sounds once at the start and once when all are done
 - Home: "All instances" and "minecraft.net" readable over any panorama; a recent instance opens with a click (the one Home plays is chosen in the play bar)

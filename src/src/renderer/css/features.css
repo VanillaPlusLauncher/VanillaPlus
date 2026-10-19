@@ -5907,261 +5907,6 @@ button:disabled {
 .wardrobe__tools .btn:disabled {
   opacity: 0.45;
 }
-/* --- "Питомец": the creeper on its grass block (pages/petPage.js) ------------------------------------ */
-.pet-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
-  gap: 18px;
-  align-items: start;
-}
-
-.pet-stage {
-  position: relative;
-  overflow: hidden;
-  padding: 0;
-}
-
-.pet-scene {
-  position: relative;
-  height: 420px;
-  overflow: hidden;
-  perspective: 1100px;
-  perspective-origin: 50% 35%;
-  background:
-    radial-gradient(ellipse at 50% 85%, rgba(var(--accent-rgb), 0.18), transparent 60%),
-    linear-gradient(180deg, rgba(120, 170, 255, 0.12), rgba(10, 8, 15, 0.2));
-  transition: background 900ms;
-  user-select: none;
-}
-
-.pet-scene--night {
-  background:
-    radial-gradient(ellipse at 50% 85%, rgba(80, 60, 160, 0.25), transparent 60%),
-    linear-gradient(180deg, rgba(8, 6, 20, 0.85), rgba(10, 8, 15, 0.6));
-}
-
-.pet3d__world {
-  position: absolute;
-  left: 50%;
-  top: 62%;
-  transform-style: preserve-3d;
-}
-
-.pet3d__joint,
-.pet3d__box {
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform-style: preserve-3d;
-}
-
-.pet3d__face {
-  position: absolute;
-  background-size: 100% 100%;
-  image-rendering: pixelated;
-  backface-visibility: hidden;
-  /* The game's light: tops brightest, sides darker, the bottom darkest; --flash whitens it. */
-  filter: brightness(calc(var(--shade, 1) + var(--flash, 0)));
-}
-
-.pet3d__face--top { --shade: 1.08; }
-.pet3d__face--side { --shade: 0.8; }
-.pet3d__face--bottom { --shade: 0.55; }
-
-.pet3d__creeper {
-  cursor: var(--cursor-hand);
-  transition: opacity 120ms;
-}
-
-.pet3d__creeper--gone {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.pet3d__floor .pet3d__face {
-  background-repeat: repeat;
-}
-
-.pet3d__shadow {
-  position: absolute;
-  width: 110px;
-  height: 70px;
-  left: -55px;
-  top: -35px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 70%);
-  pointer-events: none;
-}
-
-.pet3d__shadow--gone {
-  visibility: hidden;
-}
-
-.pet3d__item {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  left: -20px;
-  top: -20px;
-  image-rendering: pixelated;
-  pointer-events: none;
-}
-
-.pet-stage__caption {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--color-border);
-}
-
-.pet-name {
-  padding: 2px 6px;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: var(--color-text);
-  font-family: var(--font-pixel);
-  font-size: 20px;
-  cursor: var(--cursor-hand);
-}
-
-.pet-name:hover {
-  background: rgba(var(--accent-rgb), 0.12);
-}
-
-.pet-name__input {
-  width: 180px;
-}
-
-.pet-level {
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(127, 230, 100, 0.16);
-  color: #9be37f;
-  font-size: 12px;
-}
-
-.pet-mood {
-  margin-left: auto;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 12px;
-}
-
-.pet-mood--happy { background: rgba(127, 230, 100, 0.16); color: #9be37f; }
-.pet-mood--sad { background: rgba(255, 107, 94, 0.16); color: #ffb3a8; }
-.pet-mood--sleep { background: rgba(var(--accent-rgb), 0.16); color: var(--color-accent); }
-
-.pet-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px;
-}
-
-.pet-panel__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.pet-meter,
-.pet-xp {
-  display: grid;
-  grid-template-columns: 96px 1fr 30px;
-  align-items: center;
-  gap: 10px;
-}
-
-.pet-xp {
-  grid-template-columns: 96px 1fr;
-}
-
-.pet-meter__label {
-  font-size: 13px;
-  color: var(--color-text-soft);
-}
-
-.pet-meter__track,
-.pet-xp__track {
-  height: 12px;
-  overflow: hidden;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.45);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-
-.pet-meter__fill,
-.pet-xp__fill {
-  display: block;
-  height: 100%;
-  width: 0;
-  transition: width 700ms var(--ease-out);
-}
-
-.pet-meter__fill--food { background: linear-gradient(90deg, #d9822b, #f2b354); }
-.pet-meter__fill--fun { background: linear-gradient(90deg, #e2508a, #ff8fb8); }
-.pet-meter__fill--energy { background: linear-gradient(90deg, #3f8fe6, #7fc2ff); }
-.pet-xp__fill { background: linear-gradient(90deg, #6fcf3a, #b4f06b); }
-
-.pet-meter__value {
-  font-family: var(--font-pixel);
-  font-size: 13px;
-  text-align: right;
-}
-
-.pet-meter--low .pet-meter__track {
-  animation: meter-warn 1.4s ease-in-out infinite;
-}
-
-@keyframes meter-warn {
-  50% { box-shadow: inset 0 0 0 1px rgba(255, 107, 94, 0.7), 0 0 10px rgba(255, 107, 94, 0.35); }
-}
-
-.pet-actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.pet-action {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 6px;
-  font-size: 12px;
-}
-
-.pet-action__icon {
-  width: 32px;
-  height: 32px;
-  image-rendering: pixelated;
-  transition: transform 260ms var(--ease-spring);
-}
-
-.pet-action:hover:not(:disabled) .pet-action__icon {
-  transform: translateY(-4px) rotate(-8deg) scale(1.1);
-}
-
-.pet-hint {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.nav-button__img--pixel {
-  image-rendering: pixelated;
-  border-radius: 3px;
-}
-
-@media (max-width: 1000px) {
-  .pet-layout {
-    grid-template-columns: 1fr;
-  }
-}
 /* --- Home: links readable over any panorama; instance cards all alike --------------------------- */
 .home-section__head .link-button {
   padding: 4px 10px;
@@ -6206,11 +5951,6 @@ button:disabled {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(-6deg) scale(1); }
   45% { transform: translate3d(0, -5px, 0) rotate(6deg) scale(1.06); }
   60% { transform: translate3d(0, -4px, 0) rotate(5deg) scale(1.05); }
-}
-/* The game's grass top is grey: tinted like a plains biome, the way the game does it. */
-.pet3d__face--grass {
-  background-color: #79c05a;
-  background-blend-mode: multiply;
 }
 /* --- The start screen (index.html #splash, components/splash.js) -------------------------------- */
 .splash {
@@ -6268,50 +6008,49 @@ button:disabled {
   animation: fadeIn 600ms 200ms both;
 }
 
-/* A queue of blocks in the theme colour: every block steps one place to the right with a little hop
-   (gravity: a slow rise, a quicker fall, a squash on landing); the last one leaps in an arc over
-   the others back to the front. Four blocks a quarter of the cycle apart fill the four places. */
+/* A sliding-block puzzle of 3D cubes in the theme colour: a 3 × 3 board lying in front of the
+   viewer, eight cubes and one free place; splash.js moves a cube next to the gap into it (through
+   the `translate` property, which slides with a quick start and a soft stop). */
 .splash__blocks {
   position: relative;
   width: 178px;
   height: 120px;
 }
 
-.splash__block {
+.splash__board {
+  --cell: 30px;
   position: absolute;
-  left: 0;
-  bottom: 0;
-  display: block;
-  width: 34px;
-  height: 40px;
-  transform-origin: 50% 100%;
-  animation: block-queue 2.8s infinite;
-  animation-delay: calc(var(--i) * -0.7s);
+  left: 50%;
+  top: 50%;
+  width: calc(var(--cell) * 3);
+  height: calc(var(--cell) * 3);
+  margin: calc(var(--cell) * -1.5) 0 0 calc(var(--cell) * -1.5);
+  transform-style: preserve-3d;
+  transform: translateY(14px) rotateX(58deg) rotateZ(45deg);
 }
 
-@keyframes block-queue {
-  0% { transform: translate3d(0, 0, 0); animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
-  10% { transform: translate3d(24px, -12px, 0) scale(0.97, 1.04); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
-  20% { transform: translate3d(48px, 0, 0) scale(1.08, 0.9); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
-  25% { transform: translate3d(48px, 0, 0) scale(1, 1); animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
-  35% { transform: translate3d(72px, -12px, 0) scale(0.97, 1.04); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
-  45% { transform: translate3d(96px, 0, 0) scale(1.08, 0.9); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
-  50% { transform: translate3d(96px, 0, 0) scale(1, 1); animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1); }
-  60% { transform: translate3d(120px, -12px, 0) scale(0.97, 1.04); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
-  70% { transform: translate3d(144px, 0, 0) scale(1.08, 0.9); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
-  75% { transform: translate3d(144px, 0, 0) scale(1, 1); animation-timing-function: cubic-bezier(0.25, 0, 0.5, 1); }
-  85% { transform: translate3d(72px, -74px, 0) rotate(-180deg) scale(1.02); animation-timing-function: cubic-bezier(0.5, 0, 0.85, 0.5); }
-  95% { transform: translate3d(0, 0, 0) rotate(-360deg) scale(1.12, 0.84); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
-  100% { transform: translate3d(0, 0, 0) rotate(-360deg) scale(1, 1); }
+.splash__slot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cell);
+  height: var(--cell);
+  box-sizing: border-box;
+  border: 1px solid rgba(var(--accent-rgb), 0.1);
+  border-radius: 3px;
+  background: rgba(var(--accent-rgb), 0.05);
 }
-.splash__cube {
-  position: relative;
-  display: block;
-  width: 34px;
-  height: 34px;
-  margin-top: 6px;
+
+/* A cube is a little smaller than its place, so the cubes stand apart with a gap between them. */
+.splash__block {
+  --cube: calc(var(--cell) - 5px);
+  position: absolute;
+  left: 2.5px;
+  top: 2.5px;
+  width: var(--cube);
+  height: var(--cube);
   transform-style: preserve-3d;
-  transform: rotateX(-28deg) rotateY(45deg);
+  transition: translate 380ms cubic-bezier(0.6, 0, 0.2, 1);
 }
 
 .splash__face {
@@ -6319,12 +6058,12 @@ button:disabled {
   inset: 0;
   background-size: 100% 100%;
   image-rendering: pixelated;
-  backface-visibility: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
 }
 
-.splash__face--top { transform: rotateX(90deg) translateZ(17px); filter: brightness(1.1); }
-.splash__face--left { transform: rotateY(-90deg) translateZ(17px); filter: brightness(0.72); }
-.splash__face--right { transform: translateZ(17px); filter: brightness(0.88); }
+.splash__face--top { transform: translateZ(var(--cube)); filter: brightness(1.12); }
+.splash__face--south { transform-origin: 50% 100%; transform: rotateX(-90deg); filter: brightness(0.7); }
+.splash__face--east { transform-origin: 100% 50%; transform: rotateY(90deg); filter: brightness(0.88); }
 
 .splash__status {
   min-height: 18px;

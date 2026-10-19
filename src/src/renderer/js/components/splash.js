@@ -1,14 +1,18 @@
 /*
  * The start screen (its markup is in index.html, so it is there from the very first frame): the
- * launcher's X, its name, a queue of blocks in the theme colour — they step along one place at a
- * time with a little hop while the last one leaps over the others to the front, round and round —
- * and what is loading with a bar. Meanwhile everything the launcher needs is fetched (the game's textures, instances,
- * accounts, fonts, news); when all of it is in, the screen fades and the launcher is ready.
- * Shown once per start of the launcher.
+ * launcher's X, its name, a sliding-block puzzle of 3D cubes in the theme colour — eight cubes on a
+ * 3 × 3 board, one place free, and every moment a cube next to the gap slides into it — and what
+ * is loading with a bar. Meanwhile everything the launcher needs is fetched (the game's textures,
+ * instances, accounts, fonts, news); when all of it is in, the screen fades and the launcher is
+ * ready. Shown once per start of the launcher.
  */
 
-/** How many blocks walk in the queue. */
-const BLOCK_COUNT = 4;
+/** The board is SIDE × SIDE places; all but one hold a cube. */
+const SIDE = 3;
+/** One place on the board, in px (a cube is a little smaller, see features.css). */
+const CELL = 30;
+/** How often a cube slides, in ms (the slide itself is set in CSS). */
+const MOVE_MS = 520;
 
 /** Shades of the theme colour (the accent) for the blocks' mottled faces. */
 function accentShades() {
@@ -44,23 +48,72 @@ function texture(colors, { topColors = null, ore = null, seed = 1 } = {}) {
   return canvas.toDataURL();
 }
 
-/** A small 3D block in the theme colour: top, left and right faces of a cube seen from above. */
+/** A small 3D cube in the theme colour: its top and the two sides that face the viewer. */
 function blockElement(shades, index) {
   const top = texture(shades, { seed: index * 31 + 7 });
   const side = texture(shades, { seed: index * 13 + 5 });
   const cube = document.createElement('span');
-  cube.className = 'splash__cube';
-  for (const [name, image] of [['top', top], ['left', side], ['right', side]]) {
+  cube.className = 'splash__block';
+  for (const [name, image] of [['top', top], ['south', side], ['east', side]]) {
     const face = document.createElement('span');
     face.className = `splash__face splash__face--${name}`;
     face.style.backgroundImage = `url(${image})`;
     cube.append(face);
   }
-  const holder = document.createElement('span');
-  holder.className = 'splash__block';
-  holder.style.setProperty('--i', String(index));
-  holder.append(cube);
-  return holder;
+  return cube;
+}
+
+/**
+ * Builds the board in `row` and starts the puzzle: a cube next to the free place slides into it,
+ * never straight back to where it just came from. Returns a function that stops it.
+ */
+function startPuzzle(row, shades) {
+  const board = document.createElement('div');
+  board.className = 'splash__board';
+  board.style.setProperty('--cell', `${CELL}px`);
+  const places = SIDE * SIDE;
+  for (let place = 0; place < places; place += 1) {
+    const slot = document.createElement('span');
+    slot.className = 'splash__slot';
+    slot.style.translate = `${(place % SIDE) * CELL}px ${Math.floor(place / SIDE) * CELL}px`;
+    board.append(slot);
+  }
+  const cells = [];
+  const put = (cube, place) => {
+    cube.style.translate = `${(place % SIDE) * CELL}px ${Math.floor(place / SIDE) * CELL}px`;
+  };
+  for (let place = 0; place < places - 1; place += 1) {
+    const cube = blockElement(shades, place);
+    cells[place] = cube;
+    put(cube, place);
+    board.append(cube);
+  }
+  cells[places - 1] = null;
+  row.replaceChildren(board);
+
+  let empty = places - 1;
+  let previous = -1;
+  const timer = setInterval(() => {
+    const x = empty % SIDE;
+    const y = Math.floor(empty / SIDE);
+    const near = [
+      [x - 1, y],
+      [x + 1, y],
+      [x, y - 1],
+      [x, y + 1],
+    ]
+      .filter(([a, b]) => a >= 0 && a < SIDE && b >= 0 && b < SIDE)
+      .map(([a, b]) => b * SIDE + a)
+      .filter((place) => place !== previous);
+    const from = near[Math.floor(Math.random() * near.length)];
+    const cube = cells[from];
+    cells[empty] = cube;
+    cells[from] = null;
+    put(cube, empty);
+    previous = empty;
+    empty = from;
+  }, MOVE_MS);
+  return () => clearInterval(timer);
 }
 
 /**
@@ -74,8 +127,7 @@ export function runSplash({ tasks, minMs = 1700, maxMs = 15000 }) {
   const row = splash.querySelector('.splash__blocks');
   const status = splash.querySelector('.splash__status');
   const bar = splash.querySelector('.splash__bar');
-  const shades = accentShades();
-  row.replaceChildren(...Array.from({ length: BLOCK_COUNT }, (_, index) => blockElement(shades, index)));
+  const stopPuzzle = startPuzzle(row, accentShades());
   const started = performance.now();
   const pending = new Set(tasks);
   let done = 0;
@@ -107,6 +159,7 @@ export function runSplash({ tasks, minMs = 1700, maxMs = 15000 }) {
         new Promise((resolve) => {
           splash.classList.add('splash--leaving');
           setTimeout(() => {
+            stopPuzzle();
             splash.remove();
             resolve();
           }, 520);
