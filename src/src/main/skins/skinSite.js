@@ -111,10 +111,26 @@ function prepareSession(siteSession) {
   });
 }
 
+/**
+ * Loads a site page. NameMC sometimes puts Cloudflare's "Just a moment…" check first: it reloads the
+ * page by itself, so the first load ends as "aborted" (ERR_ABORTED, -3) although the site then opens
+ * fine — that is not an error. Only a real failure (no network, site down) is reported.
+ */
+function loadSite(url) {
+  siteWindow.loadURL(url).catch((error) => {
+    if (error.code === 'ERR_ABORTED' || error.errno === -3 || /ERR_ABORTED/.test(error.message)) return;
+    log.warn(`Сайт скинов не открылся: ${error.message}`);
+    handlers.onError(new Error('Сайт скинов не открылся. Проверьте интернет и попробуйте ещё раз.'));
+  });
+}
+
 const isWeb = (url) => /^https?:\/\//i.test(url);
 const isPngLink = (url) => {
   try {
-    return /\.png$/i.test(new URL(url).pathname);
+    const { hostname, pathname } = new URL(url);
+    // NameMC's 2D/3D pictures of a skin ("Сделать скриншот") are PNGs too, but not skins: shown as pages.
+    if (/(^|\.)namemc\.com$/i.test(hostname) && /^\/(2d|3d)\//i.test(pathname)) return false;
+    return /\.png$/i.test(pathname);
   } catch {
     return false;
   }
@@ -132,7 +148,7 @@ function openSkinSite(parent, nextHandlers, key = 'skindex') {
     siteWindow.focus();
     if (key !== siteKey) {
       siteKey = key;
-      siteWindow.loadURL(url).catch((error) => handlers.onError(new Error(`Сайт не открылся: ${error.message}`)));
+      loadSite(url);
     }
     return;
   }
@@ -168,7 +184,7 @@ function openSkinSite(parent, nextHandlers, key = 'skindex') {
   siteWindow.on('closed', () => {
     siteWindow = null;
   });
-  siteWindow.loadURL(url).catch((error) => handlers.onError(new Error(`Сайт не открылся: ${error.message}`)));
+  loadSite(url);
 }
 
 module.exports = { openSkinSite, modelOf, nameOf, SITES };

@@ -95,11 +95,29 @@ export function createHomePage({ navigate }) {
   // The player in a column of its own (it covers nothing): the account's skin, looking at the
   // mouse; it and the "Гардероб" button under it open the wardrobe.
   const openWardrobe = () => openDressingRoom({ onApplied: () => loadPlayerSkin(true) });
-  const player = createHomePlayer({ width: 200, height: 290, onClick: openWardrobe });
+  const makePlayer = () => createHomePlayer({ width: 200, height: 290, onClick: openWardrobe, onLost: rebuildPlayer });
+  let player = makePlayer();
+  let playerActive = true;
   // Until the account's own skin is in, "Загрузка…" is shown instead of a default Steve.
   const playerBox = player ? h('div', { class: 'home-player home-player--loading', title: 'Гардероб' }, player.canvas, h('span', { class: 'home-player__loading' }, 'Загрузка…')) : null;
   // Hearts, sparkles and notes around the player with some gestures.
   player?.attachEffects(playerBox);
+  // The 3D view was lost (GPU restart): a new player takes its place, a few times a minute at most.
+  let rebuilds = [];
+  function rebuildPlayer() {
+    rebuilds = rebuilds.filter((time) => Date.now() - time < 60000);
+    if (!player || rebuilds.length >= 3) return;
+    rebuilds.push(Date.now());
+    const next = makePlayer();
+    if (!next) return;
+    const old = player;
+    player = next;
+    old.canvas.replaceWith(next.canvas);
+    old.dispose();
+    next.attachEffects(playerBox);
+    next.setActive(playerActive);
+    loadPlayerSkin();
+  }
   const side = player ? h('aside', { class: 'home-side' }, playerBox, h('button', { class: 'btn btn--secondary btn--compact home-side__wardrobe', type: 'button', onclick: openWardrobe }, 'Гардероб')) : null;
   element.append(h('div', { class: 'home-top' }, hero, side), playBar.element);
   let playerLoad = 0;
@@ -211,10 +229,14 @@ export function createHomePage({ navigate }) {
       playBar.refresh();
       splash.textContent = SPLASHES[Math.floor(Math.random() * SPLASHES.length)];
       // Back on Home: the player greets you (a different gesture each time).
+      playerActive = true;
       player?.setActive(true);
       player?.play(['wave', 'hello', 'nod', 'dance', 'flex'][Math.floor(Math.random() * 5)]);
     },
-    onHide: () => player?.setActive(false),
+    onHide: () => {
+      playerActive = false;
+      player?.setActive(false);
+    },
   };
 }
 

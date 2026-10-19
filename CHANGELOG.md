@@ -15,9 +15,10 @@
 
 ### Skins
 - Your player stands in 3D on the right of the home screen — hold and drag it to turn it round and look at your skin from every side: follows the mouse, sways, greets you on hover, jumps when the game starts and does gestures on its own — claps, stretches, shrugs, looks around, steps in place, salutes, thinks, dances, dabs, flexes, blows a kiss, bows, strikes a pose, facepalms, celebrates — some with pixel hearts, sparkles, notes or stars around it
-- A Bedrock-style "Wardrobe" under the player: your skin in the middle, Steve and Alex at the sides and your saved skins — switched with arrows and smooth movement, "Wear" in one click. The skin in the middle hops with its arms up to say hi, and every skin shows its own move when it comes to the middle
+- A Bedrock-style "Wardrobe" under the player: your skin in the middle, Steve and Alex at the sides and your saved skins — switched with arrows and smooth movement, "Wear" in one click. The skin in the middle hops with its arms up to say hi, and every skin shows its own move when it comes to the middle. The skin you wear is marked "worn" where it already is — wearing a skin never adds a copy; three short steps explain how to get skins from the sites
 - Ready-made skins only: "Load PNG", "By name", "The Skindex" and "NameMC" — a skin downloaded on the site appears in the Wardrobe by itself, with its name; the Steve or Alex model is detected automatically; the same skin is never saved twice
-- An Amethyx skin for Microsoft and Ely.by accounts: the account's real skin stays unchanged. In modded instances the launcher installs CustomSkinLoader, and other Amethyx players see your skin
+- Microsoft accounts: "Wear" also puts the skin on your real Minecraft profile, so every player on every server sees it; "Reset skin" brings back the default one
+- Ely.by accounts: an Amethyx skin (other Amethyx players see it in modded instances through CustomSkinLoader); "To Ely.by" hands the skin file over to the Ely.by upload page for everyone else
 - A skin per account; a sharper 3D model with correct colors and a crisp name tag
 
 ### Instances and mods
@@ -35,12 +36,15 @@
 ### Launcher
 - The close button hides the launcher in the tray: friends' messages and downloads go on; click the icon to open it, right-click → "Quit" to exit. Can be turned off in Settings → "Launcher"
 - Tooltips in the launcher's style instead of Windows' grey ones; a glint on the main buttons, hopping sidebar icons, a breathing Play button, springy dialogs
+- A launcher that moves: cards lean towards the mouse in 3D with a soft light, the panorama drifts as you move the mouse, the Minecraft logo floats and rocks, icons hop and wiggle under the pointer, the X of the name glints, buttons give under a click
 - Amethyx's own notifications: a soft card in the corner of the screen with the launcher's icon and text in its pixel font; appears at once and hides by itself
 - Background: panoramas from 19 Minecraft versions (1.7.10 to 26.3), loaded quickly and applied at once
 - The music is silent while the game runs and pauses when the window is not in focus; a sound of your choice for every action
 - Seven languages: English, Russian, Spanish, Portuguese, German, French and Chinese; on the first start the launcher asks which one (Windows' language is offered first)
 - Top left: the version, a floating logo (leads Home) and the name; a "Full screen" button (F11); more light animations (can be turned off in settings)
 - Ely.by sign-in on the Ely.by website; password sign-in stays as a fallback
+- Fixed: after opening the Wardrobe several times the player on the home screen turned into a white box (the 3D views were not released)
+- Fixed: NameMC sometimes reported an error before the skin came in (its Cloudflare check reloads the page); its 3D picture is no longer taken for a skin
 - New installer pictures; the installer checks for 64-bit Windows 10 (1803+) or 11
 
 ### Fixes

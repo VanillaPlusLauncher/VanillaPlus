@@ -2,6 +2,7 @@ import { api } from './services/api.js';
 import { LANGUAGES, setLanguage } from './core/i18n.js';
 import { askLanguageOnce } from './components/languagePicker.js';
 import { installTooltips } from './components/tooltip.js';
+import { installAliveUi } from './components/alive.js';
 import { store } from './state/appStore.js';
 import { applyGameState, applyTaskEvent, appendLogLine, loadCatalog, loadInitialData, refreshInstances } from './state/actions.js';
 import { createRouter } from './router/router.js';
@@ -270,6 +271,7 @@ async function start() {
   installGlobalSounds();
   installDropdowns();
   installTooltips();
+  installAliveUi();
   initMc().then((ready) => {
     if (!ready) {
       showFirstRunLoader();

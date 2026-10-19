@@ -62,6 +62,8 @@ export function openDressingRoom({ onApplied } = {}) {
   let busy = false;
   let greeted = false;
   let defaults = null;
+  // Ely.by accounts only: the skin in the middle is taken to the Ely.by site (see below).
+  let elyButton = null;
 
   const effects = createParticles(stage);
   const models = [0, 1, 2, 3].map(() => {
@@ -98,8 +100,10 @@ export function openDressingRoom({ onApplied } = {}) {
     const middle = models.find((model) => model.element.dataset.pos === 'center');
     for (const model of models) model.viewer?.setNameTag(model === middle ? account.username : null);
     const current = presets[index];
-    nameLabel.replaceChildren(current?.libraryId ? h('span', { 'data-i18n': 'off' }, current.name) : h('span', null, current?.name ?? ''));
+    nameLabel.replaceChildren(...[current?.libraryId ? h('span', { 'data-i18n': 'off' }, current.name) : h('span', null, current?.name ?? ''), current?.current && h('span', { class: 'wardrobe__worn' }, 'надет')].filter(Boolean));
     wearButton.disabled = !current || current.current;
+    wearButton.textContent = current?.current ? 'Надет' : 'Надеть';
+    if (elyButton) elyButton.disabled = !current;
     removeButton.hidden = !current?.libraryId;
     // The skin in the middle shows itself: "hello" when the Wardrobe opens, then each skin its own move.
     if (middle) {
@@ -157,13 +161,18 @@ export function openDressingRoom({ onApplied } = {}) {
     }
     const library = await api.skins.library.list().catch(() => []);
     const { steve, alex, mine } = defaults;
-    presets = [steve, mine, alex, ...library.map((item) => ({ name: item.name, model: item.model, pngBase64: item.pngBase64, libraryId: item.id }))].filter((item) => item?.pngBase64);
+    const skins = [steve && { ...steve }, alex && { ...alex }, ...library.map((item) => ({ name: item.name, model: item.model, pngBase64: item.pngBase64, libraryId: item.id }))].filter((item) => item?.pngBase64);
+    // The skin you wear is marked where it already is (Steve, Alex or a skin of the wardrobe), so
+    // wearing one never adds a copy; only a skin from nowhere else (the profile's) gets a place of its own.
+    const worn = mine ? skins.find((item) => item.pngBase64 === mine.pngBase64) : null;
+    if (worn) Object.assign(worn, { current: true, capeBase64: mine.capeBase64 });
+    presets = worn || !mine ? skins : [skins[0], mine, ...skins.slice(1)].filter(Boolean);
     const focused = focus ? presets.findIndex((item) => item.libraryId === focus) : -1;
-    index = focused >= 0 ? focused : Math.max(0, presets.indexOf(mine));
+    index = focused >= 0 ? focused : Math.max(0, presets.findIndex((item) => item.current));
     layout();
-    if (mine?.capeBase64 && presets[index] === mine) {
+    if (presets[index]?.current && presets[index].capeBase64) {
       const middle = models.find((model) => model.element.dataset.pos === 'center');
-      middle?.viewer?.setCape(`data:image/png;base64,${mine.capeBase64}`);
+      middle?.viewer?.setCape(`data:image/png;base64,${presets[index].capeBase64}`);
     }
   }
 
@@ -233,18 +242,53 @@ export function openDressingRoom({ onApplied } = {}) {
     const chosen = presets[index];
     if (!chosen) return;
     wearButton.disabled = true;
+    wearButton.textContent = account.type === 'microsoft' ? 'Загружаем…' : 'Надеваем…';
     try {
-      // Offline: the skin in the game. Microsoft / Ely.by: the Amethyx skin (the profile stays).
-      await api.skins.save(account.uuid, chosen.pngBase64, chosen.model);
+      // Offline: the skin in the game. Microsoft: also the profile's real skin (every server shows
+      // it). Ely.by: the Amethyx skin; the site's own skin is changed on ely.by ("На Ely.by").
+      const result = await api.skins.wear(account.id, chosen.pngBase64, chosen.model);
       forgetAccountHead(account.id);
       store.set({ accounts: [...store.get().accounts] });
       sfx('skinSaved');
-      toast(account.type === 'offline' ? `Скин «${chosen.name}» надет` : `Скин «${chosen.name}» надет как скин Amethyx`, 'success');
+      if (account.type === 'microsoft' && result?.uploadError) {
+        toast(`Скин надет в лаунчере, но в профиль Microsoft не загружен: ${result.uploadError}`, 'error', 7000);
+      } else if (account.type === 'microsoft') {
+        toast(`Скин «${chosen.name}» надет: его видят все игроки на любых серверах`, 'success');
+      } else if (account.type === 'ely') {
+        toast(`Скин «${chosen.name}» надет как скин Amethyx. Чтобы его видели все на серверах Ely.by — кнопка «На Ely.by» в гардеробе.`, 'success', 7000);
+      } else {
+        toast(`Скин «${chosen.name}» надет`, 'success');
+      }
       onApplied?.(chosen);
       modal.close();
     } catch (error) {
       toast(errorMessage(error), 'error');
       wearButton.disabled = false;
+      wearButton.textContent = 'Надеть';
+    }
+  });
+
+  const resetButton = h('button', { class: 'btn btn--ghost wardrobe__reset', type: 'button' }, 'Сбросить скин');
+  resetButton.addEventListener('click', async () => {
+    const message =
+      account.type === 'microsoft'
+        ? 'В профиле Microsoft снова будет стандартный скин (Стив или Алекс) — во всех играх и на всех серверах.'
+        : account.type === 'ely'
+          ? 'Скин Amethyx уберётся, снова будет виден скин вашего профиля Ely.by.'
+          : 'В игре снова будет стандартный скин.';
+    const yes = await confirmDialog({ title: 'Сбросить скин?', message, confirmLabel: 'Сбросить', danger: true });
+    if (!yes) return;
+    resetButton.disabled = true;
+    try {
+      await api.skins.reset(account.id);
+      forgetAccountHead(account.id);
+      store.set({ accounts: [...store.get().accounts] });
+      toast('Скин сброшен', 'success');
+      onApplied?.(null);
+      modal.close();
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+      resetButton.disabled = false;
     }
   });
 
@@ -270,6 +314,29 @@ export function openDressingRoom({ onApplied } = {}) {
     tool('download', 'The Skindex', () => openSite('skindex')),
     tool('download', 'NameMC', () => openSite('namemc')),
   );
+  if (account.type === 'ely') {
+    // Ely.by lets no launcher change the skin: the file is handed over for the site's upload page.
+    elyButton = tool('image', 'На Ely.by', async () => {
+      const chosen = presets[index];
+      if (!chosen) return;
+      try {
+        await api.skins.toEly(chosen.pngBase64, chosen.name);
+        toast('Файл скина открыт в папке, а в браузере — страница Ely.by. Перетащите файл на страницу и нажмите галочку, чтобы надеть.', 'info', 9000);
+      } catch (error) {
+        toast(errorMessage(error), 'error');
+      }
+    });
+    tools.append(elyButton);
+  }
+  /** How skins get here, in three steps (the sites were not obvious). */
+  const step = (number, text) => h('li', { class: 'wardrobe__step' }, h('span', { class: 'wardrobe__step-number' }, String(number)), h('span', null, text));
+  const help = h(
+    'ol',
+    { class: 'wardrobe__steps' },
+    step(1, 'Нажмите The Skindex или NameMC — откроется сайт скинов'),
+    step(2, 'Выберите скин и нажмите на нём «Download»'),
+    step(3, 'Скин сам появится здесь — нажмите «Надеть»'),
+  );
   const modal = openModal({
     title: 'Гардероб',
     wide: true,
@@ -280,9 +347,9 @@ export function openDressingRoom({ onApplied } = {}) {
       h('div', { class: 'wardrobe__caption' }, nameLabel, removeButton),
       tools,
       nickRow,
-      h('p', { class: 'wardrobe__hint text-soft' }, 'На сайте скинов нажмите кнопку скачивания у понравившегося скина — он сам появится здесь.'),
+      help,
     ),
-    footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), wearButton],
+    footer: [resetButton, h('span', { class: 'wardrobe__footer-gap' }), h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), wearButton],
     onClose: () => {
       document.removeEventListener('keydown', onKey);
       offSkinImported();

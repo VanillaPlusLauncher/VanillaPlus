@@ -15,7 +15,11 @@ const IDLE_MIN_MS = 8000;
 const IDLE_MAX_MS = 16000;
 // A greeting when the pointer comes onto the player, not more often than this.
 const GREET_COOLDOWN_MS = 6000;
-export function createHomePlayer({ width = 220, height = 300, onClick } = {}) {
+/**
+ * `onLost`: called when the 3D view is gone for good (the GPU process restarted, or Chromium took
+ * the WebGL context away); the page then puts a new player in its place.
+ */
+export function createHomePlayer({ width = 220, height = 300, onClick, onLost } = {}) {
   const lib = window.skinview3d;
   if (!lib) return null;
   const canvas = document.createElement('canvas');
@@ -143,6 +147,14 @@ export function createHomePlayer({ width = 220, height = 300, onClick } = {}) {
   canvas.addEventListener('pointerup', (event) => release(event));
   canvas.addEventListener('pointercancel', (event) => release(event, true));
 
+  let disposed = false;
+  canvas.addEventListener('webglcontextlost', () => {
+    // three.js asks for the context back; when it does not come within a moment, start anew.
+    setTimeout(() => {
+      if (!disposed && viewer.renderer.getContext().isContextLost()) onLost?.();
+    }, 600);
+  });
+
   return {
     canvas,
     setSkin(source, model = 'classic') {
@@ -162,10 +174,16 @@ export function createHomePlayer({ width = 220, height = 300, onClick } = {}) {
       viewer.renderPaused = !active;
     },
     dispose() {
+      disposed = true;
       clearTimeout(idleTimer);
       window.removeEventListener('pointermove', onPointer);
       effects?.dispose();
       viewer.dispose();
+      try {
+        viewer.renderer.forceContextLoss();
+      } catch {
+        // Already lost.
+      }
     },
   };
 }

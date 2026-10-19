@@ -233,8 +233,17 @@ export function createSkinViewer3d({ width = 280, height = 400, light = false } 
     snapshot() {
       return canvas.toDataURL('image/png');
     },
+    /**
+     * The WebGL context is let go at once: Chromium keeps at most 16 per page and, past that, takes
+     * the oldest one away — the home player's, after the Wardrobe had been opened a few times.
+     */
     dispose() {
       viewer.dispose();
+      try {
+        viewer.renderer.forceContextLoss();
+      } catch {
+        // Already lost.
+      }
     },
   };
 }

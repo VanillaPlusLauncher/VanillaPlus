@@ -16,7 +16,7 @@ The installed launcher updates itself: a new version downloads in the background
 - **Import from other launchers:** Prism, ElyPrism, PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher and the official launcher — instances are found automatically
 - **Instances like in Prism Launcher:** tabs for mods, resource packs, shaders, worlds, your own server, screenshots and the log; change the game version and loader, per-instance Java and memory, notes, custom groups with drag and drop
 - **Game log** explains common errors and shows the cause right after a crash
-- **Wardrobe:** ready-made skins from a PNG, by player name or from The Skindex and NameMC (a skin downloaded there appears in the launcher by itself), 3D preview with animations; a skin per account, an Amethyx skin for Microsoft and Ely.by accounts (the real skin stays unchanged)
+- **Wardrobe:** ready-made skins from a PNG, by player name or from The Skindex and NameMC (a skin downloaded there appears in the launcher by itself), 3D preview with animations; a skin per account; on a Microsoft account "Wear" changes the real profile skin (and "Reset skin" brings the default back), Ely.by accounts get an Amethyx skin and a "To Ely.by" button
 - **Friends:** requests, who is online and what they play, chat, joining a friend's world through the e4mc mod (no public IP needed) or their server in one click
 - Minecraft look and feel: panoramas from different game versions, sounds (one per action, your choice) and music
 - Seven languages: English, Russian, Spanish, Portuguese, German, French, Chinese
@@ -28,7 +28,7 @@ The installed launcher updates itself: a new version downloads in the background
 - **Friends and chat:** who is online and what they play, messages, in-game screenshots, invites with an instance your friend builds in one click
 - **Friends join your world** without a public IP: open the world to LAN, the launcher installs the e4mc mod and sends your friend the address
 - **3D player on the home screen:** follows the mouse, waves and does gestures; under it, a Bedrock-style **Wardrobe**
-- **Ready-made skins:** from a PNG, by player name, from The Skindex and NameMC — a skin downloaded on the site appears in the Wardrobe by itself; other Amethyx players see your **Amethyx skin** even on Microsoft and Ely.by accounts
+- **Ready-made skins:** from a PNG, by player name, from The Skindex and NameMC — a skin downloaded on the site appears in the Wardrobe by itself; other Amethyx players see your **Amethyx skin** even on Ely.by accounts
 - **Import from other launchers:** Prism, ElyPrism, MultiMC, Modrinth App, CurseForge, TLauncher and more — instances are found automatically
 - **One-click optimization:** performance mods, memory, Java flags and graphics settings for your PC; never suggests mods the instance is incompatible with
 - **Faster modpack installs:** 12 parallel downloads and a shared mod cache

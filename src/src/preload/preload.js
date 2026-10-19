@@ -124,6 +124,9 @@ const bridge = {
     byName: (name, source) => invoke(CHANNELS.skins.byName, name, source),
     accountSkin: (accountId) => invoke(CHANNELS.skins.accountSkin, accountId),
     uploadMicrosoft: (accountId, pngBase64, model) => invoke(CHANNELS.skins.uploadMicrosoft, accountId, pngBase64, model),
+    wear: (accountId, pngBase64, model) => invoke(CHANNELS.skins.wear, accountId, pngBase64, model),
+    reset: (accountId) => invoke(CHANNELS.skins.reset, accountId),
+    toEly: (pngBase64, name) => invoke(CHANNELS.skins.toEly, pngBase64, name),
     library: {
       list: () => invoke(CHANNELS.skins.libraryList),
       save: (name, pngBase64, model) => invoke(CHANNELS.skins.librarySave, name, pngBase64, model),

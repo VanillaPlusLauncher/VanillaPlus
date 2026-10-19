@@ -126,6 +126,18 @@ async function uploadMicrosoftSkin(accessToken, png, model) {
   }
 }
 
+/** Puts the default skin (Steve or Alex, chosen by Mojang) back on a Microsoft profile. */
+async function resetMicrosoftSkin(accessToken) {
+  try {
+    await request(`${MINECRAFT_SKINS}/active`, { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` }, retries: 0 });
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 401) {
+      throw new Error('Сессия Microsoft устарела. Запустите игру один раз или войдите заново.');
+    }
+    throw error;
+  }
+}
+
 // --- Library ------------------------------------------------------------------------
 
 function libraryDirectory() {
@@ -196,4 +208,4 @@ function removeFromLibrary(id) {
   });
 }
 
-module.exports = { skinByName, accountSkin, uploadMicrosoftSkin, listLibrary, saveToLibrary, removeFromLibrary };
+module.exports = { skinByName, accountSkin, uploadMicrosoftSkin, resetMicrosoftSkin, listLibrary, saveToLibrary, removeFromLibrary };

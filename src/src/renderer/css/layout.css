@@ -151,6 +151,12 @@
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 12px rgba(var(--accent-rgb), 0.45);
 }
 
+/* The X of "Amethyx" is always amethyst, whatever theme colour is chosen (it is the logo's colour). */
+.brand-x {
+  color: #b48cff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 10px rgba(180, 140, 255, 0.55);
+}
+
 /* The 3D mark is scaled down smoothly. */
 .sidebar__logo {
   image-rendering: auto;
