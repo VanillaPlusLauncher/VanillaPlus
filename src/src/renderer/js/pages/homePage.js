@@ -98,6 +98,8 @@ export function createHomePage({ navigate }) {
   const player = createHomePlayer({ width: 200, height: 290, onClick: openWardrobe });
   // Until the account's own skin is in, "Загрузка…" is shown instead of a default Steve.
   const playerBox = player ? h('div', { class: 'home-player home-player--loading', title: 'Гардероб' }, player.canvas, h('span', { class: 'home-player__loading' }, 'Загрузка…')) : null;
+  // Hearts, sparkles and notes around the player with some gestures.
+  player?.attachEffects(playerBox);
   const side = player ? h('aside', { class: 'home-side' }, playerBox, h('button', { class: 'btn btn--secondary btn--compact home-side__wardrobe', type: 'button', onclick: openWardrobe }, 'Гардероб')) : null;
   element.append(h('div', { class: 'home-top' }, hero, side), playBar.element);
   let playerLoad = 0;

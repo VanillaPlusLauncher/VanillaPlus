@@ -6,6 +6,8 @@ import { forgetAccountHead } from '../core/skinHead.js';
 import { sfx } from '../core/sound.js';
 import { store } from '../state/appStore.js';
 import { createSkinViewer3d } from '../skins/skinViewer3d.js';
+import { GESTURE_EFFECTS, SHOWCASE } from '../skins/gestures.js';
+import { createParticles } from '../skins/particles.js';
 import { confirmDialog, openModal } from './modal.js';
 import { toast } from './toast.js';
 
@@ -58,10 +60,12 @@ export function openDressingRoom({ onApplied } = {}) {
   let presets = [];
   let index = 0;
   let busy = false;
+  let greeted = false;
   let defaults = null;
 
+  const effects = createParticles(stage);
   const models = [0, 1, 2, 3].map(() => {
-    const viewer = createSkinViewer3d({ width: 240, height: 340 });
+    const viewer = createSkinViewer3d({ width: 240, height: 340, light: true });
     viewer?.setAutoRotate(false);
     const element = h('button', { class: 'wardrobe__model', type: 'button', 'data-pos': 'off-right' }, viewer ? viewer.canvas : null);
     // offset: the model's place, -1 left, 0 middle, 1 right, ±2 hidden behind a side.
@@ -85,6 +89,8 @@ export function openDressingRoom({ onApplied } = {}) {
     // With one skin only the middle stands; with two, no model on the right.
     const hidden = (presets.length < 2 && model.offset !== 0) || (presets.length < 3 && model.offset === 1);
     model.element.dataset.pos = hidden ? 'off-right' : POSITIONS[model.offset] ?? (model.offset < 0 ? 'off-left' : 'off-right');
+    // Models hidden behind the sides are not drawn: four live models stay smooth.
+    model.viewer?.setPaused(model.element.dataset.pos.startsWith('off'));
   }
 
   function update() {
@@ -95,9 +101,12 @@ export function openDressingRoom({ onApplied } = {}) {
     nameLabel.replaceChildren(current?.libraryId ? h('span', { 'data-i18n': 'off' }, current.name) : h('span', null, current?.name ?? ''));
     wearButton.disabled = !current || current.current;
     removeButton.hidden = !current?.libraryId;
+    // The skin in the middle shows itself: "hello" when the Wardrobe opens, then each skin its own move.
     if (middle) {
-      middle.viewer?.setAnimation('wave');
-      setTimeout(() => middle.viewer?.setAnimation('idle'), 1500);
+      const gesture = greeted ? SHOWCASE[index % SHOWCASE.length] : 'hello';
+      greeted = true;
+      middle.viewer?.playGesture(gesture);
+      effects.emit(GESTURE_EFFECTS[gesture] ?? 'sparkles', { count: 7, y: 30 });
     }
   }
 

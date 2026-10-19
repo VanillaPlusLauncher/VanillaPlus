@@ -3,6 +3,8 @@
  * Drag to rotate, wheel to zoom. Falls back to nothing when WebGL is unavailable.
  */
 
+import { GESTURES, resetPose } from './gestures.js';
+
 export const ANIMATIONS = [
   { key: 'idle', label: 'Стоит', create: (lib) => new lib.IdleAnimation() },
   { key: 'walk', label: 'Идёт', create: (lib) => new lib.WalkingAnimation() },
@@ -82,7 +84,11 @@ function pixelNameTag(name) {
   return small;
 }
 
-export function createSkinViewer3d({ width = 280, height = 400 } = {}) {
+/**
+ * `light`: for several models on one screen (the Wardrobe) — rendered at a lower resolution, which
+ * keeps four live models smooth.
+ */
+export function createSkinViewer3d({ width = 280, height = 400, light = false } = {}) {
   const canvas = document.createElement('canvas');
   canvas.className = 'skin3d__canvas';
   const lib = window.skinview3d;
@@ -101,7 +107,7 @@ export function createSkinViewer3d({ width = 280, height = 400 } = {}) {
   // Without FXAA the scene renders straight to the screen, where three.js would convert the skin
   // colours to sRGB a second time (skinview3d turns colour management off) and wash them out.
   viewer.renderer.outputColorSpace = LINEAR_SRGB_COLOR_SPACE;
-  viewer.pixelRatio = Math.min(3, (window.devicePixelRatio || 1) * 2);
+  viewer.pixelRatio = light ? Math.min(2, (window.devicePixelRatio || 1) * 1.25) : Math.min(3, (window.devicePixelRatio || 1) * 2);
   viewer.fov = 45;
   // Room above the head: the nickname stays in view when the running model bounces.
   viewer.zoom = 0.74;
@@ -147,6 +153,29 @@ export function createSkinViewer3d({ width = 280, height = 400 } = {}) {
     },
     get animation() {
       return animationKey;
+    },
+    /** One of the player's gestures (gestures.js), then back to standing. */
+    playGesture(name) {
+      const gesture = GESTURES[name];
+      if (!gesture || document.documentElement.dataset.animations === 'off') return;
+      animationKey = name;
+      let start = null;
+      let done = false;
+      viewer.animation = new lib.FunctionAnimation((player, progress) => {
+        resetPose(player);
+        // Breathing arms between the moves, like the game's idle pose.
+        player.skin.leftArm.rotation.z = 0.03 * Math.cos(progress * 2) + 0.06;
+        player.skin.rightArm.rotation.z = -0.03 * Math.cos(progress * 2) - 0.06;
+        start ??= progress;
+        if (!done && gesture(player, progress - start)) {
+          done = true;
+          queueMicrotask(() => animationKey === name && this.setAnimation('idle'));
+        }
+      });
+    },
+    /** Hidden models are not drawn at all. */
+    setPaused(paused) {
+      viewer.renderPaused = paused;
     },
     setAutoRotate(value) {
       viewer.autoRotate = value;
