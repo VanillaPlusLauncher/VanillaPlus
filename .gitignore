@@ -29,3 +29,6 @@ promo-video/
 # Local preview setup and scratch pages of the website
 .claude/
 website/loader-demo.html
+
+# The site's promo videos carry the music: they go to the server, never to git
+website/assets/video/

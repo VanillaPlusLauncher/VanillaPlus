@@ -16,6 +16,11 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <!-- The promo, dimmed, behind the whole page. -->
+    <div class="bg-video" aria-hidden="true">
+      <video src="assets/video/background.mp4" poster="assets/video/background-poster.webp" muted autoplay loop playsinline preload="auto"></video>
+    </div>
+
     <header class="topbar" id="top">
       <a class="brand" href="#top" aria-label="Amethyx Launcher">
         <img src="assets/logo.png" alt="" width="34" height="34" />
@@ -54,8 +59,14 @@
           <div class="puzzle" id="puzzle" aria-hidden="true"></div>
         </div>
         <figure class="window reveal" id="hero-window">
-          <div class="window__bar"><span></span><span></span><span></span></div>
-          <img src="assets/shots/home.webp" alt="Главный экран Amethyx Launcher" width="1440" height="900" />
+          <!-- The promo plays silently in a loop; a click opens it large, with sound. -->
+          <button class="window__video" id="video-open" type="button" aria-label="Смотреть видео со звуком">
+            <video src="assets/video/background.mp4" poster="assets/video/promo-poster.webp" muted autoplay loop playsinline preload="auto"></video>
+            <span class="window__play">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+              <span data-i18n="video.watch">Смотреть со звуком</span>
+            </span>
+          </button>
         </figure>
       </section>
 
@@ -168,6 +179,11 @@
     <div class="lightbox" id="lightbox" hidden>
       <button class="lightbox__close" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
       <img alt="" />
+    </div>
+
+    <div class="player" id="player" hidden>
+      <button class="lightbox__close" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
+      <video controls playsinline preload="none" poster="assets/video/promo-poster.webp"></video>
     </div>
 
     <script src="geode.js"></script>

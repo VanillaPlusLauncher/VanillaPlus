@@ -12,6 +12,7 @@
     'hero.download': 'Download for Windows',
     'hero.source': 'Source code on GitHub',
     'hero.free': 'free',
+    'video.watch': 'Watch with sound',
     'features.title': 'What it does',
     'features.lead': 'Everything you need to play with mods and friends — in one window.',
     'f1.title': 'Instances like in Prism',
@@ -97,7 +98,10 @@
     lang.textContent = english ? 'RU' : 'EN';
     lang.title = english ? 'Русский' : 'English';
     document.getElementById('burger').setAttribute('aria-label', english ? 'Menu' : 'Меню');
-    document.querySelector('.lightbox__close').setAttribute('aria-label', english ? 'Close' : 'Закрыть');
+    Array.prototype.forEach.call(document.querySelectorAll('.lightbox__close'), function (button) {
+      button.setAttribute('aria-label', english ? 'Close' : 'Закрыть');
+    });
+    document.getElementById('video-open').setAttribute('aria-label', english ? 'Watch the video with sound' : 'Смотреть видео со звуком');
   }
 
   var language = savedLanguage();
@@ -158,6 +162,34 @@
     revealing.forEach(function (node) { observer.observe(node); });
   } else {
     revealing.forEach(function (node) { node.classList.add('is-in'); });
+  }
+
+  // The promo: silent in the hero window and behind the page; a click opens it large, with sound
+  // (a little quieter than full volume). Closing pauses it.
+  var player = document.getElementById('player');
+  var playerVideo = player.querySelector('video');
+  var FULL_VIDEO = 'assets/video/amethyx-promo.mp4';
+  function closePlayer() {
+    if (player.hidden) return;
+    playerVideo.pause();
+    player.hidden = true;
+  }
+  document.getElementById('video-open').addEventListener('click', function () {
+    if (!playerVideo.getAttribute('src')) playerVideo.src = FULL_VIDEO;
+    player.hidden = false;
+    playerVideo.muted = false;
+    playerVideo.volume = 0.6;
+    var started = playerVideo.play();
+    if (started && started.catch) started.catch(function () { /* the controls are there to start it */ });
+  });
+  player.addEventListener('click', function (event) { if (event.target !== playerVideo) closePlayer(); });
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape') closePlayer(); });
+  // Calm mode: the silent videos stand still on their first picture.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    Array.prototype.forEach.call(document.querySelectorAll('.bg-video video, .window__video video'), function (video) {
+      video.removeAttribute('autoplay');
+      video.pause();
+    });
   }
 
   // The launcher's start screen in miniature: the turning amethyst geode (geode.js).
