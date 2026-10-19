@@ -97,6 +97,7 @@ const bridge = {
     addFiles: (instanceId, type, paths) => invoke(CHANNELS.content.addFiles, instanceId, type, paths),
     identify: (instanceId, type) => invoke(CHANNELS.content.identify, instanceId, type),
     checkUpdates: (instanceId, type) => invoke(CHANNELS.content.checkUpdates, instanceId, type),
+    updateMany: (instanceId, type, updates) => invoke(CHANNELS.content.updateMany, instanceId, type, updates),
     setEnabledMany: (instanceId, type, files, enabled) => invoke(CHANNELS.content.setEnabledMany, instanceId, type, files, enabled),
     resolveSides: (instanceId) => invoke(CHANNELS.content.resolveSides, instanceId),
     checkCompatibility: (request) => invoke(CHANNELS.content.checkCompatibility, request),
@@ -166,6 +167,13 @@ const bridge = {
     command: (instanceId, text) => invoke(CHANNELS.server.command, instanceId, text),
     sync: (instanceId) => invoke(CHANNELS.server.sync, instanceId),
     remove: (instanceId) => invoke(CHANNELS.server.remove, instanceId),
+    modsForServer: (instanceId) => invoke(CHANNELS.server.modsForServer, instanceId),
+    /** Asks where to save (a zip, or a folder) and writes the server pack there; null when cancelled. */
+    exportPack: (instanceId, options) => invoke(CHANNELS.server.exportPack, instanceId, options ?? {}),
+    exportModList: (instanceId, files) => invoke(CHANNELS.server.exportModList, instanceId, files ?? []),
+    list: (instanceId) => invoke(CHANNELS.server.list, instanceId),
+    saveList: (instanceId, servers) => invoke(CHANNELS.server.saveList, instanceId, servers),
+    ping: (address) => invoke(CHANNELS.server.ping, address),
   },
   share: {
     makeCode: (instanceId) => invoke(CHANNELS.share.makeCode, instanceId),

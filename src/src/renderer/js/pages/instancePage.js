@@ -21,7 +21,7 @@ const TABS = [
   { key: 'resourcepack', label: 'Ресурспаки' },
   { key: 'shader', label: 'Шейдеры' },
   { key: 'worlds', label: 'Миры' },
-  { key: 'servers', label: 'Свой сервер' },
+  { key: 'servers', label: 'Серверы' },
   { key: 'screenshots', label: 'Скриншоты' },
   { key: 'log', label: 'Журнал' },
 ];
@@ -49,7 +49,10 @@ export function createInstancePage() {
   const screenshotsTab = createScreenshotsTab(instance);
   const filesTab = createFilesTab(instance);
   const logTab = createLogTab(instance, { onAction: (action) => showTab(ACTION_TABS[action] ?? 'settings') });
-  const serversTab = createServersTab(instance);
+  const serversTab = createServersTab(instance, {
+    // "Другие серверы" → "Играть": the instance starts and joins that server.
+    onPlay: (address) => playInstance(instanceId, { server: address }),
+  });
   const notesTab = createNotesTab(instance, { save: (notes) => updateInstance(instanceId, { notes }) });
   const worldsGrid = h('div', { class: 'world-grid' });
   const backupAllButton = h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => backupAllWorlds() }, 'Копии всех миров');
@@ -324,16 +327,33 @@ export function createInstancePage() {
     const settings = store.get().settings;
     const overrides = { ...current.overrides };
 
-    const ramEnabled = Number.isFinite(overrides.ramMb);
-    const ramSlider = h('input', { class: 'range', type: 'range', min: '512', max: String(settings.maxRamMb), step: '256', value: String(overrides.ramMb ?? settings.ramMb), disabled: !ramEnabled });
+    // The slider always moves: moving it turns "Своё значение" on by itself; turning that off puts
+    // the general value back.
+    let ramOn = Number.isFinite(overrides.ramMb);
+    const ramSlider = h('input', { class: 'range', type: 'range', min: '512', max: String(settings.maxRamMb), step: '256', value: String(overrides.ramMb ?? settings.ramMb) });
     const ramValue = h('span', { class: 'ram-value' }, formatGigabytes(Number(ramSlider.value)));
     const paintRam = () => {
       ramValue.textContent = formatGigabytes(Number(ramSlider.value));
       ramSlider.style.setProperty('--range-fill', `${((Number(ramSlider.value) - 512) / (settings.maxRamMb - 512)) * 100}%`);
+      ramSlider.classList.toggle('range--inherited', !ramOn);
     };
-    ramSlider.addEventListener('input', paintRam);
+    const ramToggle = createToggle({
+      checked: ramOn,
+      label: 'Своя память',
+      onChange: (value) => {
+        ramOn = value;
+        if (!value) ramSlider.value = String(settings.ramMb);
+        paintRam();
+      },
+    });
+    ramSlider.addEventListener('input', () => {
+      if (!ramOn) {
+        ramOn = true;
+        ramToggle.querySelector('input').checked = true;
+      }
+      paintRam();
+    });
     paintRam();
-    const ramToggle = createToggle({ checked: ramEnabled, label: 'Своя память', onChange: (value) => { ramSlider.disabled = !value; } });
 
     // Java: automatic (as in the Java page), one of the found runtimes, or a file picked by hand.
     const javaSelect = h('select', { class: 'select' });
@@ -372,7 +392,7 @@ export function createInstancePage() {
 
     function save() {
       saveOverrides(current, {
-        ramMb: ramSlider.disabled ? null : Number(ramSlider.value),
+        ramMb: ramOn ? Number(ramSlider.value) : null,
         javaPath: javaSelect.value || null,
         extraJvmArgs: jvmInput.value.trim() ? jvmInput.value.trim() : null,
         extraGameArgs: gameArgsInput.value.trim() || null,

@@ -6,6 +6,8 @@ const { downloadFile } = require('../core/fileDownloader');
 const { sha1File } = require('../core/hashing');
 const { readJsonFile, writeJsonFileAtomic } = require('../core/jsonFile');
 const { SerialQueue } = require('../core/serialQueue');
+const { runWithConcurrency } = require('../core/taskPool');
+const { parallelDownloads } = require('../core/downloadConfig');
 const { createTaskReporter } = require('../core/progressReporter');
 const { createLogger } = require('../core/logger');
 const { readContentMetadata } = require('./modMetadata');
@@ -169,11 +171,12 @@ async function installVersionFiles({ directory, type, version, meta, onProgress,
  * `versionId` is optional: without it the newest compatible version is used.
  * Returns { installed: [titles], skipped: [titles] }.
  */
-async function installProject(settings, { instanceId, platform, projectId, versionId, type = 'mod', title, iconUrl, replaceFile, filters = null }) {
+async function installProject(settings, { instanceId, platform, projectId, versionId, type = 'mod', title, iconUrl, replaceFile, filters = null, quiet = false }) {
   assertType(type);
   const instance = await instanceService.getInstance(settings, instanceId);
   const api = platformApi(settings, platform);
-  const reporter = createTaskReporter({ taskId: `content:${instanceId}:${projectId}`, kind: 'content', label: title ?? projectId });
+  // `quiet`: one of many updates at once — the batch has one task of its own in the top bar.
+  const reporter = quiet ? { report() {}, finish() {} } : createTaskReporter({ taskId: `content:${instanceId}:${projectId}`, kind: 'content', label: title ?? projectId, instance: instance.name });
   const installed = [];
   const skipped = [];
   const visited = new Set();
@@ -273,7 +276,7 @@ async function installDatapack(settings, { instanceId, world, platform, projectI
  * server), 'both', or null when unknown. Modrinth's project data wins; otherwise the mod's own
  * file (fabric.mod.json "environment", Forge displayTest) is used.
  */
-function sideOf(indexed, environment) {
+function sideOf(indexed, environment, modId) {
   const client = indexed?.clientSide;
   const server = indexed?.serverSide;
   if (client && server && client !== 'unknown' && server !== 'unknown') {
@@ -281,8 +284,24 @@ function sideOf(indexed, environment) {
     if (client === 'unsupported' && server !== 'unsupported') return 'server';
     return 'both';
   }
-  return environment ?? null;
+  if (environment) return environment;
+  // Nothing else known (a mod from CurseForge or a file): well-known client-only mods by their id.
+  return modId && KNOWN_CLIENT_MODS.has(String(modId).toLowerCase()) ? 'client' : null;
 }
+
+/** Mod ids of popular mods that only change what the player sees or uses (never needed on a server). */
+const KNOWN_CLIENT_MODS = new Set([
+  'sodium', 'sodiumextra', 'sodium_extra', 'reeses_sodium_options', 'embeddium', 'rubidium', 'iris', 'oculus', 'indium', 'modmenu',
+  'xaerominimap', 'xaerominimapfair', 'xaeroworldmap', 'mousetweaks', 'controlling', 'betterf3', 'entityculling', 'immediatelyfast',
+  'lambdynlights', 'dynamiclights', 'continuity', 'zoomify', 'okzoomer', 'dynamic_fps', 'dynamicfps', 'cullleaves', 'notenoughanimations',
+  'skinlayers3d', 'fallingleaves', 'presencefootsteps', 'sound_physics_remastered', 'soundphysics', 'ambientsounds', 'chat_heads', 'chatheads',
+  'legendarytooltips', 'citresewn', 'customskinloader', 'entity_model_features', 'entity_texture_features', 'fpsreducer', 'betterthirdperson',
+  'shouldersurfing', 'firstperson', 'firstpersonmod', 'cameraoverhaul', 'visuality', 'particlerain', 'enhancedblockentities', 'cit_resewn',
+  'betterclouds', 'paperdoll', 'blur', 'smoothscroll', 'smoothswapping', 'nochatreports', 'fancymenu', 'drippyloadingscreen', 'loadingscreentips',
+  'searchables', 'craftpresence', 'appleskin_client', 'jeresources_client', 'itemphysiclite', 'betterbiomeblend', 'bobby', 'distanthorizons',
+  'voxy', 'nvidium', 'moreculling', 'krypton_client', 'yosbr', 'catalogue', 'configured', 'mod_menu', 'inventoryprofilesnext', 'mouse_wheelie',
+  'clumps_client', 'farsight', 'iris_flywheel', 'oculusflywheelcompat', 'euphoria_patcher', 'physicsmod', 'resourcepackoverrides',
+]);
 
 /** Files of one content type in an instance, with what is known about each. */
 async function listContent(settings, instanceId, type) {
@@ -320,7 +339,7 @@ async function listContent(settings, instanceId, type) {
       platform: indexed?.platform ?? null,
       projectId: indexed?.projectId ?? null,
       versionId: indexed?.versionId ?? null,
-      side: type === 'mod' ? sideOf(indexed, meta.environment) : null,
+      side: type === 'mod' ? sideOf(indexed, meta.environment, meta.modId) : null,
       modId: meta.modId ?? null,
       incompatible: meta.incompatible ?? [],
     });
@@ -549,9 +568,26 @@ async function updateAllContent(settings, instanceId, type, onLog = () => {}, { 
   if (updates.length > 0 && beforeChange) {
     await beforeChange(updates);
   }
+  return updateMany(settings, instanceId, type, updates, onLog);
+}
+
+const UPDATE_LABELS = { mod: 'Обновление модов', resourcepack: 'Обновление ресурспаков', shader: 'Обновление шейдеров' };
+
+/**
+ * Installs the given updates (from checkUpdates) all at once — as many in parallel as Settings →
+ * "Загрузки" allows — under one task in the top bar ("3 из 12"). onLog(text) reports each one.
+ * Returns { updated: [titles], failed: [{ title, error }] }.
+ */
+async function updateMany(settings, instanceId, type, updates, onLog = () => {}) {
+  assertType(type);
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const list = (Array.isArray(updates) ? updates : []).filter((update) => update?.projectId && update?.version?.id);
+  const reporter = createTaskReporter({ taskId: `update:${instanceId}:${type}`, kind: 'content', label: UPDATE_LABELS[type] ?? 'Обновление', instance: instance.name });
   const updated = [];
   const failed = [];
-  for (const update of updates) {
+  let done = 0;
+  reporter.report(`0 из ${list.length}`, 0);
+  await runWithConcurrency(list, parallelDownloads(), async (update) => {
     try {
       await installProject(settings, {
         instanceId,
@@ -562,14 +598,19 @@ async function updateAllContent(settings, instanceId, type, onLog = () => {}, { 
         title: update.title,
         iconUrl: update.icon?.startsWith('https://') ? update.icon : null,
         replaceFile: update.file,
+        quiet: true,
       });
       updated.push(update.title);
       onLog(`Обновлён: ${update.title} ${update.currentVersion ?? ''} → ${update.version.versionNumber}`);
     } catch (error) {
-      failed.push(update.title);
+      failed.push({ title: update.title, error: error.message });
       onLog(`Не удалось обновить ${update.title}: ${error.message}`);
     }
-  }
+    done += 1;
+    reporter.report(`${done} из ${list.length}`, (done / Math.max(1, list.length)) * 100, update.title);
+  });
+  reporter.finish(failed.length ? 'error' : 'done', `${updated.length} из ${list.length}`);
+  log.info(`В «${instance.name}» обновлено: ${updated.length} из ${list.length}`);
   return { updated, failed };
 }
 
@@ -629,6 +670,7 @@ module.exports = {
   checkCompatibility,
   resolveSides,
   updateAllContent,
+  updateMany,
   updateIndex,
   entryKey,
   CONTENT_TYPES,

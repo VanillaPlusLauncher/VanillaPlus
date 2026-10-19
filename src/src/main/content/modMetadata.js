@@ -111,8 +111,11 @@ function readForge(zip) {
         const manifest = readText(zip, 'META-INF/MANIFEST.MF') ?? '';
         version = /^Implementation-Version:\s*(.+)$/m.exec(manifest)?.[1]?.trim() ?? null;
       }
-      // IGNORE_ALL_VERSION tells the game not to require the mod on servers: client-only mods use it.
-      const environment = toml.displayTest === 'IGNORE_ALL_VERSION' ? 'client' : null;
+      // A client-only mod says so: "clientSideOnly = true" (Forge 1.19+, NeoForge), or displayTest
+      // IGNORE_SERVER_VERSION ("the server may not have me"). IGNORE_ALL_VERSION is used by mods that
+      // are optional on both sides (server-only tools too), so it says nothing about the side.
+      const clientOnly = /^\s*clientSideOnly\s*=\s*true\b/m.test(text) || toml.displayTest === 'IGNORE_SERVER_VERSION';
+      const environment = clientOnly ? 'client' : null;
       return { loader, modId: toml.modId, name: toml.displayName, version, description: toml.description, authors: toml.authors ? [toml.authors] : [], icon: iconDataUrl(zip, toml.logoFile), environment, incompatible: tomlIncompatible(text) };
     }
   }

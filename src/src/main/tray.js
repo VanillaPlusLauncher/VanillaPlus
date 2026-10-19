@@ -1,9 +1,10 @@
 'use strict';
 
 const path = require('node:path');
-const { app, Menu, Tray, nativeImage } = require('electron');
+const { app, Tray, nativeImage } = require('electron');
 const { getSettings } = require('./settings/settingsService');
 const { showNotice } = require('./notice');
+const { openTrayMenu, closeTrayMenu } = require('./trayMenu');
 
 /*
  * Closing the window keeps the launcher in the system tray (settings.closeToTray, on by default):
@@ -40,14 +41,21 @@ async function ensureTray(window) {
   const text = await texts();
   tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 }));
   tray.setToolTip('Amethyx Launcher');
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: text.open, click: () => showWindow(window) },
-      { type: 'separator' },
-      { label: text.quit, click: () => app.quit() },
-    ]),
-  );
-  tray.on('click', () => showWindow(window));
+  // The menu in the launcher's own style (trayMenu.js), not Windows' grey one.
+  tray.on('right-click', (_event, bounds) => {
+    openTrayMenu(
+      [
+        { label: text.open, click: () => showWindow(window) },
+        { separator: true },
+        { label: text.quit, danger: true, click: () => app.quit() },
+      ],
+      bounds,
+    );
+  });
+  tray.on('click', () => {
+    closeTrayMenu();
+    showWindow(window);
+  });
 }
 
 /** Makes the main window close to the tray when the setting says so. */

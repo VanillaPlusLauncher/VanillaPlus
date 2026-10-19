@@ -5,6 +5,7 @@ import { formatAgo, formatCount, LOADER_LABELS, PLATFORM_LABELS, SORTS } from '.
 import { go } from '../core/nav.js';
 import { openProjectModal } from './projectModal.js';
 import { toast } from './toast.js';
+import { loadingState } from './controls.js';
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 350;
@@ -75,7 +76,8 @@ export function createProjectBrowser(options) {
       PLATFORM_LABELS[platform],
     ),
   );
-  const results = h('div', { class: 'project-grid' });
+  // "Загрузка…" until the first page of the catalogue is in (it can take a while the first time).
+  const results = h('div', { class: 'project-grid' }, loadingState('Загружаем каталог…'));
   const footer = h('div', { class: 'browser-footer' });
   const sentinel = h('div', { class: 'browser-sentinel' });
   const element = h(
@@ -187,7 +189,7 @@ export function createProjectBrowser(options) {
     if (reset) {
       state.offset = 0;
       state.hits = [];
-      results.replaceChildren(...Array.from({ length: 6 }, () => h('div', { class: 'skeleton project-card-skeleton' })));
+      results.replaceChildren(loadingState(state.hits.length || state.total ? 'Ищем…' : 'Загружаем каталог…'), ...Array.from({ length: 6 }, () => h('div', { class: 'skeleton project-card-skeleton' })));
       footer.replaceChildren();
     } else {
       footer.replaceChildren(h('div', { class: 'loading-dots' }, h('span'), h('span'), h('span')));

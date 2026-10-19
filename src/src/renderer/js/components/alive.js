@@ -25,8 +25,10 @@ export function installAliveUi() {
   function step() {
     drift.x += (drift.targetX - drift.x) * 0.08;
     drift.y += (drift.targetY - drift.y) * 0.08;
-    root.style.setProperty('--drift-x', `${drift.x.toFixed(2)}px`);
-    root.style.setProperty('--drift-y', `${drift.y.toFixed(2)}px`);
+    // Set on the panorama itself: a variable on the root would restyle the whole page every frame.
+    for (const panorama of document.querySelectorAll('.panorama')) {
+      panorama.style.translate = `${drift.x.toFixed(2)}px ${drift.y.toFixed(2)}px`;
+    }
     frame = Math.abs(drift.targetX - drift.x) + Math.abs(drift.targetY - drift.y) > 0.05 ? requestAnimationFrame(step) : 0;
   }
 

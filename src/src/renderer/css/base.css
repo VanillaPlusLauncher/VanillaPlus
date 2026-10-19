@@ -36,7 +36,7 @@ textarea {
 }
 
 button {
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 button:disabled {

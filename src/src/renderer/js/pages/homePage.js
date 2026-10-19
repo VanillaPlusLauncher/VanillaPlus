@@ -30,6 +30,16 @@ const SPLASHES = [
 function wheelScroll(row) {
   let target = null;
   let frame = 0;
+  // Cards that do not fit fade away at the edge (as into a pocket) instead of being cut off.
+  const markEdges = () => {
+    const max = row.scrollWidth - row.clientWidth;
+    row.classList.toggle('fade-row--start', row.scrollLeft > 2);
+    row.classList.toggle('fade-row--end', row.scrollLeft < max - 2);
+  };
+  row.classList.add('fade-row');
+  row.addEventListener('scroll', markEdges, { passive: true });
+  new ResizeObserver(markEdges).observe(row);
+  new MutationObserver(markEdges).observe(row, { childList: true });
   const step = () => {
     const distance = target - row.scrollLeft;
     if (Math.abs(distance) < 1) {

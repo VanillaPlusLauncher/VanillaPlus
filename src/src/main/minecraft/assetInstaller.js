@@ -7,7 +7,7 @@ const { readJsonFile } = require('../core/jsonFile');
 const { runWithConcurrency } = require('../core/taskPool');
 
 const ASSET_BASE_URL = 'https://resources.download.minecraft.net';
-const ASSET_CONCURRENCY = 16;
+const { parallelDownloads } = require('../core/downloadConfig');
 
 /**
  * Downloads the asset index and every object it references.
@@ -29,7 +29,7 @@ async function installAssets({ assetIndex, layout, onProgress }) {
   const objects = Object.entries(index.objects).map(([name, info]) => ({ name, hash: info.hash, size: info.size }));
   let completed = 0;
 
-  await runWithConcurrency(objects, ASSET_CONCURRENCY, async (object) => {
+  await runWithConcurrency(objects, parallelDownloads(2), async (object) => {
     const prefix = object.hash.slice(0, 2);
     await downloadFile(`${ASSET_BASE_URL}/${prefix}/${object.hash}`, layout.assetObjectPath(object.hash), {
       sha1: object.hash,

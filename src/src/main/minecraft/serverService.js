@@ -305,4 +305,162 @@ function stopAll() {
   return Promise.all([...running.keys()].map((id) => stopServer(id)));
 }
 
-module.exports = { getServer, createServer, startServer, stopServer, sendCommand, syncServerContent, deleteServer, stopAll };
+// --- "Для хостинга": the instance as a server pack ----------------------------------------------
+
+/** Folders of mods that load data packs for every world (Paxi, Open Loader, Global Packs…). */
+const GLOBAL_DATAPACK_FOLDERS = ['datapacks', 'global_packs', 'openloader', 'paxi'];
+const LOADER_NAMES = { vanilla: 'Vanilla', fabric: 'Fabric', quilt: 'Quilt', forge: 'Forge', neoforge: 'NeoForge' };
+const SIDE_NAMES = { client: 'только клиент', server: 'только сервер', both: 'клиент и сервер' };
+
+/**
+ * The instance's mods with where each is needed, for choosing what goes on a server. Mods not
+ * installed through the launcher are looked up on Modrinth by their file first (works offline too,
+ * then from the mods' own files only). [{ file, title, version, icon, side, enabled, size }]
+ */
+async function modsForServer(settings, instanceId) {
+  const contentService = require('../content/contentService');
+  await contentService.identifyContent(settings, instanceId, 'mod').catch((error) => log.warn(`Моды не распознаны на Modrinth: ${error.message}`));
+  await contentService.resolveSides(settings, instanceId).catch((error) => log.warn(`Стороны модов не получены: ${error.message}`));
+  const mods = await contentService.listContent(settings, instanceId, 'mod');
+  return mods.filter((mod) => !mod.folder).map((mod) => ({ file: mod.file, title: mod.title, version: mod.version, icon: mod.icon, side: mod.side, enabled: mod.enabled, size: mod.size }));
+}
+
+/** The mods that go on the server: the chosen files, or by default every enabled one not client-only. */
+function pickServerMods(mods, files) {
+  if (Array.isArray(files)) {
+    const chosen = new Set(files);
+    return { included: mods.filter((mod) => chosen.has(mod.file)), left: mods.filter((mod) => !chosen.has(mod.file)) };
+  }
+  const included = mods.filter((mod) => mod.enabled && mod.side !== 'client');
+  return { included, left: mods.filter((mod) => !included.includes(mod)) };
+}
+
+function modListText(instance, included, left) {
+  const loader = LOADER_NAMES[instance.loader.type] ?? instance.loader.type;
+  const line = (mod) => `  ${mod.title}${mod.version ? ` ${mod.version}` : ''} — ${mod.file}${mod.side ? ` (${SIDE_NAMES[mod.side] ?? mod.side})` : ''}`;
+  return [
+    `Моды сервера «${instance.name}» — Amethyx Launcher`,
+    `Minecraft ${instance.minecraft}${instance.loader.type === 'vanilla' ? '' : `, ${loader} ${String(instance.loader.version ?? '').replace(`${instance.minecraft}-`, '')}`}`,
+    '',
+    `На сервер (${included.length}):`,
+    ...included.map(line),
+    '',
+    left.length ? `Не на сервер (${left.length}) — клиентские, выключенные или снятые вручную:` : null,
+    ...left.map(line),
+  ].filter((value) => value !== null).join('\r\n');
+}
+
+/** Saves the server's mod list (what goes on the server and what stays on the client) as a text file. */
+async function exportServerModList(settings, instanceId, target, files = null) {
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const mods = await modsForServer(settings, instanceId);
+  const { included, left } = pickServerMods(mods, files);
+  await fsp.writeFile(target, `${modListText(instance, included, left)}\r\n`);
+  return { path: target, mods: included.length };
+}
+
+/**
+ * The instance prepared for any hosting, as a zip or a plain folder, made of what was ticked:
+ *  mods      — the chosen mod files (by default every enabled mod except client-only ones);
+ *  configs   — config, defaultconfigs, kubejs;  resourcepacks — the resourcepacks folder;
+ *  datapacks — folders of global data packs (datapacks, global_packs, openloader, paxi);
+ *  world     — a world of the instance, as "world" (its own data packs come with it);
+ *  core      — a whole server: its core (vanilla, Fabric, Quilt, Forge or NeoForge, installed here),
+ *              server.properties (port, onlineMode), start.bat / start.sh (ramMb), eula.txt only
+ *              when the user accepted the EULA.
+ * Always: mods.txt (the server's mod list) and ПРОЧТИ.txt (how to use it). Resolves with
+ * { path, mods, skipped, format }.
+ */
+async function exportServerPack(settings, instanceId, target, options = {}) {
+  const format = options.format === 'folder' ? 'folder' : 'zip';
+  const plain = await instanceService.getInstance(settings, instanceId);
+  const instance = options.core ? { ...(await instanceService.ensureInstanceReady(settings, instanceId)), directory: plain.directory } : plain;
+  const reporter = createTaskReporter({ taskId: `serverpack:${instanceId}`, kind: 'server', label: 'Сервер для хостинга', instance: instance.name });
+  if (format === 'folder' && (await fsp.readdir(target).catch(() => [])).length > 0) {
+    throw new Error(`Папка «${path.basename(target)}» уже есть и не пустая. Выберите другое место.`);
+  }
+  const work = format === 'folder' ? target : path.join(os.tmpdir(), `amethyx-serverpack-${Date.now()}`);
+  try {
+    await fsp.mkdir(work, { recursive: true });
+    const layout = instanceService.layoutFor(settings);
+    const javaMajor = await getRequiredJavaMajor(layout, instance.minecraft).catch(() => null);
+    let start = null;
+    if (options.core) {
+      reporter.report('Ядро сервера', 5, instance.loader.type);
+      const java = await resolveJavaForLaunch(javaMajor, settings);
+      start = await installCore({ instance, directory: work, java, report: (stage, percent, detail) => reporter.report(stage, 5 + percent * 0.5, detail) });
+    }
+    reporter.report('Моды', 60, '');
+    const mods = await modsForServer(settings, instanceId);
+    const { included, left } = pickServerMods(mods, options.mods);
+    if (included.length) {
+      await fsp.mkdir(path.join(work, 'mods'), { recursive: true });
+      for (const mod of included) {
+        await fsp.copyFile(path.join(instance.directory, 'mods', mod.file), path.join(work, 'mods', mod.file.replace(/\.disabled$/i, '')));
+      }
+    }
+    const copyFolder = async (folder, to = folder) => {
+      const from = path.join(instance.directory, folder);
+      if (!(await fsp.stat(from).catch(() => null))) return false;
+      await fsp.cp(from, path.join(work, to), { recursive: true, force: true });
+      return true;
+    };
+    reporter.report('Настройки и паки', 70, '');
+    const extras = [];
+    if (options.configs !== false) for (const folder of EXTRA_FOLDERS) if (await copyFolder(folder)) extras.push(folder);
+    if (options.resourcepacks && (await copyFolder('resourcepacks'))) extras.push('resourcepacks');
+    if (options.datapacks) for (const folder of GLOBAL_DATAPACK_FOLDERS) if (await copyFolder(folder)) extras.push(folder);
+    if (options.world) {
+      const world = path.join(instance.directory, 'saves', path.basename(String(options.world)));
+      if (await fsp.stat(world).catch(() => null)) {
+        reporter.report('Мир', 78, path.basename(world));
+        await fsp.cp(world, path.join(work, 'world'), { recursive: true });
+        // Kept by the game for single player; a server keeps its own lock.
+        await fsp.rm(path.join(work, 'world', 'session.lock'), { force: true });
+        extras.push('world');
+      }
+    }
+    const loaderName = LOADER_NAMES[instance.loader.type] ?? instance.loader.type;
+    const loaderLine = instance.loader.type === 'vanilla' ? `Minecraft ${instance.minecraft} без модов` : `Minecraft ${instance.minecraft}, ${loaderName} ${String(instance.loader.version ?? '').replace(`${instance.minecraft}-`, '')}`;
+    await fsp.writeFile(path.join(work, 'mods.txt'), `${modListText(instance, included, left)}\r\n`);
+    const notes = [`Сервер из сборки «${instance.name}» — Amethyx Launcher`, '', `Версия: ${loaderLine}`, javaMajor ? `Java: ${javaMajor} или новее` : null, `Модов: ${included.length} (список — mods.txt)`, extras.length ? `Ещё: ${extras.join(', ')}` : null, ''];
+    if (options.core && start) {
+      const port = Math.min(65535, Math.max(1024, Number(options.port) || 25565));
+      const ramMb = Math.max(1024, Number(options.ramMb) || 4096);
+      const properties = ['#Minecraft server properties', `server-port=${port}`, `online-mode=${options.onlineMode ? 'true' : 'false'}`, `motd=${`Сервер ${instance.name}`.replace(/[\r\n]/g, ' ').slice(0, 59)}`, 'level-name=world'];
+      await fsp.writeFile(path.join(work, 'server.properties'), `${properties.join('\n')}\n`);
+      if (options.acceptEula) {
+        await fsp.writeFile(path.join(work, 'eula.txt'), `# Принято в Amethyx Launcher ${new Date().toISOString()} (https://aka.ms/MinecraftEULA)\neula=true\n`);
+      }
+      const winCommand = start.argsFile ? `@${start.argsFile}` : `-jar ${start.jar}`;
+      const unixCommand = start.argsFile ? `@${start.argsFile.replace(/win_args\.txt$/, 'unix_args.txt').replace(/\\/g, '/')}` : `-jar ${start.jar}`;
+      await fsp.writeFile(path.join(work, 'start.bat'), `@echo off\r\ncd /d "%~dp0"\r\njava -Xmx${ramMb}M ${winCommand} nogui\r\npause\r\n`);
+      await fsp.writeFile(path.join(work, 'start.sh'), `#!/bin/sh\ncd "$(dirname "$0")"\nexec java -Xmx${ramMb}M ${unixCommand} nogui\n`);
+      notes.push(
+        'Как запустить:',
+        '  Windows — start.bat; Linux / хостинг — start.sh (или команда из него).',
+        `  Порт ${port}, ${options.onlineMode ? 'только лицензионные игроки' : 'можно заходить без лицензии (online-mode=false)'}.`,
+        options.acceptEula ? '  EULA Minecraft принята (eula.txt).' : '  Перед первым запуском откройте eula.txt и поставьте eula=true — так вы принимаете EULA Minecraft (https://aka.ms/MinecraftEULA).',
+      );
+    } else {
+      notes.push('Как использовать:', `  1. На хостинге выберите ${loaderLine}.`, '  2. Загрузите эти папки в папку сервера (mods, config и остальные).', options.world ? '  3. Папка world — это мир: её туда же.' : null);
+    }
+    await fsp.writeFile(path.join(work, 'ПРОЧТИ.txt'), `${notes.filter((line) => line !== null).join('\r\n')}\r\n`);
+    if (format === 'zip') {
+      reporter.report('Архив', 88, path.basename(target));
+      const { writeZip } = require('../core/zipWriter');
+      await writeZip(target, (zip) => zip.addFolder('', work));
+    }
+    reporter.finish('done', path.basename(target));
+    log.info(`Сборка «${instance.name}» подготовлена для хостинга (${format}, ядро: ${Boolean(options.core)}): ${target}`);
+    return { path: target, mods: included.length, skipped: left.filter((mod) => mod.side === 'client').map((mod) => mod.title), format };
+  } catch (error) {
+    reporter.finish('error', error.message);
+    if (format === 'folder') await fsp.rm(work, { recursive: true, force: true }).catch(() => {});
+    throw error;
+  } finally {
+    if (format === 'zip') await fsp.rm(work, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+module.exports = { getServer, createServer, startServer, stopServer, sendCommand, syncServerContent, deleteServer, stopAll, modsForServer, exportServerPack, exportServerModList };

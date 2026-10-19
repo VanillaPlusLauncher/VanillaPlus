@@ -13,7 +13,7 @@ const { installAssets } = require('./assetInstaller');
 const { extractNatives } = require('./nativesExtractor');
 const { resolveJavaRuntime } = require('../java/javaRuntimeService');
 
-const LIBRARY_CONCURRENCY = 8;
+const { parallelDownloads } = require('../core/downloadConfig');
 const log = createLogger('installer');
 
 /** Maps a fraction of a stage onto the overall 0..100 progress scale. */
@@ -50,7 +50,7 @@ async function installVersion({ versionId, layout, settings, reporter }) {
   const libraryFiles = [...classpath, ...natives];
   let libraryCount = 0;
   reporter.report('Библиотеки', 22, `${libraryFiles.length} файлов`);
-  await runWithConcurrency(libraryFiles, LIBRARY_CONCURRENCY, async (library) => {
+  await runWithConcurrency(libraryFiles, parallelDownloads(), async (library) => {
     await downloadFile(library.url, layout.libraryPath(library.relativePath), {
       sha1: library.sha1,
       size: library.size,

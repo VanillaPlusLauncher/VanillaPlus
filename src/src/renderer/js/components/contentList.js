@@ -70,7 +70,7 @@ export function createContentList(getInstance, type) {
     h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => bulkEnable(true) }, 'Включить'),
     h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => bulkEnable(false) }, 'Выключить'),
     h('button', { class: 'btn btn--secondary btn--compact btn--danger', type: 'button', onclick: () => bulkRemove() }, 'Удалить'),
-    h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => { state.selected.clear(); renderRows(); } }, 'Снять выбор'),
+    h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => { state.selected.clear(); syncSelection(); } }, 'Снять выбор'),
   );
   const isMods = type === 'mod';
   const sideSelect = isMods
@@ -145,16 +145,35 @@ export function createContentList(getInstance, type) {
     }
   }
 
+  /** Rows on screen by file: ticking changes them in place instead of drawing the whole list again. */
+  const rowElements = new Map();
+
+  /** The selection shown: the bar, "select all" and each row's tick and highlight (no re-render). */
+  function syncSelection() {
+    const wasHidden = selectionBar.hidden;
+    selectionBar.hidden = state.selected.size === 0;
+    if (wasHidden && !selectionBar.hidden) {
+      selectionBar.classList.remove('selection-bar--in');
+      void selectionBar.offsetWidth;
+      selectionBar.classList.add('selection-bar--in');
+    }
+    selectionText.textContent = `Выбрано: ${state.selected.size}`;
+    selectAll.checked = state.items.length > 0 && state.selected.size === state.items.length;
+    selectAll.indeterminate = state.selected.size > 0 && state.selected.size < state.items.length;
+    for (const [file, entry] of rowElements) {
+      const selected = state.selected.has(file);
+      entry.check.checked = selected;
+      entry.element.classList.toggle('content-row--selected', selected);
+    }
+  }
+
   function renderRows() {
     // Files that are gone (deleted, renamed by enabling) leave the selection.
     const files = new Set(state.items.map((item) => item.file));
     for (const file of [...state.selected]) {
       if (!files.has(file)) state.selected.delete(file);
     }
-    selectionBar.hidden = state.selected.size === 0;
-    selectionText.textContent = `Выбрано: ${state.selected.size}`;
-    selectAll.checked = state.items.length > 0 && state.selected.size === state.items.length;
-    selectAll.indeterminate = state.selected.size > 0 && state.selected.size < state.items.length;
+    rowElements.clear();
     const enabled = state.items.filter((item) => item.enabled).length;
     counter.textContent = state.items.length ? `${enabled} из ${state.items.length} включено` : '';
     const visible = state.items.filter(
@@ -166,9 +185,13 @@ export function createContentList(getInstance, type) {
       rows.replaceChildren(
         h('div', { class: 'empty-state' }, icon('cube'), h('p', null, labels.empty), h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => browseFor(getInstance().id, type) }, labels.add)),
       );
+      syncSelection();
       return;
     }
+    // Rows come in one after another only when the list appears, not on every small change.
+    rows.classList.toggle('content-rows--enter', !rows.querySelector('.content-row'));
     rows.replaceChildren(...visible.map(row));
+    syncSelection();
   }
 
   function row(item) {
@@ -179,10 +202,11 @@ export function createContentList(getInstance, type) {
       h('span', { class: 'toggle__thumb' }),
     );
     const selected = state.selected.has(item.file);
-    return h(
+    const check = h('input', { type: 'checkbox', class: 'content-check', checked: selected, title: 'Выбрать', onchange: (event) => { if (event.target.checked) state.selected.add(item.file); else state.selected.delete(item.file); syncSelection(); } });
+    const element = h(
       'div',
-      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}` },
-      h('input', { type: 'checkbox', class: 'content-check', checked: selected, title: 'Выбрать', onchange: (event) => { if (event.target.checked) state.selected.add(item.file); else state.selected.delete(item.file); renderRows(); } }),
+      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) } },
+      check,
       toggle,
       item.icon ? h('img', { class: 'content-row__icon', src: item.icon, alt: '', loading: 'lazy' }) : h('div', { class: 'content-row__icon content-row__icon--empty' }, icon('cube')),
       h(
@@ -199,6 +223,8 @@ export function createContentList(getInstance, type) {
       h('button', { class: 'icon-button content-row__more', type: 'button', title: 'Действия', onclick: (event) => openRowMenu(item, event.currentTarget) }, h('span', { class: 'dots' }, '⋯')),
       h('button', { class: 'icon-button', type: 'button', title: 'Удалить', onclick: () => remove(item) }, icon('close')),
     );
+    rowElements.set(item.file, { element, check });
+    return element;
   }
 
   async function setEnabled(item, enabled) {
@@ -285,29 +311,53 @@ export function createContentList(getInstance, type) {
     }
   }
 
+  /**
+   * Every update at once: the launcher downloads them in parallel (Settings → "Загрузки") under one
+   * task in the top bar, and the list is read again once at the end, not after every mod.
+   */
   async function updateAll() {
     updateAllButton.disabled = true;
-    // New mod versions can break a world: every world is backed up first.
-    if (type === 'mod') {
-      await api.instances.backupAll(getInstance().id, 'Перед обновлением модов').catch(() => 0);
-    }
-    const entries = [...state.updates.entries()];
-    for (const [file, update] of entries) {
-      const item = state.items.find((candidate) => candidate.file === file);
-      if (item) {
-        await applyUpdate(item, update, null);
+    updateAllButton.textContent = 'Обновляем…';
+    const instanceId = getInstance().id;
+    try {
+      // New mod versions can break a world: every world is backed up first.
+      if (type === 'mod') {
+        updateAllButton.textContent = 'Копия миров…';
+        await api.instances.backupAll(instanceId, 'Перед обновлением модов').catch(() => 0);
+        updateAllButton.textContent = 'Обновляем…';
       }
+      const updates = [...state.updates.entries()].map(([file, update]) => {
+        const item = state.items.find((candidate) => candidate.file === file);
+        return { ...update, file, title: item?.title ?? update.title, icon: item?.icon ?? update.icon };
+      });
+      const { updated, failed } = await api.content.updateMany(instanceId, type, updates);
+      for (const update of updates) {
+        if (!failed.some((entry) => entry.title === update.title)) state.updates.delete(update.file);
+      }
+      await load({ quiet: true });
+      if (failed.length) {
+        toast(`Обновлено: ${updated.length}, не удалось: ${failed.length} (${failed.map((entry) => entry.title).slice(0, 3).join(', ')})`, 'error', 7000);
+      } else {
+        toast(`Обновлено: ${updated.length}`, 'success');
+      }
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    } finally {
+      updateAllButton.disabled = false;
+      updateAllButton.hidden = state.updates.size === 0;
+      updateAllButton.textContent = `Обновить все (${state.updates.size})`;
     }
-    updateAllButton.disabled = false;
-    updateAllButton.hidden = state.updates.size === 0;
-    toast(`Обновлено: ${entries.length}`, 'success');
   }
 
   // --- Selection and actions on many files ----------------------------------------------
 
   function toggleAll(checked) {
     state.selected = new Set(checked ? state.items.map((item) => item.file) : []);
-    renderRows();
+    // A wave down the list: each row lights up a moment after the one above it.
+    rows.classList.remove('content-rows--wave');
+    void rows.offsetWidth;
+    rows.classList.add('content-rows--wave');
+    syncSelection();
   }
 
   function selectedItems() {

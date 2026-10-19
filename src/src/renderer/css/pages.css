@@ -494,7 +494,7 @@
 }
 
 .account-row {
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .account-row--selected {
@@ -676,7 +676,7 @@
   aspect-ratio: 1;
   border: 2px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: transform var(--duration-fast) var(--ease-spring), border-color var(--duration-fast);
 }
 
@@ -697,7 +697,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: none;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .skin-canvas-card {

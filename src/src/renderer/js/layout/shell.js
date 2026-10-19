@@ -175,7 +175,8 @@ function setupTaskIndicator() {
   const percent = h('span', { class: 'task-pill__percent' });
   const bar = h('span', { class: 'task-pill__bar' });
   const more = h('span', { class: 'task-pill__more' });
-  const pill = h('div', { class: 'task-pill', hidden: true }, h('span', { class: 'task-pill__spinner', 'aria-hidden': 'true' }), h('span', { class: 'task-pill__text' }, label, percent), more, h('span', { class: 'task-pill__track' }, bar));
+  const instanceName = h('span', { class: 'task-pill__instance', 'data-i18n': 'off', hidden: true });
+  const pill = h('div', { class: 'task-pill', hidden: true }, h('span', { class: 'task-pill__spinner', 'aria-hidden': 'true' }), instanceName, h('span', { class: 'task-pill__text' }, label, percent), more, h('span', { class: 'task-pill__track' }, bar));
   host.append(pill);
 
   store.subscribe(['tasks'], ({ tasks }) => {
@@ -185,6 +186,9 @@ function setupTaskIndicator() {
       return;
     }
     const [first] = running;
+    // Which instance it is for: the task goes on when you leave that instance's page.
+    instanceName.textContent = first.instance ?? '';
+    instanceName.hidden = !first.instance;
     label.textContent = `${first.label}: ${first.stage ?? ''}`;
     percent.textContent = `${first.percent ?? 0}%`;
     bar.style.width = `${first.percent ?? 0}%`;

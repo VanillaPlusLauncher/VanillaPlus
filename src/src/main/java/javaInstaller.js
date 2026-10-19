@@ -12,7 +12,7 @@ const { probeJavaExecutable } = require('./javaDetector');
 const { VENDORS, mojangComponent } = require('./javaVendors');
 
 const DEFAULT_VENDOR = 'temurin';
-const MOJANG_CONCURRENCY = 8;
+const { parallelDownloads } = require('../core/downloadConfig');
 const log = createLogger('java-installer');
 
 /** Adoptium (Eclipse Temurin) redirects to the latest GA JDK archive for the given major version. */
@@ -159,7 +159,7 @@ async function installMojang(majorVersion, { onProgress } = {}) {
   }
   const files = entries.filter(([, entry]) => entry.type === 'file' && entry.downloads?.raw);
   let done = 0;
-  await runWithConcurrency(files, MOJANG_CONCURRENCY, async ([relative, entry]) => {
+  await runWithConcurrency(files, parallelDownloads(), async ([relative, entry]) => {
     const raw = entry.downloads.raw;
     await downloadFile(raw.url, path.join(staging, ...relative.split('/')), { sha1: raw.sha1, size: raw.size });
     done += 1;

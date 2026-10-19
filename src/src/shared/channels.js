@@ -75,6 +75,7 @@ const CHANNELS = Object.freeze({
     addFiles: 'content:add-files',
     identify: 'content:identify',
     checkUpdates: 'content:check-updates',
+    updateMany: 'content:update-many',
     setEnabledMany: 'content:set-enabled-many',
     resolveSides: 'content:resolve-sides',
     checkCompatibility: 'content:check-compatibility',
@@ -125,6 +126,14 @@ const CHANNELS = Object.freeze({
     command: 'server:command',
     sync: 'server:sync',
     remove: 'server:remove',
+    /** Mods of an instance with where each one is needed, for choosing what goes on a server. */
+    modsForServer: 'server:mods-for-server',
+    exportPack: 'server:export-pack',
+    exportModList: 'server:export-mod-list',
+    /** The instance's multiplayer list (servers.dat, shared with the game). */
+    list: 'server:list',
+    saveList: 'server:save-list',
+    ping: 'server:ping',
   }),
   share: Object.freeze({
     makeCode: 'share:make-code',

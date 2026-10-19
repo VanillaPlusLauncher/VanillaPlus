@@ -2,7 +2,7 @@ import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage, formatGigabytes } from '../core/format.js';
 import { getMcManifest, iconImage, mcUrl, onMcReady } from '../core/mc.js';
-import { configureSound, playSound, presetFor, previewSound, SOUND_ACTIONS, SOUND_PRESETS } from '../core/sound.js';
+import { configureSound, presetFor, previewSound, SOUND_ACTIONS, SOUND_PRESETS } from '../core/sound.js';
 import { store } from '../state/appStore.js';
 import { saveSettings } from '../state/actions.js';
 import { toast } from '../components/toast.js';
@@ -202,22 +202,6 @@ export function createSettingsPage() {
 
   function soundsSection(settings) {
     const sounds = settings.sounds;
-    const test = (label, action) => h('button', { class: 'btn btn--secondary btn--compact', type: 'button', 'data-sound': 'none', onclick: action }, label);
-    const instruments = ['harp', 'bell', 'pling', 'chime', 'flute', 'guitar', 'xylophone', 'bit', 'banjo', 'didgeridoo', 'bass', 'cow_bell'];
-    const piano = h(
-      'div',
-      { class: 'note-piano' },
-      Array.from({ length: 25 }, (_, note) =>
-        h('button', {
-          class: `note-key${[1, 3, 6, 8, 10, 13, 15, 18, 20, 22].includes(note) ? ' note-key--sharp' : ''}`,
-          type: 'button',
-          'data-sound': 'none',
-          title: `Нота ${note}`,
-          onpointerdown: () => playSound(`note_${instrumentSelect.value}`, { note, volume: 0.7 }),
-        }),
-      ),
-    );
-    const instrumentSelect = h('select', { class: 'select select--compact' }, instruments.map((name) => h('option', { value: name }, name)));
     // A sound for every action: a list of the game's sounds, with ▶ to hear one.
     const presetOptions = Object.entries(SOUND_PRESETS).map(([value, preset]) => ({ value, label: preset.label }));
     const actionRows = SOUND_ACTIONS.map((action) => {
@@ -246,7 +230,6 @@ export function createSettingsPage() {
         h('div', { class: 'sound-actions' }, actionRows),
         h('div', null, h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => save({ sounds: { actions: {}, navSound: 'click' } }) }, 'Вернуть звуки по умолчанию')),
       ),
-      card('Нотный блок', 'Поиграйте: 25 нот, как у настоящего нотного блока.', h('div', { class: 'settings-row' }, h('span', { class: 'settings-row__title' }, 'Инструмент'), instrumentSelect), piano),
       card('Музыка меню', 'Музыка C418 из главного меню игры: Mutation, Moog City 2, Beginning 2, Floating Trees. Играет по очереди с паузами, как в игре.',
         row('Играть музыку', null, toggle(sounds.music, (value) => save({ sounds: { music: value } }), 'Музыка')),
         slider({ min: 0, max: 100, step: 5, value: sounds.musicVolume, format: (value) => `${value}%`, onCommit: (value) => save({ sounds: { musicVolume: value } }) }),
@@ -267,6 +250,12 @@ export function createSettingsPage() {
           h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => api.app.openExternal('https://console.curseforge.com/') }, 'Получить ключ'),
           h('span', { class: settings.curseforgeApiKey || settings.curseforgeBuiltIn ? 'text-accent' : 'text-muted' }, settings.curseforgeApiKey ? 'свой ключ указан' : settings.curseforgeBuiltIn ? 'работает через ключ лаунчера' : 'ключ не указан'),
         ),
+      ),
+      card('Загрузки', 'Сколько файлов качать одновременно (моды, сборки, файлы игры) и на сколько частей делить большой файл — как в браузере: каждая часть идёт своим соединением, это заметно быстрее. Если интернет слабый или сайт ругается, уменьшите.',
+        h('span', { class: 'settings-row__title' }, 'Файлов одновременно'),
+        slider({ min: 1, max: 32, step: 1, value: settings.downloads?.parallel ?? 8, format: (value) => String(value), onCommit: (value) => save({ downloads: { parallel: value } }, false) }),
+        h('span', { class: 'settings-row__title' }, 'Частей у большого файла (от 8 МБ)'),
+        slider({ min: 1, max: 16, step: 1, value: settings.downloads?.segments ?? 4, format: (value) => (value === 1 ? 'целиком' : String(value)), onCommit: (value) => save({ downloads: { segments: value } }, false) }),
       ),
       card('Совместимость модов', 'Перед установкой лаунчер предупреждает о возможных конфликтах: мод для другого загрузчика или версии, несовместимость, указанная авторами, известные пары вроде Sodium и Embeddium.',
         row('Предупреждать о конфликтах', 'Предупреждение не мешает установить мод.', toggle(settings.compat?.warn !== false, (value) => save({ compat: { ...settings.compat, warn: value } }), 'Предупреждать')),

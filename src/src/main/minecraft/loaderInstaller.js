@@ -24,7 +24,7 @@ const { resolveDescriptor } = require('./descriptor');
  * the launcher runs them itself, the same way the installer's "Install client" button does.
  */
 
-const LIBRARY_CONCURRENCY = 8;
+const { parallelDownloads } = require('../core/downloadConfig');
 const log = createLogger('loader-installer');
 
 async function exists(target) {
@@ -41,7 +41,7 @@ async function downloadLibraries(layout, descriptor, onProgress) {
   const { classpath, natives } = resolveLibraries(descriptor);
   const files = [...classpath, ...natives].filter((library) => library.url);
   let done = 0;
-  await runWithConcurrency(files, LIBRARY_CONCURRENCY, async (library) => {
+  await runWithConcurrency(files, parallelDownloads(), async (library) => {
     await downloadFile(library.url, layout.libraryPath(library.relativePath), { sha1: library.sha1, size: library.size });
     done += 1;
     onProgress?.(done / files.length);
@@ -112,7 +112,7 @@ async function extractEntry(zip, entryName, target) {
 /** Libraries of an install profile or version file: downloaded, or taken from the installer's maven/ folder. */
 async function fetchInstallerLibraries(zip, layout, libraries, onProgress) {
   let done = 0;
-  await runWithConcurrency(libraries, LIBRARY_CONCURRENCY, async (library) => {
+  await runWithConcurrency(libraries, parallelDownloads(), async (library) => {
     const artifact = library.downloads?.artifact;
     const relativePath = artifact?.path ?? mavenRelativePath(library.name);
     const target = layout.libraryPath(relativePath);

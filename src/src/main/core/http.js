@@ -86,7 +86,7 @@ function openStream(url, { headers = {}, signal } = {}, redirects = 0) {
         reject(new HttpError(status, url, ''));
         return;
       }
-      resolve({ stream: response, headers: response.headers, url: target.toString() });
+      resolve({ stream: response, headers: response.headers, url: target.toString(), status });
     });
     req.on('error', reject);
   });

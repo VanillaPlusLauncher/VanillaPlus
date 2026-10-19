@@ -109,6 +109,10 @@ export function createSkinViewer3d({ width = 280, height = 400, light = false } 
   viewer.renderer.outputColorSpace = LINEAR_SRGB_COLOR_SPACE;
   viewer.pixelRatio = light ? Math.min(2, (window.devicePixelRatio || 1) * 1.25) : Math.min(3, (window.devicePixelRatio || 1) * 2);
   viewer.fov = 45;
+  // A depth range that fits the model: overlapping skin layers no longer flicker (see homePlayer.js).
+  viewer.camera.near = 8;
+  viewer.camera.far = 400;
+  viewer.camera.updateProjectionMatrix();
   // Room above the head: the nickname stays in view when the running model bounces.
   viewer.zoom = 0.74;
   viewer.autoRotate = true;

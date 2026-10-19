@@ -6,7 +6,7 @@
  * effect around it. Gestures live in gestures.js; the head keeps following the mouse during them.
  */
 
-import { GESTURES, GESTURE_EFFECTS, GREETINGS, IDLE_GESTURES, resetPose } from './gestures.js';
+import { armsRaised, ease, GESTURES, GESTURE_EFFECTS, GREETINGS, IDLE_GESTURES, resetPose } from './gestures.js';
 import { createParticles } from './particles.js';
 
 const LOOK_YAW = 0.9;
@@ -36,6 +36,11 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
   viewer.controls.enabled = false;
   viewer.autoRotate = false;
   viewer.fov = 38;
+  // A depth range that fits the model (three.js' 0.1…2000 by default): overlapping skin layers of
+  // the arms, body and legs no longer flicker against each other.
+  viewer.camera.near = 8;
+  viewer.camera.far = 400;
+  viewer.camera.updateProjectionMatrix();
   // Room above the head and under the feet (jumps, the cape).
   viewer.zoom = 0.78;
   // Turned a little towards the page's content.
@@ -57,7 +62,7 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
     player.skin.rightArm.rotation.z = -0.03 * Math.cos(progress * 2) - 0.06;
     player.rotation.z = Math.sin(progress * 0.7) * 0.025;
     player.skin.head.rotation.z = Math.sin(progress * 0.9 + 1) * 0.03;
-    if (gesture && GESTURES[gesture](player, progress - gestureStart)) {
+    if (gesture === 'point' ? pointAtMouse(player, progress - gestureStart) : gesture && GESTURES[gesture](player, progress - gestureStart)) {
       gesture = null;
     }
     // Back to its usual angle a while after it was turned by hand (the nearest full turn).
@@ -71,10 +76,25 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
     viewer.playerWrapper.rotation.x = spin.tilt;
     look.yaw += (look.targetYaw - look.yaw) * 0.12;
     look.pitch += (look.targetPitch - look.pitch) * 0.12;
-    player.skin.head.rotation.y += look.yaw;
-    player.skin.head.rotation.x += look.pitch;
-    player.skin.body.rotation.y += look.yaw * 0.25;
+    // Arms up: the head follows the mouse much less, so a raised arm never sinks into it.
+    const follow = 1 - 0.85 * armsRaised(player);
+    player.skin.head.rotation.y += look.yaw * follow;
+    player.skin.head.rotation.x += look.pitch * follow;
+    player.skin.body.rotation.y += look.yaw * 0.25 * follow;
   });
+
+  /**
+   * Points at the mouse: the right arm goes up towards the pointer (swung to its side first, then
+   * lifted forward), held for a moment while the head looks the same way, then down again.
+   */
+  function pointAtMouse(player, t) {
+    const lift = ease(t / 0.35) * (1 - ease((t - 1.9) / 0.4));
+    const side = Math.max(-0.9, Math.min(0.9, -look.targetYaw * 0.8));
+    player.skin.rightArm.rotation.z = side * lift;
+    player.skin.rightArm.rotation.x = (-1.45 + look.targetPitch * 0.6) * lift;
+    player.skin.body.rotation.y += look.targetYaw * 0.2 * lift;
+    return t > 2.3;
+  }
 
   function onPointer(event) {
     const rect = canvas.getBoundingClientRect();
@@ -95,7 +115,7 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
 
   let effects = null;
   function play(name) {
-    if (!GESTURES[name] || document.documentElement.dataset.animations === 'off') return;
+    if ((!GESTURES[name] && name !== 'point') || document.documentElement.dataset.animations === 'off') return;
     gesture = name;
     gestureStart = viewer.animation.progress;
     if (GESTURE_EFFECTS[name]) effects?.emit(GESTURE_EFFECTS[name]);

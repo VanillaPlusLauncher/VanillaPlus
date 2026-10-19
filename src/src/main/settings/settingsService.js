@@ -5,6 +5,7 @@ const path = require('node:path');
 const { readJsonFile, writeJsonFileAtomic } = require('../core/jsonFile');
 const { SerialQueue } = require('../core/serialQueue');
 const { getAppPaths, getDefaultGameDirectory } = require('../core/paths');
+const { configureDownloads } = require('../core/downloadConfig');
 
 const MEGABYTE = 1024 * 1024;
 const MIN_RAM_MB = 512;
@@ -84,6 +85,12 @@ function buildDefaults() {
       actions: {},
       music: true,
       musicVolume: 35,
+    },
+    downloads: {
+      /** Mods and other files downloaded at the same time (updates, modpacks, game files). */
+      parallel: 8,
+      /** A big file (8 MB and more) is downloaded in this many parts at once; 1 = in one piece. */
+      segments: 4,
     },
     compat: {
       /** Warn about possible mod conflicts before installing. */
@@ -245,6 +252,10 @@ function sanitize(input, defaults) {
         ? input.social.serverUrl.trim().replace(/\/+$/, '').slice(0, 300)
         : defaults.social.serverUrl,
   };
+  result.downloads = {
+    parallel: Number.isFinite(input.downloads?.parallel) ? clampInt(input.downloads.parallel, 1, 32) : defaults.downloads.parallel,
+    segments: Number.isFinite(input.downloads?.segments) ? clampInt(input.downloads.segments, 1, 16) : defaults.downloads.segments,
+  };
   result.compat = {
     warn: typeof input.compat?.warn === 'boolean' ? input.compat.warn : defaults.compat.warn,
     ignored: Array.isArray(input.compat?.ignored) ? input.compat.ignored.filter((key) => typeof key === 'string').slice(-500) : [],
@@ -270,6 +281,8 @@ async function readStoredSettings() {
 /** Settings with the effective game directory filled in, ready for the rest of the app. */
 async function getSettings() {
   const stored = await readStoredSettings();
+  // Every download in the launcher follows the latest "Загрузки" settings.
+  configureDownloads(stored.downloads);
   return {
     ...stored,
     gameDirectory: stored.gameDirectory ?? getDefaultGameDirectory(),
@@ -283,7 +296,7 @@ function updateSettings(patch) {
     const current = await readStoredSettings();
     // Nested groups are merged, so the UI can send { sounds: { volume: 40 } } alone.
     const merged = { ...current, ...patch };
-    for (const group of ['ui', 'sounds', 'updates', 'compat', 'social']) {
+    for (const group of ['ui', 'sounds', 'updates', 'compat', 'social', 'downloads']) {
       if (patch[group] && typeof patch[group] === 'object') {
         merged[group] = { ...current[group], ...patch[group] };
       }

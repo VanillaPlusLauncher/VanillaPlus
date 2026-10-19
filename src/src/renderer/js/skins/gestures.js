@@ -215,6 +215,42 @@ export const GESTURES = {
     player.skin.head.rotation.y += Math.sin(t * 6) * 0.12 * hand;
     return t > 1.7;
   },
+  /**
+   * A little walk: turns to one side, walks a few steps, turns round, walks back and faces you again
+   * (the place it walks to stays inside the view).
+   */
+  stroll(player, t) {
+    const LENGTH = 4.6;
+    const turn = (from, to, start, length) => from + (to - from) * ease((t - start) / length);
+    let yaw;
+    let x;
+    if (t < 0.45) {
+      yaw = turn(0, Math.PI / 2, 0, 0.45);
+      x = 0;
+    } else if (t < 2.05) {
+      yaw = Math.PI / 2;
+      x = 5 * ease((t - 0.45) / 1.6);
+    } else if (t < 2.6) {
+      yaw = turn(Math.PI / 2, -Math.PI / 2, 2.05, 0.55);
+      x = 5;
+    } else if (t < 4.2) {
+      yaw = -Math.PI / 2;
+      x = 5 * (1 - ease((t - 2.6) / 1.6));
+    } else {
+      yaw = turn(-Math.PI / 2, 0, 4.2, 0.4);
+      x = 0;
+    }
+    const walking = (t > 0.45 && t < 2.05) || (t > 2.6 && t < 4.2) ? 1 : 0;
+    const step = Math.sin(t * 9) * walking;
+    player.rotation.y = yaw;
+    player.position.x = x;
+    player.position.y = Math.abs(step) * 0.35;
+    player.skin.leftLeg.rotation.x = step * 0.55;
+    player.skin.rightLeg.rotation.x = -step * 0.55;
+    player.skin.leftArm.rotation.x = -step * 0.45;
+    player.skin.rightArm.rotation.x = step * 0.45;
+    return t > LENGTH;
+  },
   /** Victory: one arm punched up and down, a jump. */
   victory(player, t) {
     const pump = Math.abs(Math.sin(Math.min(t / 1.3, 1) * Math.PI * 3));
@@ -230,7 +266,8 @@ export const GESTURES = {
 export const GESTURE_EFFECTS = { hello: 'sparkles', kiss: 'hearts', dance: 'notes', victory: 'sparkles', flex: 'stars', dab: 'stars', jumpSpin: 'sparkles', clap: 'notes' };
 
 // Crouch and bow are the game's sneak lean: fine on request, odd on a big model on its own — not used here.
-export const IDLE_GESTURES = ['wave', 'nod', 'dance', 'clap', 'stretch', 'shrug', 'lookAround', 'walk', 'salute', 'think', 'jumpSpin', 'dab', 'flex', 'kiss', 'pose', 'facepalm', 'victory'];
+// 'point' (at the mouse) is the home player's own: it needs to know where the pointer is.
+export const IDLE_GESTURES = ['wave', 'nod', 'dance', 'clap', 'stretch', 'shrug', 'lookAround', 'walk', 'stroll', 'stroll', 'point', 'point', 'salute', 'think', 'jumpSpin', 'dab', 'flex', 'kiss', 'pose', 'facepalm', 'victory'];
 export const GREETINGS = ['wave', 'hello', 'kiss', 'flex', 'salute'];
 /** What a skin does when it comes to the middle of the Wardrobe. */
 export const SHOWCASE = ['hello', 'pose', 'flex', 'dab', 'victory', 'kiss', 'dance', 'jumpSpin'];
@@ -246,6 +283,16 @@ export function resetPose(player) {
     player.skin[part].position.y = player.userData.restPositions[part].y;
     player.skin[part].position.z = player.userData.restPositions[part].z;
   }
+  player.position.x = 0;
   player.position.y = 0;
   player.rotation.set(0, 0, 0);
+}
+
+/**
+ * How high the arms are (0 down … 1 over the head): with arms up the head turns less after the mouse,
+ * so a raised arm never goes into a turned head.
+ */
+export function armsRaised(player) {
+  const lift = (arm) => Math.max(Math.min(1, Math.max(0, (Math.abs(arm.rotation.z) - 1.1) / 1.0)), Math.min(1, Math.max(0, (-arm.rotation.x - 1.0) / 0.7)));
+  return Math.max(lift(player.skin.leftArm), lift(player.skin.rightArm));
 }

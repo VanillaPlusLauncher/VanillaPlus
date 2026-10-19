@@ -85,7 +85,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 360px;
+  max-width: 480px;
   height: 36px;
   padding: 0 12px;
   overflow: hidden;
@@ -124,6 +124,24 @@
 .task-pill__percent {
   color: var(--color-accent);
   font-weight: 700;
+}
+
+/* The instance the download is for, as a small tag before the task. */
+.task-pill__instance {
+  flex: 0 1 auto;
+  max-width: 130px;
+  padding: 2px 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--color-accent);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-pill__instance[hidden] {
+  display: none;
 }
 
 .task-pill__more {
@@ -219,7 +237,7 @@
   padding: 0;
   color: var(--color-accent);
   font-size: 13px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .link-button:hover {
@@ -232,7 +250,7 @@
   gap: 10px;
   font-size: 13px;
   color: var(--color-text-soft);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .check-row input {
@@ -283,7 +301,7 @@
   height: 26px;
   padding: 0 10px;
   font-size: 12px;
-  cursor: default;
+  cursor: var(--cursor-arrow);
 }
 
 .chip--small {
@@ -502,7 +520,7 @@
   background: rgba(15, 12, 21, 0.74);
   border: 2px solid rgba(0, 0, 0, 0.55);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   outline: none;
   transition: transform 200ms var(--ease-out), border-color var(--duration-fast), background var(--duration-fast);
 }
@@ -548,10 +566,15 @@
   height: 100%;
   border: 0;
   border-radius: inherit;
-  background: rgba(var(--accent-strong-rgb), 0.92);
+  /* A small play button in the middle, the picture still seen (and hopping) around it. */
+  background: radial-gradient(circle, rgba(var(--accent-strong-rgb), 0.95) 0 15px, rgba(var(--accent-strong-rgb), 0.35) 16px, rgba(10, 8, 15, 0.18) 17px);
   color: var(--color-text-on-accent);
   opacity: 0;
   transition: opacity 160ms;
+}
+
+.instance-card__play .icon {
+  transform: translateX(1px) scale(0.75);
 }
 
 .instance-card__play .icon {
@@ -1145,7 +1168,7 @@
   background: rgba(15, 12, 21, 0.74);
   border: 2px solid rgba(0, 0, 0, 0.55);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: transform 240ms var(--ease-out), background 160ms, border-color 160ms;
 }
 
@@ -2583,7 +2606,7 @@
   border-radius: var(--radius-md);
   border: 2px solid rgba(0, 0, 0, 0.55);
   background: rgba(15, 12, 21, 0.72);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: transform 200ms var(--ease-spring), border-color 160ms;
 }
 
@@ -2660,7 +2683,7 @@
   gap: 10px;
   text-align: left;
   font: inherit;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
@@ -2671,7 +2694,7 @@
 
 .dropdown__button:disabled {
   opacity: 0.55;
-  cursor: default;
+  cursor: var(--cursor-arrow);
 }
 
 .dropdown__button--open {
@@ -2774,7 +2797,7 @@
   padding: 6px 12px 6px 16px;
   border-radius: 3px;
   color: var(--color-text-soft);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   white-space: nowrap;
 }
 
@@ -2806,7 +2829,7 @@
 
 .dropdown__item--disabled {
   opacity: 0.4;
-  cursor: default;
+  cursor: var(--cursor-arrow);
 }
 
 .dropdown__empty {
@@ -2868,7 +2891,7 @@
   font: inherit;
   text-align: left;
   padding: 6px 12px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .play-switcher__all:hover {
@@ -2983,7 +3006,7 @@
   background: rgba(0, 0, 0, 0.5);
   color: #fff;
   font-size: 34px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   opacity: 0.6;
   transition: opacity 0.15s ease;
 }
@@ -3021,7 +3044,7 @@
   background: none;
   color: var(--color-text-soft);
   font: inherit;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .file-crumbs__item:last-child {
@@ -3062,7 +3085,7 @@
   color: var(--color-text);
   font: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .file-row:hover,
@@ -3267,13 +3290,13 @@
   gap: 8px;
   color: var(--color-text-soft);
   font-size: 13px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   white-space: nowrap;
 }
 
 .context-menu__item:disabled {
   opacity: 0.45;
-  cursor: default;
+  cursor: var(--cursor-arrow);
 }
 
 .context-menu__note {
@@ -3356,7 +3379,7 @@
   height: 18px;
   margin: 0;
   accent-color: rgb(var(--accent-rgb));
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .select-all {
@@ -3365,7 +3388,7 @@
   gap: 8px;
   color: var(--color-text-soft);
   font-size: 13px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .content-row--selected {
@@ -3771,7 +3794,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .compat-dialog__remember input {
@@ -3857,7 +3880,7 @@
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.26);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .optimize__row input {
@@ -3869,7 +3892,7 @@
 
 .optimize__row--off {
   opacity: 0.55;
-  cursor: default;
+  cursor: var(--cursor-arrow);
 }
 
 .optimize__icon {
@@ -3941,7 +3964,7 @@
 }
 
 .optimize__details summary {
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   color: var(--color-text-muted);
 }
 
@@ -4049,7 +4072,7 @@
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid var(--color-border);
   border-radius: var(--radius-md);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .share-format:hover {
@@ -4228,7 +4251,7 @@
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: border-color var(--duration-fast), background var(--duration-fast);
 }
 
@@ -4289,7 +4312,7 @@
   border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.25);
   color: var(--color-text-soft);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: border-color var(--duration-fast), transform var(--duration-fast);
 }
 
@@ -4390,7 +4413,7 @@
 
 .friend--button {
   width: 100%;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: background var(--duration-fast), border-color var(--duration-fast), transform var(--duration-fast);
 }
 
@@ -4685,7 +4708,7 @@
   background: rgba(0, 0, 0, 0.25);
   color: var(--color-text-soft);
   font-size: 11px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: border-color var(--duration-fast), transform var(--duration-fast);
 }
 
@@ -4807,7 +4830,7 @@
   background: rgba(0, 0, 0, 0.2);
   color: var(--color-text);
   text-align: left;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: border-color var(--duration-fast), background var(--duration-fast), transform var(--duration-fast);
 }
 
@@ -4877,7 +4900,7 @@
 .home-player {
   width: 200px;
   height: 290px;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
 }
 
 .home-player__canvas {
@@ -4908,7 +4931,7 @@
 
 /* The mark in the sidebar floats slowly; it grows a little under the pointer and leads Home. */
 .sidebar__logo {
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   animation: logo-in 700ms var(--ease-spring) both, logo-float 4.5s ease-in-out 700ms infinite;
 }
 
@@ -4949,7 +4972,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transform-origin: 50% 85%;
   transition: transform 460ms cubic-bezier(0.22, 0.9, 0.24, 1), opacity 380ms ease, filter 380ms ease;
 }
@@ -4966,7 +4989,7 @@
   z-index: 3;
   transform: translateX(-50%);
   opacity: 1;
-  cursor: default;
+  cursor: var(--cursor-arrow);
 }
 
 .wardrobe__model[data-pos="left"] {
@@ -5004,8 +5027,12 @@
 }
 
 .wardrobe__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   min-height: 20px;
   font-size: 15px;
+  line-height: 1;
   text-align: center;
 }
 
@@ -5063,8 +5090,12 @@
 
 /* "надет" next to the name of the skin you wear. */
 .wardrobe__worn {
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 1px 9px 0;
   border-radius: 999px;
+  line-height: 1;
   background: rgba(var(--accent-rgb), 0.16);
   color: var(--color-accent);
   font-size: 11px;
@@ -5156,7 +5187,7 @@
   border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.2);
   color: var(--color-text);
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: border-color var(--duration-fast), transform var(--duration-fast);
 }
 
@@ -5223,7 +5254,7 @@
   font: inherit;
   font-size: 16px;
   text-align: left;
-  cursor: pointer;
+  cursor: var(--cursor-hand);
   transition: background 150ms, border-color 150ms, transform 150ms;
 }
 
@@ -5359,7 +5390,6 @@
 
 /* --- A launcher that moves: cards lean towards the pointer, things sway and hop (components/alive.js) --- */
 .panorama {
-  translate: var(--drift-x, 0) var(--drift-y, 0);
   scale: 1.04;
 }
 
@@ -5453,4 +5483,419 @@
 
 .home-section:hover .section-title::after {
   transform: scaleX(1);
+}
+/* --- Rows that scroll sideways: what does not fit fades away at the edge, like into a pocket --- */
+.fade-row {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+}
+
+.fade-row--start {
+  --fade-start: 56px;
+}
+
+.fade-row--end {
+  --fade-end: 90px;
+}
+
+/* Room above the cards: they lean and rise under the pointer. */
+.recent-row {
+  padding-top: 10px;
+  margin-top: -6px;
+}
+
+/* Room above the Minecraft logo for its shadow and its sway (it was cut at the top). */
+.page--home {
+  padding-top: 26px;
+}
+
+/* The memory slider of an instance while it follows the general value: dimmer, still movable. */
+.range--inherited {
+  opacity: 0.55;
+}
+/* --- Toasts pile up (components/toast.js): newest in front, older ones peek out behind ------------ */
+.toast-stack.toast-pile {
+  display: block;
+  width: 420px;
+  max-width: calc(100vw - 44px);
+  pointer-events: auto;
+  transition: height 260ms var(--ease-out);
+}
+
+.toast-pile:empty,
+.toast-pile:not(:has(.toast)) {
+  pointer-events: none;
+}
+
+.toast-pile .toast {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
+  transform-origin: bottom center;
+  transition: translate 320ms var(--ease-spring), scale 320ms var(--ease-spring), opacity 220ms;
+}
+
+/* How many toasts there are: a number in the corner of the newest one. */
+.toast__count {
+  position: absolute;
+  top: -12px;
+  right: -10px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--color-accent-strong);
+  color: var(--color-text-on-accent);
+  border: 2px solid rgba(16, 13, 23, 0.95);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.55);
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  line-height: 1;
+  z-index: 2;
+}
+
+.toast__count--pop {
+  animation: count-pop 360ms var(--ease-spring);
+}
+
+@keyframes count-pop {
+  0% { scale: 0.4; }
+  60% { scale: 1.25; }
+}
+/* --- "Загрузка…" while a page waits for its first answer (components/controls.js) --------------- */
+.loading-state {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px 16px;
+  color: var(--color-text-soft);
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  animation: fadeIn 300ms both;
+}
+
+.loading-state__block {
+  width: 16px;
+  height: 16px;
+  background: var(--color-accent);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.6);
+  animation: spinBlock 1s steps(4) infinite;
+}
+
+.loading-state__text {
+  animation: loading-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes loading-pulse {
+  50% { opacity: 0.55; }
+}
+/* --- "Серверы": three parts switched on top (components/instanceTabs.js) -------------------------- */
+.servers-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.servers-tab__switch {
+  display: flex;
+}
+
+.servers-tab__part--in > * {
+  animation: rise 320ms var(--ease-out) both;
+}
+
+.server-others {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.server-list .server-row {
+  animation: rise 360ms var(--ease-out) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+/* "Для хостинга": what goes in on the left, the mods on the right. */
+.server-export {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+
+.server-export__head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.server-export__grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.server-export__what,
+.server-export__mods {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.server-export .section-title {
+  margin: 6px 0 0;
+}
+
+.server-export__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: var(--cursor-hand);
+  transition: background var(--duration-fast);
+}
+
+.server-export__check:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+.server-export__check input {
+  margin-top: 2px;
+  accent-color: var(--color-accent-strong);
+}
+
+.server-export__check span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.server-export__check small {
+  font-size: 11px;
+}
+
+.server-export__core {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-left: 2px solid rgba(var(--accent-rgb), 0.35);
+  animation: rise 260ms var(--ease-out) both;
+}
+
+.server-export__core[hidden] {
+  display: none;
+}
+
+.server-export__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.server-export__mods-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.server-export__count {
+  color: var(--color-accent);
+  font-size: 12px;
+}
+
+.server-export__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.server-mod {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: var(--cursor-hand);
+  transition: background var(--duration-fast), opacity var(--duration-fast);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 38px;
+}
+
+.server-mod:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.server-mod--off {
+  opacity: 0.5;
+}
+
+.server-mod input {
+  accent-color: var(--color-accent-strong);
+}
+
+.server-mod__icon {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 4px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.server-mod__icon--empty {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.server-mod__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.server-mod__side {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.server-mod__side--client {
+  background: rgba(110, 140, 220, 0.18);
+  color: #a9c0ff;
+}
+
+.server-mod__side--server {
+  background: rgba(240, 140, 60, 0.18);
+  color: #ffc58a;
+}
+
+.server-mod__side--both {
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--color-accent);
+}
+
+.server-mod__off {
+  font-size: 11px;
+}
+
+@media (max-width: 980px) {
+  .server-export__grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* --- Instance page: rows that come in, light up and react (components/contentList.js) ------------- */
+.content-row {
+  /* Rows off screen are not laid out or painted: long mod lists scroll smoothly. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 66px;
+  transition: opacity 200ms, background 220ms var(--ease-out), border-color 220ms var(--ease-out), transform 220ms var(--ease-out), box-shadow 220ms;
+}
+
+/* Only when the list is opened (not on every change): the rows come in one after another. */
+.content-rows--enter .content-row {
+  animation: row-in 360ms var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * 28ms);
+}
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+.content-row:hover {
+  transform: translateX(3px);
+}
+
+.content-row--selected {
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.content-rows--wave .content-row {
+  animation: row-wave 520ms var(--ease-out) both;
+  animation-delay: calc(var(--row, 0) * 22ms);
+}
+
+@keyframes row-wave {
+  0% { background: rgba(var(--accent-rgb), 0.28); }
+}
+
+.content-check {
+  transition: transform 160ms var(--ease-spring);
+}
+
+.content-check:checked {
+  animation: check-pop 260ms var(--ease-spring);
+}
+
+@keyframes check-pop {
+  50% { transform: scale(1.3); }
+}
+
+.content-row__icon {
+  transition: transform 260ms var(--ease-spring), filter 200ms;
+}
+
+.content-row:hover .content-row__icon {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.selection-bar--in {
+  animation: bar-in 300ms var(--ease-spring) both;
+}
+
+@keyframes bar-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+}
+
+/* Tabs of the instance page: the open part slides in. */
+.instance-panel {
+  animation: rise 320ms var(--ease-out) both;
+}
+
+/* Toggles and segmented thumbs move with a spring. */
+.toggle__thumb {
+  transition: transform 260ms var(--ease-spring), background 200ms !important;
+}
+
+/* --- An amethyst cursor in the launcher (assets/cursors, variables in tokens.css) -------------------- */
+html {
+  cursor: var(--cursor-arrow);
+}
+
+a,
+button,
+[role="button"],
+summary,
+select,
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  cursor: var(--cursor-hand);
+}
+
+button:disabled {
+  cursor: var(--cursor-arrow);
 }

@@ -21,8 +21,8 @@ const instanceService = require('../minecraft/instanceService');
  */
 
 // Mod files are small: many at once is what makes a big pack install fast (Modrinth and
-// CurseForge's CDNs take it easily).
-const DOWNLOAD_CONCURRENCY = 12;
+// CurseForge's CDNs take it easily) — half again the "Загрузки" setting.
+const { parallelDownloads } = require('../core/downloadConfig');
 
 /**
  * Files already downloaded once (for any instance) are kept by SHA-1 in <game folder>/cache/content
@@ -132,7 +132,7 @@ async function importMrpack({ settings, zip, fields, reporter, created }) {
   created.instance = instance;
   const files = (index.files ?? []).filter((file) => file.env?.client !== 'unsupported');
   let done = 0;
-  await runWithConcurrency(files, DOWNLOAD_CONCURRENCY, async (file) => {
+  await runWithConcurrency(files, parallelDownloads(1.5), async (file) => {
     const target = safeJoin(instance.directory, file.path);
     await fetchFile(settings, file.downloads[0], target, { sha1: file.hashes?.sha1, size: file.fileSize });
     done += 1;
@@ -173,7 +173,7 @@ async function importCurseForge({ settings, zip, fields, reporter, created }) {
   const failed = [];
   const indexed = {};
   let done = 0;
-  await runWithConcurrency(files, DOWNLOAD_CONCURRENCY, async (file) => {
+  await runWithConcurrency(files, parallelDownloads(1.5), async (file) => {
     const mod = modsById.get(file.modId);
     const type = curseforge.TYPE_BY_CLASS[mod?.classId] ?? 'mod';
     const folder = FOLDERS[type] ?? 'mods';

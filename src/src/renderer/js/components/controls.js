@@ -18,6 +18,14 @@ export function createToggle({ checked, onChange, label }) {
 }
 
 /**
+ * "Загрузка…" for a page whose content comes from the network: a turning amethyst block and a
+ * line of text, so an empty screen never looks broken while the first answer is on its way.
+ */
+export function loadingState(text = 'Загрузка…') {
+  return h('div', { class: 'loading-state', role: 'status' }, h('span', { class: 'loading-state__block', 'aria-hidden': 'true' }), h('span', { class: 'loading-state__text' }, text));
+}
+
+/**
  * Segmented control with a sliding thumb under the active option.
  * options: [{ value, label }]. Returns { element, setValue(value) }.
  */

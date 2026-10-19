@@ -297,12 +297,351 @@ export function createFilesTab(getInstance) {
   };
 }
 
-// --- Own server tab -------------------------------------------------------------------------
+// --- "Серверы" tab -------------------------------------------------------------------------------
 
-/** The "Свой сервер" tab: a server made from the instance (other servers are added in the game). */
-export function createServersTab(getInstance) {
+/**
+ * "Серверы": three parts, switched on top —
+ *  "Мой сервер"     a server made from the instance, run by the launcher;
+ *  "Для хостинга"   the instance as a server pack (zip or folder) with what you tick;
+ *  "Другие серверы" the game's own multiplayer list: status, players, ping, Play, add / edit.
+ */
+export function createServersTab(getInstance, { onPlay } = {}) {
   const own = createOwnServerCard(getInstance, { onChange: () => own.load() });
-  return { element: h('div', { class: 'instance-panel' }, own.element), load: () => own.load() };
+  const exporter = createServerExportCard(getInstance);
+  const others = createServerListCard(getInstance, { onPlay });
+  const parts = { own, export: exporter, list: others };
+  let current = 'own';
+  const host = h('div', { class: 'servers-tab__part' });
+  const switcher = createSegmented({
+    options: [
+      { value: 'own', label: 'Мой сервер' },
+      { value: 'export', label: 'Для хостинга' },
+      { value: 'list', label: 'Другие серверы' },
+    ],
+    value: current,
+    onChange: (value) => show(value),
+  });
+  function show(value) {
+    current = value;
+    host.replaceChildren(parts[value].element);
+    host.classList.remove('servers-tab__part--in');
+    void host.offsetWidth;
+    host.classList.add('servers-tab__part--in');
+    parts[value].load();
+  }
+  host.append(own.element);
+  return {
+    element: h('div', { class: 'instance-panel servers-tab' }, h('div', { class: 'servers-tab__switch' }, switcher.element), host),
+    load: () => parts[current].load(),
+  };
+}
+
+// --- "Для хостинга": the instance as a server pack --------------------------------------------
+
+const SIDE_LABELS = { client: 'Клиент', server: 'Сервер', both: 'Оба' };
+
+function createServerExportCard(getInstance) {
+  const element = h('div', { class: 'surface server-export' });
+  let mods = [];
+  let chosen = new Set();
+  let worlds = [];
+  const options = { format: 'zip', configs: true, resourcepacks: false, datapacks: false, world: '', core: false, onlineMode: false, ramMb: 4096, port: 25565, acceptEula: false };
+
+  async function load() {
+    const instance = getInstance();
+    if (!instance) return;
+    element.replaceChildren(h('div', { class: 'loading-state' }, h('span', { class: 'loading-state__block' }), h('span', null, 'Смотрим, какие моды нужны серверу…')));
+    try {
+      [mods, worlds] = await Promise.all([api.server.modsForServer(instance.id), api.instances.worlds(instance.id).catch(() => [])]);
+    } catch (error) {
+      element.replaceChildren(h('p', { class: 'text-danger' }, errorMessage(error)));
+      return;
+    }
+    chosen = new Set(mods.filter((mod) => mod.enabled && mod.side !== 'client').map((mod) => mod.file));
+    render();
+  }
+
+  const check = (label, hint, key, onChange) => {
+    const input = h('input', { type: 'checkbox', checked: Boolean(options[key]) });
+    input.addEventListener('change', () => {
+      options[key] = input.checked;
+      onChange?.();
+    });
+    return h('label', { class: 'server-export__check' }, input, h('span', null, h('b', null, label), hint ? h('small', { class: 'text-muted' }, hint) : null));
+  };
+
+  function render() {
+    const counter = h('span', { class: 'server-export__count' });
+    const paint = () => {
+      const client = mods.filter((mod) => mod.side === 'client').length;
+      counter.textContent = `На сервер: ${chosen.size} из ${mods.length}${client ? ` · клиентских: ${client}` : ''}`;
+    };
+    paint();
+    const rows = mods.map((mod) => {
+      const box = h('input', { type: 'checkbox', checked: chosen.has(mod.file) });
+      box.addEventListener('change', () => {
+        if (box.checked) chosen.add(mod.file);
+        else chosen.delete(mod.file);
+        row.classList.toggle('server-mod--off', !box.checked);
+        paint();
+      });
+      const row = h(
+        'label',
+        { class: `server-mod${chosen.has(mod.file) ? '' : ' server-mod--off'}` },
+        box,
+        mod.icon ? h('img', { class: 'server-mod__icon', src: mod.icon, alt: '', loading: 'lazy' }) : h('span', { class: 'server-mod__icon server-mod__icon--empty' }, icon('cube')),
+        h('span', { class: 'server-mod__name', 'data-i18n': 'off' }, mod.title),
+        mod.side ? h('span', { class: `server-mod__side server-mod__side--${mod.side}` }, SIDE_LABELS[mod.side] ?? mod.side) : h('span', { class: 'server-mod__side', title: 'Не удалось узнать: мод не с Modrinth и сам не сообщает' }, '?'),
+        mod.enabled ? null : h('span', { class: 'text-muted server-mod__off' }, 'выключен'),
+      );
+      return row;
+    });
+    const worldSelect = h('select', { class: 'select select--compact' }, h('option', { value: '' }, 'Без мира'), ...worlds.map((world) => h('option', { value: world.folder ?? world.name }, world.name ?? world.folder)));
+    worldSelect.value = options.world;
+    worldSelect.addEventListener('change', () => {
+      options.world = worldSelect.value;
+    });
+    const coreFields = h(
+      'div',
+      { class: 'server-export__core', hidden: !options.core },
+      h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Порт'), Object.assign(h('input', { class: 'input', type: 'number', min: '1024', max: '65535', value: String(options.port) }), { onchange: (event) => { options.port = Number(event.target.value) || 25565; } })),
+      h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Память'), Object.assign(h('select', { class: 'select' }, RAM_CHOICES.map((mb) => h('option', { value: String(mb), selected: mb === options.ramMb }, formatGigabytesShort(mb)))), { onchange: (event) => { options.ramMb = Number(event.target.value); } })),
+      check('Только лицензия', 'online-mode: без этого заходят и офлайн-аккаунты', 'onlineMode'),
+      h('label', { class: 'server-export__check' }, Object.assign(h('input', { type: 'checkbox', checked: options.acceptEula }), { onchange: (event) => { options.acceptEula = event.target.checked; } }), h('span', null, h('b', null, 'Принимаю EULA Minecraft'), h('small', { class: 'text-muted' }, 'тогда eula.txt будет готов; иначе его нужно поправить самому'))),
+    );
+    const format = createSegmented({ options: [{ value: 'zip', label: 'ZIP-архив' }, { value: 'folder', label: 'Папка' }], value: options.format, onChange: (value) => { options.format = value; } });
+    const exportButton = h('button', { class: 'btn btn--primary', type: 'button', onclick: () => exportPack(exportButton) }, icon('download'), 'Экспортировать');
+    const allButton = (label, pick) => h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => { chosen = new Set(mods.filter(pick).map((mod) => mod.file)); render(); } }, label);
+    element.replaceChildren(
+      h('div', { class: 'server-export__head' },
+        h('div', null, h('b', null, 'Сервер для хостинга'), h('p', { class: 'text-muted' }, 'Готовые файлы, чтобы залить сервер на любой хостинг или запустить у себя. Отметьте, что положить; клиентские моды (миникарты, шейдеры, меню) сняты сами.')),
+      ),
+      h('div', { class: 'server-export__grid' },
+        h('div', { class: 'server-export__what' },
+          h('h3', { class: 'section-title' }, 'Что положить'),
+          check('Настройки модов', 'config, defaultconfigs, kubejs', 'configs'),
+          check('Ресурспаки', 'папка resourcepacks', 'resourcepacks'),
+          check('Датапаки', 'общие датапаки (datapacks, global_packs, openloader)', 'datapacks'),
+          h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Мир'), worldSelect),
+          check('Готовый сервер', 'ядро сервера, server.properties и start.bat / start.sh', 'core', () => { coreFields.hidden = !options.core; }),
+          coreFields,
+          h('h3', { class: 'section-title' }, 'Как сохранить'),
+          format.element,
+          h('div', { class: 'server-export__actions' },
+            exportButton,
+            h('button', { class: 'btn btn--secondary', type: 'button', onclick: () => exportList() }, 'Список модов сервера'),
+          ),
+        ),
+        h('div', { class: 'server-export__mods' },
+          h('div', { class: 'server-export__mods-head' }, h('h3', { class: 'section-title' }, 'Моды на сервер'), counter),
+          h('div', { class: 'chip-row' }, allButton('Как советует лаунчер', (mod) => mod.enabled && mod.side !== 'client'), allButton('Все', () => true), allButton('Ничего', () => false)),
+          mods.length ? h('div', { class: 'server-export__list' }, rows) : h('p', { class: 'text-muted' }, 'В сборке нет модов.'),
+        ),
+      ),
+    );
+  }
+
+  async function exportPack(button) {
+    button.disabled = true;
+    const label = button.lastChild.textContent;
+    button.lastChild.textContent = 'Готовим… (прогресс вверху)';
+    try {
+      const result = await api.server.exportPack(getInstance().id, { ...options, mods: [...chosen] });
+      if (result) {
+        toast(`Сервер сохранён: ${result.mods} модов${result.format === 'folder' ? ' (папка)' : ''}`, 'success', 6000, { action: { label: 'Показать', onClick: () => api.app.openFolder(result.format === 'folder' ? result.path : result.path.replace(/[\\/][^\\/]+$/, '')).catch(() => {}) } });
+      }
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    } finally {
+      button.disabled = false;
+      button.lastChild.textContent = label;
+    }
+  }
+
+  async function exportList() {
+    try {
+      const result = await api.server.exportModList(getInstance().id, [...chosen]);
+      if (result) toast(`Список сохранён: ${result.mods} модов`, 'success');
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    }
+  }
+
+  return { element, load };
+}
+
+// --- "Другие серверы": the game's multiplayer list -------------------------------------------
+
+/** Signal bars like the game's server list: 0 (offline) to 5. */
+function signalLevel(ping) {
+  if (!ping?.online) return 0;
+  const ms = ping.latencyMs ?? 999;
+  return ms < 150 ? 5 : ms < 300 ? 4 : ms < 600 ? 3 : ms < 1000 ? 2 : 1;
+}
+
+/**
+ * The instance's multiplayer servers (servers.dat, the same list as in the game's "Multiplayer"):
+ * the servers you play on, with status, players and ping; Play joins one straight away; add, edit,
+ * reorder and remove.
+ */
+function createServerListCard(getInstance, { onPlay } = {}) {
+  let servers = [];
+  const pings = new Map();
+  let token = 0;
+  const list = h('div', { class: 'server-list' });
+  const element = h(
+    'div',
+    { class: 'server-others' },
+    h(
+      'div',
+      { class: 'content-toolbar' },
+      h('span', { class: 'text-muted' }, 'Серверы, где вы играете: тот же список, что в игре в «Сетевой игре».'),
+      h('span', { class: 'content-toolbar__spacer' }),
+      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => pingAll() }, 'Обновить'),
+      h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => edit(null) }, h('span', { class: 'plus' }, '+'), 'Добавить сервер'),
+    ),
+    list,
+  );
+
+  async function load() {
+    list.replaceChildren(...Array.from({ length: 3 }, () => h('div', { class: 'skeleton', style: { height: '76px' } })));
+    try {
+      servers = await api.server.list(getInstance().id);
+    } catch (error) {
+      list.replaceChildren(h('p', { class: 'text-danger' }, errorMessage(error)));
+      return;
+    }
+    render();
+    pingAll();
+  }
+
+  function pingAll() {
+    const mine = ++token;
+    for (const server of servers) {
+      pings.set(server.address, { pending: true });
+      api.server
+        .ping(server.address)
+        .then((result) => {
+          if (mine === token) {
+            pings.set(server.address, result);
+            render();
+          }
+        })
+        .catch(() => {});
+    }
+    render();
+  }
+
+  function render() {
+    if (servers.length === 0) {
+      list.replaceChildren(emptyState('Серверов пока нет. Добавьте адрес — сервер появится и в игре.', 'cube'));
+      return;
+    }
+    list.replaceChildren(
+      ...servers.map((server, index) => {
+        const ping = pings.get(server.address);
+        const level = signalLevel(ping);
+        const iconSrc = ping?.favicon ?? server.icon;
+        const status = ping?.pending
+          ? h('span', { class: 'text-muted' }, 'Проверяем…')
+          : ping?.online
+            ? h('span', { class: 'server-row__players' }, h('b', null, `${ping.players.online}`), ` / ${ping.players.max}`)
+            : h('span', { class: 'server-row__offline' }, ping?.error ?? 'Нет связи');
+        return h(
+          'div',
+          { class: `server-row${ping && !ping.pending && !ping.online ? ' server-row--offline' : ''}`, style: { '--delay': `${index * 50}ms` } },
+          iconSrc ? h('img', { class: 'server-row__icon', src: iconSrc, alt: '' }) : h('div', { class: 'server-row__icon server-row__icon--empty' }, icon('cube')),
+          h(
+            'div',
+            { class: 'server-row__text' },
+            h('div', { class: 'server-row__name', 'data-i18n': 'off' }, server.name),
+            h('div', { class: 'server-row__motd', 'data-i18n': 'off' }, ping?.online ? ping.motd || ' ' : server.address),
+            h('div', { class: 'server-row__address text-muted', 'data-i18n': 'off' }, [server.address, ping?.online ? ping.version : null].filter(Boolean).join(' · ')),
+          ),
+          h(
+            'div',
+            { class: 'server-row__status' },
+            status,
+            h('span', { class: `signal signal--${level}`, title: ping?.latencyMs != null ? `${ping.latencyMs} мс` : '' }, ...[1, 2, 3, 4, 5].map((bar) => h('i', { class: bar <= level ? 'on' : '' }))),
+            ping?.latencyMs != null ? h('span', { class: 'text-muted server-row__ms' }, `${ping.latencyMs} мс`) : null,
+          ),
+          h(
+            'div',
+            { class: 'server-row__actions' },
+            h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => onPlay?.(server.address) }, icon('play'), 'Играть'),
+            h('button', { class: 'icon-button', type: 'button', title: 'Выше', disabled: index === 0, onclick: () => move(index, -1) }, '▲'),
+            h('button', { class: 'icon-button', type: 'button', title: 'Ниже', disabled: index === servers.length - 1, onclick: () => move(index, 1) }, '▼'),
+            h('button', { class: 'icon-button', type: 'button', title: 'Изменить', onclick: () => edit(index) }, icon('pencil')),
+            h('button', { class: 'icon-button', type: 'button', title: 'Удалить', onclick: () => remove(index) }, icon('close')),
+          ),
+        );
+      }),
+    );
+  }
+
+  async function save(next) {
+    try {
+      servers = await api.server.saveList(getInstance().id, next.map((server) => ({ key: server.key, name: server.name, address: server.address })));
+      render();
+      return true;
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+      return false;
+    }
+  }
+
+  function move(index, step) {
+    const next = [...servers];
+    const [item] = next.splice(index, 1);
+    next.splice(index + step, 0, item);
+    save(next);
+  }
+
+  async function remove(index) {
+    const server = servers[index];
+    const confirmed = await confirmDialog({ title: `Удалить «${server.name}»?`, message: `${server.address} пропадёт из списка серверов этой сборки (и в игре).`, confirmLabel: 'Удалить', danger: true });
+    if (confirmed) save(servers.filter((_, position) => position !== index));
+  }
+
+  function edit(index) {
+    const server = index === null ? { name: '', address: '' } : servers[index];
+    const nameInput = h('input', { class: 'input', type: 'text', maxlength: '80', placeholder: 'Сервер Minecraft', value: server.name });
+    const addressInput = h('input', { class: 'input mono', type: 'text', maxlength: '255', placeholder: 'play.example.com или 1.2.3.4:25565', value: server.address });
+    const checkLine = h('div', { class: 'server-edit__check text-muted' });
+    let checkToken = 0;
+    const test = async () => {
+      const address = addressInput.value.trim();
+      if (!address) return;
+      const mine = ++checkToken;
+      checkLine.textContent = 'Проверяем…';
+      const result = await api.server.ping(address).catch(() => null);
+      if (mine !== checkToken) return;
+      checkLine.textContent = result?.online ? `В сети: ${result.players.online} / ${result.players.max}, ${result.version ?? ''}, ${result.latencyMs ?? '?'} мс` : `Не отвечает: ${result?.error ?? 'нет связи'}`;
+      if (result?.online && !nameInput.value.trim() && result.motd) nameInput.placeholder = result.motd.split('\n')[0].slice(0, 60);
+    };
+    addressInput.addEventListener('change', test);
+    const done = async () => {
+      const address = addressInput.value.trim();
+      if (!address) {
+        toast('Укажите адрес сервера', 'error');
+        return;
+      }
+      const entry = { key: server.key, name: nameInput.value.trim() || nameInput.placeholder || address, address };
+      const next = index === null ? [...servers, entry] : servers.map((item, position) => (position === index ? entry : item));
+      if (await save(next)) {
+        modal.close();
+        pingAll();
+      }
+    };
+    const modal = openModal({
+      title: index === null ? 'Новый сервер' : 'Сервер',
+      content: h('div', { class: 'server-edit' }, h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Адрес'), addressInput), h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Название'), nameInput), checkLine),
+      footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: done }, index === null ? 'Добавить' : 'Сохранить')],
+    });
+    if (server.address) test();
+  }
+
+  return { element, load };
 }
 
 // --- Own server (one click) ----------------------------------------------------------------

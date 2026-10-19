@@ -46,6 +46,56 @@ function registerDomainHandlers(handle) {
   handle(CHANNELS.server.command, (_event, instanceId, text) => serverService.sendCommand(String(instanceId), String(text ?? '')));
   handle(CHANNELS.server.sync, async (_event, instanceId) => serverService.syncServerContent(await settings(), String(instanceId)));
   handle(CHANNELS.server.remove, async (_event, instanceId) => serverService.deleteServer(await settings(), String(instanceId)));
+  handle(CHANNELS.server.modsForServer, async (_event, instanceId) => serverService.modsForServer(await settings(), String(instanceId)));
+  // "Для хостинга": a zip or a folder, made of what the user ticked.
+  handle(CHANNELS.server.exportPack, async (event, instanceId, options) => {
+    const instance = await instanceService.getInstance(await settings(), String(instanceId));
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    const safeName = instance.name.replace(/[\\/:*?"<>|]/g, '_');
+    let target;
+    if (options?.format === 'folder') {
+      const choice = await dialog.showOpenDialog(owner, { title: 'Куда положить папку сервера', properties: ['openDirectory', 'createDirectory'] });
+      if (choice.canceled || !choice.filePaths[0]) return null;
+      target = path.join(choice.filePaths[0], `${safeName} (сервер)`);
+    } else {
+      const choice = await dialog.showSaveDialog(owner, { title: 'Сохранить сервер', defaultPath: `${safeName} (сервер).zip`, filters: [{ name: 'Архив', extensions: ['zip'] }] });
+      if (choice.canceled || !choice.filePath) return null;
+      target = choice.filePath;
+    }
+    return serverService.exportServerPack(await settings(), instance.id, target, {
+      format: options?.format === 'folder' ? 'folder' : 'zip',
+      mods: Array.isArray(options?.mods) ? options.mods.map(String).slice(0, 2000) : null,
+      configs: options?.configs !== false,
+      resourcepacks: options?.resourcepacks === true,
+      datapacks: options?.datapacks === true,
+      world: options?.world ? String(options.world).slice(0, 200) : null,
+      core: options?.core === true,
+      port: Number(options?.port) || 25565,
+      onlineMode: options?.onlineMode === true,
+      ramMb: Number(options?.ramMb) || 4096,
+      acceptEula: options?.acceptEula === true,
+    });
+  });
+  handle(CHANNELS.server.exportModList, async (event, instanceId, files) => {
+    const instance = await instanceService.getInstance(await settings(), String(instanceId));
+    const choice = await dialog.showSaveDialog(BrowserWindow.fromWebContents(event.sender), {
+      title: 'Сохранить список модов сервера',
+      defaultPath: `${instance.name.replace(/[\\/:*?"<>|]/g, '_')} — моды сервера.txt`,
+      filters: [{ name: 'Текст', extensions: ['txt'] }],
+    });
+    if (choice.canceled || !choice.filePath) return null;
+    return serverService.exportServerModList(await settings(), instance.id, choice.filePath, Array.isArray(files) ? files.map(String).slice(0, 2000) : null);
+  });
+  const serverList = require('../minecraft/serverList');
+  const listDirectory = async (id) => (await instanceService.getInstance(await settings(), String(id))).directory;
+  handle(CHANNELS.server.list, async (_event, id) => serverList.listServers(await listDirectory(id)));
+  handle(CHANNELS.server.saveList, async (_event, id, servers) => {
+    if (gameService.isInstanceRunning(String(id))) {
+      throw new Error('Закройте игру: она перезапишет список серверов при выходе.');
+    }
+    return serverList.saveServers(await listDirectory(id), Array.isArray(servers) ? servers.slice(0, 500) : []);
+  });
+  handle(CHANNELS.server.ping, (_event, address) => serverList.pingServer(String(address ?? '').slice(0, 255)));
   handle(CHANNELS.share.makeCode, async (_event, instanceId) => shareService.makeShareCode(await settings(), String(instanceId)));
   handle(CHANNELS.share.parseCode, (_event, code) => shareService.parseShareCode(String(code ?? '').slice(0, 200000)));
   handle(CHANNELS.share.importCode, async (_event, code, fields) => {
@@ -210,6 +260,7 @@ function registerDomainHandlers(handle) {
   );
   handle(CHANNELS.content.identify, async (_event, instanceId, type) => contentService.identifyContent(await settings(), instanceId, type));
   handle(CHANNELS.content.checkUpdates, async (_event, instanceId, type) => contentService.checkUpdates(await settings(), instanceId, type));
+  handle(CHANNELS.content.updateMany, async (_event, instanceId, type, updates) => contentService.updateMany(await settings(), instanceId, type, Array.isArray(updates) ? updates.slice(0, 1000) : []));
   handle(CHANNELS.content.setEnabledMany, async (_event, instanceId, type, files, enabled) => {
     if (gameService.isInstanceRunning(instanceId)) {
       throw new Error('Закройте игру, чтобы включать и выключать моды.');

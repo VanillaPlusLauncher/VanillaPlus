@@ -9,7 +9,7 @@ import { playInstance, refreshInstances } from '../state/actions.js';
 import { go } from '../core/nav.js';
 import { confirmDialog, openModal } from '../components/modal.js';
 import { toast } from '../components/toast.js';
-import { createSegmented } from '../components/controls.js';
+import { createSegmented, loadingState } from '../components/controls.js';
 
 const REFRESH_MS = 30 * 1000;
 const KINDS = [
@@ -549,6 +549,8 @@ export function createFriendsPage() {
   async function refresh() {
     if (state.loading) return;
     state.loading = true;
+    // The first time the server may take a while: say so instead of an empty page.
+    if (!state.data && body.firstChild !== layout) body.replaceChildren(loadingState('Загружаем друзей…'));
     try {
       const status = await api.friends.status();
       if (!status.enabled) {
