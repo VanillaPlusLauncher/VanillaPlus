@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Amethyx Launcher — лаунчер Minecraft с модами, скинами и друзьями</title>
+    <meta name="description" content="Бесплатный лаунчер Minecraft: Java Edition для Windows. Сборки с модами, Modrinth и CurseForge, гардероб скинов, друзья и чат, свой сервер, оптимизация в один клик." />
+    <meta name="theme-color" content="#0a080f" />
+    <meta property="og:title" content="Amethyx Launcher" />
+    <meta property="og:description" content="Лаунчер Minecraft с модами, скинами и друзьями." />
+    <meta property="og:image" content="assets/shots/home.webp" />
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tiny5&display=swap" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar" id="top">
+      <a class="brand" href="#top" aria-label="Amethyx Launcher">
+        <img src="assets/logo.png" alt="" width="34" height="34" />
+        <span class="brand__name">Amethy<span class="x">x</span></span>
+      </a>
+      <nav class="nav" id="nav">
+        <a href="#features" data-i18n="nav.features">Возможности</a>
+        <a href="#shots" data-i18n="nav.shots">Скриншоты</a>
+        <a href="#download" data-i18n="nav.download">Скачать</a>
+        <a href="#faq" data-i18n="nav.faq">Вопросы</a>
+      </nav>
+      <div class="topbar__end">
+        <button class="lang" id="lang" type="button" aria-label="Language / Язык">EN</button>
+        <button class="burger" id="burger" type="button" aria-label="Меню" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero__glow" aria-hidden="true"></div>
+        <div class="hero__text reveal">
+          <div class="hero__mark">
+            <img src="assets/logo.png" alt="Логотип Amethyx" width="120" height="120" />
+          </div>
+          <h1 class="hero__title">Amethy<span class="x">x</span> Launcher</h1>
+          <p class="hero__subtitle" data-i18n="hero.subtitle">Лаунчер Minecraft с модами, скинами и друзьями — красивый, быстрый и бесплатный.</p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" id="download-main" href="downloads/Amethyx-Setup.exe" download>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>
+              <span data-i18n="hero.download">Скачать для Windows</span>
+            </a>
+            <a class="btn btn--ghost" href="https://github.com/VanillaPlusLauncher/VanillaPlus" target="_blank" rel="noopener" data-i18n="hero.source">Исходный код на GitHub</a>
+          </div>
+          <p class="hero__meta"><span id="version-line">Версия 1.7.0</span> · Windows 10 / 11 · <span data-i18n="hero.free">бесплатно</span></p>
+          <div class="queue" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <figure class="window reveal" id="hero-window">
+          <div class="window__bar"><span></span><span></span><span></span></div>
+          <img src="assets/shots/home.webp" alt="Главный экран Amethyx Launcher" width="1440" height="900" />
+        </figure>
+      </section>
+
+      <!-- Features -->
+      <section class="section" id="features">
+        <h2 class="section__title reveal" data-i18n="features.title">Что умеет</h2>
+        <p class="section__lead reveal" data-i18n="features.lead">Всё, что нужно, чтобы играть с модами и друзьями, — в одном окне.</p>
+        <div class="features">
+          <article class="feature reveal">
+            <span class="feature__icon">▣</span>
+            <h3 data-i18n="f1.title">Сборки как в Prism</h3>
+            <p data-i18n="f1.text">Fabric, Forge, NeoForge и Quilt, группы с перетаскиванием. Сборки из Prism, CurseForge, Modrinth App, TLauncher и других лаунчеров переносятся сами.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon">⬇</span>
+            <h3 data-i18n="f2.title">Моды с Modrinth и CurseForge</h3>
+            <p data-i18n="f2.text">Модпаки, моды, ресурспаки, шейдеры и датапаки. Зависимости ставятся сами, файлы качаются параллельно и по частям — как в браузере.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon">⚡</span>
+            <h3 data-i18n="f3.title">Оптимизация в один клик</h3>
+            <p data-i18n="f3.text">Лаунчер смотрит на компьютер и сборку, ставит моды для FPS, подбирает память и настройки графики. Всё отменяется одной кнопкой.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon">☺</span>
+            <h3 data-i18n="f4.title">Гардероб скинов</h3>
+            <p data-i18n="f4.text">Пять мест для скинов, 3D-карусель, скины из PNG, по нику, с The Skindex и NameMC — скачанный скин сам появляется в лаунчере.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon">✉</span>
+            <h3 data-i18n="f5.title">Друзья и чат</h3>
+            <p data-i18n="f5.text">Кто в сети и во что играет, сообщения и скриншоты. Друг заходит в твой мир одной кнопкой — без белого IP и настройки роутера.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon">▤</span>
+            <h3 data-i18n="f6.title">Свой сервер</h3>
+            <p data-i18n="f6.text">Сервер из сборки в один клик, экспорт для любого хостинга (ZIP или папка, клиентские моды отсеиваются сами) и список серверов с пингом.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon">✿</span>
+            <h3 data-i18n="f7.title">Питомец-крипер</h3>
+            <p data-i18n="f7.text">Маленький 3D-крипер, как тамагочи: кормите, играйте, укладывайте спать. Только не тыкайте слишком часто…</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon">◆</span>
+            <h3 data-i18n="f8.title">Красиво и на вашем языке</h3>
+            <p data-i18n="f8.text">Панорамы разных версий игры, звуки, аметистовый стиль и анимации. Семь языков, аккаунты Microsoft, Ely.by и офлайн.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- Screenshots -->
+      <section class="section" id="shots">
+        <h2 class="section__title reveal" data-i18n="shots.title">Скриншоты</h2>
+        <div class="gallery">
+          <button class="shot reveal" type="button" data-full="assets/shots/mods.webp"><img src="assets/shots/mods.webp" alt="Моды сборки" loading="lazy" width="1440" height="900" /><span data-i18n="shots.mods">Моды сборки</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/library.webp"><img src="assets/shots/library.webp" alt="Библиотека модов" loading="lazy" width="1440" height="900" /><span data-i18n="shots.library">Библиотека Modrinth и CurseForge</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/wardrobe.webp"><img src="assets/shots/wardrobe.webp" alt="Гардероб" loading="lazy" width="1440" height="900" /><span data-i18n="shots.wardrobe">Гардероб скинов</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/friends.webp"><img src="assets/shots/friends.webp" alt="Друзья и чат" loading="lazy" width="1440" height="900" /><span data-i18n="shots.friends">Друзья и чат</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/servers.webp"><img src="assets/shots/servers.webp" alt="Сервер для хостинга" loading="lazy" width="1440" height="900" /><span data-i18n="shots.servers">Сервер для хостинга</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/pet.webp"><img src="assets/shots/pet.webp" alt="Питомец-крипер" loading="lazy" width="1440" height="900" /><span data-i18n="shots.pet">Питомец-крипер</span></button>
+        </div>
+      </section>
+
+      <!-- Download -->
+      <section class="section download" id="download">
+        <div class="download__card reveal">
+          <img src="assets/logo.png" alt="" width="84" height="84" class="download__logo" />
+          <h2 class="section__title" data-i18n="download.title">Скачать Amethyx</h2>
+          <p class="section__lead" data-i18n="download.lead">Установщик для Windows. Дальше лаунчер обновляется сам.</p>
+          <a class="btn btn--primary btn--big" id="download-second" href="downloads/Amethyx-Setup.exe" download>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>
+            <span data-i18n="hero.download">Скачать для Windows</span>
+          </a>
+          <ol class="steps">
+            <li><b>1</b><span data-i18n="step1">Скачайте и запустите установщик</span></li>
+            <li><b>2</b><span data-i18n="step2">Добавьте аккаунт: Microsoft, Ely.by или офлайн</span></li>
+            <li><b>3</b><span data-i18n="step3">Создайте сборку или поставьте модпак — и играйте</span></li>
+          </ol>
+          <p class="download__req" data-i18n="download.req">Windows 10 (1803 и новее) или Windows 11, 64 бита. Java лаунчер скачает сам.</p>
+          <p class="download__links">
+            <a href="https://github.com/VanillaPlusLauncher/VanillaPlus/releases" target="_blank" rel="noopener" data-i18n="download.all">Все версии на GitHub</a> ·
+            <a href="https://github.com/VanillaPlusLauncher/VanillaPlus/blob/main/CHANGELOG.ru.md" target="_blank" rel="noopener" id="changelog-link" data-i18n="download.changes">Что нового</a>
+          </p>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="section" id="faq">
+        <h2 class="section__title reveal" data-i18n="faq.title">Вопросы</h2>
+        <div class="faq">
+          <details class="reveal"><summary data-i18n="q1">Нужна ли лицензия Minecraft?</summary><p data-i18n="a1">Нет. Можно играть офлайн или через Ely.by. Для серверов, которые проверяют лицензию, нужен аккаунт Microsoft.</p></details>
+          <details class="reveal"><summary data-i18n="q2">Это безопасно?</summary><p data-i18n="a2">Код лаунчера открыт на GitHub. Пароли вводятся только на официальных сайтах Microsoft и Ely.by — лаунчер их не видит.</p></details>
+          <details class="reveal"><summary data-i18n="q3">Откуда берутся моды?</summary><p data-i18n="a3">С Modrinth и CurseForge — тех же сайтов, что используют все крупные лаунчеры. Зависимости и совместимость лаунчер проверяет сам.</p></details>
+          <details class="reveal"><summary data-i18n="q4">Как обновить лаунчер?</summary><p data-i18n="a4">Никак — он обновляется сам: скачивает новую версию и предлагает установить её одной кнопкой.</p></details>
+          <details class="reveal"><summary data-i18n="q5">Можно перенести сборки из другого лаунчера?</summary><p data-i18n="a5">Да: Prism, ElyPrism, Modrinth App, CurseForge, TLauncher, Millida и другие находятся сами — моды, настройки, миры и скриншоты переезжают целиком.</p></details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__row">
+        <span class="brand__name">Amethy<span class="x">x</span></span>
+        <a href="https://github.com/VanillaPlusLauncher/VanillaPlus" target="_blank" rel="noopener">GitHub</a>
+        <span>GPL-3.0</span>
+      </div>
+      <p class="footer__note" data-i18n="footer.note">Amethyx Launcher — неофициальный лаунчер. Не связан с Mojang Studios или Microsoft и не одобрен ими. Minecraft — товарный знак Mojang Studios.</p>
+    </footer>
+
+    <div class="lightbox" id="lightbox" hidden>
+      <button class="lightbox__close" type="button" aria-label="Закрыть">×</button>
+      <img alt="" />
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

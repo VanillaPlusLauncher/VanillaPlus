@@ -25,3 +25,7 @@ installer/ely-oauth.json
 
 # Promo video project: frames, renders and the music never go to git
 promo-video/
+
+# Local preview setup and scratch pages of the website
+.claude/
+website/loader-demo.html
