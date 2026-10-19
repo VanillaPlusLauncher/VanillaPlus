@@ -1,15 +1,15 @@
-# Сторонние компоненты
+# Third-party components
 
-| Компонент | Где | Лицензия |
+| Component | Where | License |
 | --- | --- | --- |
-| [Electron](https://www.electronjs.org) 44 | среда выполнения (скачивается при сборке) | MIT |
-| [adm-zip](https://github.com/cthackers/adm-zip) | `src/node_modules` (через `npm install`) | MIT |
-| [skinview3d](https://github.com/bs-community/skinview3d) 3.4.2 с [three.js](https://threejs.org) | `src/src/renderer/vendor` | MIT — текст в `skinview3d.LICENSE.txt` |
-| Шрифт [Tiny5](https://fonts.google.com/specimen/Tiny5) | загружается с Google Fonts | SIL Open Font License 1.1 |
-| [authlib-injector](https://github.com/yushijinhun/authlib-injector) | скачивается при входе через Ely.by | AGPL-3.0 |
-| [CustomSkinLoader](https://github.com/xfl03/MCCustomSkinLoader) | скачивается с Modrinth в сборки с модами (скины и плащи Vanilla+), с лаунчером не поставляется | GPL-3.0 |
-| [e4mc](https://modrinth.com/mod/e4mc) | скачивается с Modrinth в сборки с модами (друзья заходят в мир, открытый для сети, через сервер-ретранслятор e4mc), с лаунчером не поставляется | MIT |
-| [Inno Setup](https://jrsoftware.org/isinfo.php) | сборка установщика | Inno Setup License |
-| Логотипы Modrinth и CurseForge из [Simple Icons](https://simpleicons.org) 13.21 | `src/assets/platforms` | CC0 1.0 |
+| [Electron](https://www.electronjs.org) 44 | runtime (downloaded at build time) | MIT |
+| [adm-zip](https://github.com/cthackers/adm-zip) | `src/node_modules` (through `npm install`) | MIT |
+| [skinview3d](https://github.com/bs-community/skinview3d) 3.4.2 with [three.js](https://threejs.org) | `src/src/renderer/vendor` | MIT — text in `skinview3d.LICENSE.txt` |
+| [Tiny5](https://fonts.google.com/specimen/Tiny5) font | loaded from Google Fonts | SIL Open Font License 1.1 |
+| [authlib-injector](https://github.com/yushijinhun/authlib-injector) | downloaded when signing in with Ely.by | AGPL-3.0 |
+| [CustomSkinLoader](https://github.com/xfl03/MCCustomSkinLoader) | downloaded from Modrinth into modded instances (Vanilla+ skins), not shipped with the launcher | GPL-3.0 |
+| [e4mc](https://modrinth.com/mod/e4mc) | downloaded from Modrinth into modded instances (friends join a world opened to LAN through the e4mc relay), not shipped with the launcher | MIT |
+| [Inno Setup](https://jrsoftware.org/isinfo.php) | building the installer | Inno Setup License |
+| Modrinth and CurseForge logos from [Simple Icons](https://simpleicons.org) 13.21 | `src/assets/platforms` | CC0 1.0 |
 
-Modrinth и CurseForge — товарные знаки их владельцев; логотипы показывают, откуда взят мод.
+Modrinth and CurseForge are trademarks of their owners; the logos show where a mod comes from.

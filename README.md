@@ -1,47 +1,49 @@
 # Vanilla+ Launcher
 
-Лаунчер Minecraft: Java Edition для Windows с открытым исходным кодом.
+An open-source Minecraft: Java Edition launcher for Windows.
 
-**Скачать:** [последний релиз](https://github.com/VanillaPlusLauncher/VanillaPlus/releases/latest) → `VanillaPlus-Setup-<версия>.exe`.
-Установленный лаунчер обновляется сам: новая версия скачивается в фоне, установка — одной кнопкой.
+**English** · [Русский](README.ru.md)
 
-![Главная](docs/screenshots/home.png)
+**Download:** [latest release](https://github.com/VanillaPlusLauncher/VanillaPlus/releases/latest) → `VanillaPlus-Setup-<version>.exe`.
+The installed launcher updates itself: a new version downloads in the background and installs with one click.
 
-## Возможности
+![Home](docs/screenshots/home.png)
 
-- **Аккаунты:** офлайн, Microsoft, [Ely.by](https://ely.by) (скины через authlib-injector)
-- **Библиотека:** модпаки, моды, ресурспаки, шейдеры и датапаки с Modrinth и CurseForge; зависимости ставятся сами, обновления модов (в том числе автоматически перед запуском), отметки «клиент / сервер» и выключение клиентских модов для сервера
-- **Перенос из других лаунчеров:** Prism, ElyPrism, PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher, официальный лаунчер — сборки находятся сами
-- **Сборки как в Prism Launcher:** вкладки модов, ресурспаков, шейдеров, миров, своего сервера, скриншотов и журнала; смена версии игры и загрузчика, свои настройки Java и памяти, заметки, свои группы с перетаскиванием
-- **Журнал игры** объясняет частые ошибки, после вылета сразу показывает причину
-- **Гардероб:** готовые скины из PNG, по нику или с The Skindex и NameMC (скачанный там скин сам появляется в лаунчере), 3D-просмотр с анимациями; свой скин у каждого аккаунта, скин Vanilla+ для Microsoft и Ely.by (настоящий скин не меняется)
-- **Друзья:** заявки, кто в сети и во что играет, чат, вход к другу в мир через мод e4mc (без белого IP) или на сервер одной кнопкой
-- Оформление в стиле Minecraft: панорамы из разных версий игры, звуки (свой для каждого действия) и музыка
-- Семь языков: русский, английский, испанский, португальский, немецкий, французский, китайский
-- Сам замечает новые версии Minecraft и обновляется сам
-- Работает на 64-битной Windows 10 (с версии 1803) и Windows 11
+## Features
 
-### Новое в 1.7.0 (готовится к выходу)
+- **Accounts:** offline, Microsoft, [Ely.by](https://ely.by) (skins through authlib-injector)
+- **Library:** modpacks, mods, resource packs, shaders and data packs from Modrinth and CurseForge; dependencies install by themselves, mod updates (also automatically before launch), client/server marks and turning client-only mods off for a server
+- **Import from other launchers:** Prism, ElyPrism, PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher and the official launcher — instances are found automatically
+- **Instances like in Prism Launcher:** tabs for mods, resource packs, shaders, worlds, your own server, screenshots and the log; change the game version and loader, per-instance Java and memory, notes, custom groups with drag and drop
+- **Game log** explains common errors and shows the cause right after a crash
+- **Wardrobe:** ready-made skins from a PNG, by player name or from The Skindex and NameMC (a skin downloaded there appears in the launcher by itself), 3D preview with animations; a skin per account, a Vanilla+ skin for Microsoft and Ely.by accounts (the real skin stays unchanged)
+- **Friends:** requests, who is online and what they play, chat, joining a friend's world through the e4mc mod (no public IP needed) or their server in one click
+- Minecraft look and feel: panoramas from different game versions, sounds (one per action, your choice) and music
+- Seven languages: English, Russian, Spanish, Portuguese, German, French, Chinese
+- Notices new Minecraft versions and updates itself
+- Runs on 64-bit Windows 10 (version 1803 and later) and Windows 11
 
-- **Друзья и чат:** кто в сети и во что играет, сообщения, скриншоты из игры, приглашения со сборкой, которую друг собирает одной кнопкой
-- **Друг заходит в ваш мир** без белого IP: откройте мир для сети, лаунчер сам ставит мод e4mc и отправляет другу адрес
-- **3D-игрок на главной:** смотрит на мышку, здоровается и делает жесты; под ним **Гардероб** как в Bedrock
-- **Готовые скины:** из PNG, по нику, с The Skindex и NameMC — скачанный на сайте скин сам появляется в Гардеробе; **скин Vanilla+** для Microsoft и Ely.by видят другие игроки Vanilla+
-- **Перенос из других лаунчеров:** Prism, ElyPrism, MultiMC, Modrinth App, CurseForge, TLauncher и другие — сборки находятся сами
-- **Оптимизация в один клик:** моды для скорости, память, флаги Java и графика под ваш компьютер; не советует моды, несовместимые со сборкой
-- **Модпаки ставятся быстрее:** 12 загрузок сразу и общий кэш модов
-- **Свой сервер в один клик**, **экспорт сборки** кодом или файлом (.mrpack, CurseForge .zip, .zip), **копии миров**, **проверка совместимости** модов
-- **Трей:** крестик прячет лаунчер к часам; **свои уведомления** со значком Vanilla+
-- **Панорамы** из 19 версий Minecraft, **семь языков**, **звук для каждого действия**, вход в **Ely.by через сайт**
-- Новое имя, логотип и тёплый стиль; данные прежней версии переносятся сами
+### New in 1.7.0 (coming soon)
 
-| Сборки | Библиотека | Гардероб | Друзья |
+- **Friends and chat:** who is online and what they play, messages, in-game screenshots, invites with an instance your friend builds in one click
+- **Friends join your world** without a public IP: open the world to LAN, the launcher installs the e4mc mod and sends your friend the address
+- **3D player on the home screen:** follows the mouse, waves and does gestures; under it, a Bedrock-style **Wardrobe**
+- **Ready-made skins:** from a PNG, by player name, from The Skindex and NameMC — a skin downloaded on the site appears in the Wardrobe by itself; other Vanilla+ players see your **Vanilla+ skin** even on Microsoft and Ely.by accounts
+- **Import from other launchers:** Prism, ElyPrism, MultiMC, Modrinth App, CurseForge, TLauncher and more — instances are found automatically
+- **One-click optimization:** performance mods, memory, Java flags and graphics settings for your PC; never suggests mods the instance is incompatible with
+- **Faster modpack installs:** 12 parallel downloads and a shared mod cache
+- **One-click own server**, **instance export** as a code or a file (.mrpack, CurseForge .zip, .zip), **world backups**, **mod compatibility checks**
+- **Tray:** the close button hides the launcher next to the clock; **own notifications** in the Vanilla+ style
+- **Panoramas** from 19 Minecraft versions, **seven languages**, **a sound per action**, **Ely.by sign-in on the website**
+- New name, logo and warm look; data of the previous version moves over by itself
+
+| Instances | Library | Wardrobe | Friends |
 | --- | --- | --- | --- |
-| ![Сборки](docs/screenshots/builds.png) | ![Библиотека](docs/screenshots/mods.png) | ![Гардероб](docs/screenshots/skins.png) | ![Друзья](docs/screenshots/friends.png) |
+| ![Instances](docs/screenshots/builds.png) | ![Library](docs/screenshots/mods.png) | ![Wardrobe](docs/screenshots/skins.png) | ![Friends](docs/screenshots/friends.png) |
 
-## Сборка из исходников
+## Building from source
 
-Нужны Windows 10/11, [Node.js](https://nodejs.org) (для `npm install`), [Python 3](https://www.python.org) и [Inno Setup 6](https://jrsoftware.org/isinfo.php).
+You need Windows 10/11, [Node.js](https://nodejs.org) (for `npm install`), [Python 3](https://www.python.org) and [Inno Setup 6](https://jrsoftware.org/isinfo.php).
 
 ```powershell
 cd src
@@ -50,22 +52,22 @@ cd ..
 .\installer\build.ps1
 ```
 
-`build.ps1` при первом запуске скачивает Electron (с проверкой SHA-256), упаковывает `src` в `app.asar` и собирает установщик в `build\`.
-Для запуска без установщика: `build\VanillaPlus\VanillaPlus.exe` после того же скрипта.
+On the first run `build.ps1` downloads Electron (checking its SHA-256), packs `src` into `app.asar` and builds the installer in `build\`.
+To run without installing: `build\VanillaPlus\VanillaPlus.exe` after the same script.
 
-Выпуск новой версии: поднять `version` в `src/package.json`, собрать, затем
-`.\installer\publish-update.ps1 -Repo VanillaPlusLauncher/VanillaPlus -Notes "Что нового" -Publish`.
+Releasing a new version: raise `version` in `src/package.json`, build, then
+`.\installer\publish-update.ps1 -Repo VanillaPlusLauncher/VanillaPlus -Notes "What's new" -Publish`.
 
-## Устройство
+## Layout
 
-- `src/src/main` — главный процесс Electron: аккаунты, установка версий и загрузчиков, запуск игры, моды, Java, обновления
-- `src/src/renderer` — интерфейс (без фреймворков, ES-модули)
-- `src/src/preload` — мост между ними: всё общение идёт через IPC с проверкой входных данных
-- `installer` — установщик (Inno Setup), сборка и публикация
-- `server` — сервер Vanilla+ для друзей, чата и общих скинов (Cloudflare Workers + D1), как его запустить — в [server/README.md](server/README.md)
+- `src/src/main` — Electron main process: accounts, installing versions and loaders, launching the game, mods, Java, updates
+- `src/src/renderer` — the interface (no frameworks, ES modules)
+- `src/src/preload` — the bridge between them: everything goes through IPC with input checks
+- `installer` — the installer (Inno Setup), build and publishing
+- `server` — the Vanilla+ server for friends, chat and shared skins (Cloudflare Workers + D1); how to run it is in [server/README.md](server/README.md)
 
-## Лицензия
+## License
 
-[GPL-3.0](LICENSE). Сторонние компоненты и их лицензии — в [THIRD_PARTY.md](THIRD_PARTY.md).
+[GPL-3.0](LICENSE). Third-party components and their licenses are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
 
-Vanilla+ Launcher — неофициальный лаунчер. Он не связан с Mojang Studios или Microsoft и не одобрен ими. Minecraft — товарный знак Mojang Studios.
+Vanilla+ Launcher is an unofficial launcher. It is not affiliated with or endorsed by Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.
