@@ -1,12 +1,14 @@
 /*
- * Vanilla+ server (Cloudflare Worker + D1): Vanilla+ skins and capes that other Vanilla+ players
- * see in the game (CustomSkinLoader's CustomSkinAPI), and friends with online status.
+ * Amethyx server (Cloudflare Worker + D1; the worker and database keep their first name,
+ * "vanillaplus"): Amethyx skins and capes that other Amethyx players see in the game
+ * (CustomSkinLoader's CustomSkinAPI), and friends with online status.
  *
  * Accounts:
  *  - Microsoft and Ely.by: proven the way Minecraft servers check players. The launcher "joins" a
  *    server id with its game session at Mojang or Ely.by; this server asks them whether it did.
  *    The game token itself never comes here.
- *  - Offline: no account to check. The first launcher that takes a name gets a secret for it.
+ *  - Offline: no account to check. The first launcher that takes a name gets a secret for it;
+ *    later ones with the same name get "Name#code" (see offlineSignIn).
  *
  * Every answer is JSON, except PNG textures.
  */
@@ -144,7 +146,9 @@ function isOnline(user) {
 
 /** What other players may see. Presence details only for friends (`withPresence`). */
 function publicUser(user, withPresence = false) {
-  const result = { id: user.id, ns: user.ns, name: user.name, skin: user.skin_hash ?? null, model: user.skin_model ?? 'classic', cape: user.cape_hash ?? null };
+  // An offline player whose name was already taken has a code: friends add them as "Name#code".
+  const tag = user.ns === 'offline' && String(user.name_lower).includes('#') ? String(user.name_lower).split('#')[1] : null;
+  const result = { id: user.id, ns: user.ns, name: user.name, tag, skin: user.skin_hash ?? null, model: user.skin_model ?? 'classic', cape: user.cape_hash ?? null };
   if (withPresence) {
     let presence = null;
     try {
@@ -181,7 +185,7 @@ async function finishChallenge(request, env) {
   if (!challenge) throw new Failure(400, 'Проверка устарела, попробуйте ещё раз.');
   await env.DB.prepare('DELETE FROM challenges WHERE id = ?').bind(challengeId).run();
   const url = `${HAS_JOINED[challenge.ns]}?username=${encodeURIComponent(challenge.name)}&serverId=${challenge.server_id}`;
-  const answer = await fetch(url, { headers: { 'User-Agent': 'VanillaPlusServer/1' } });
+  const answer = await fetch(url, { headers: { 'User-Agent': 'AmethyxServer/1' } });
   const profile = answer.status === 200 ? await answer.json().catch(() => null) : null;
   if (!profile || String(profile.id).replace(/-/g, '').toLowerCase() !== challenge.uuid) {
     throw new Failure(403, challenge.ns === 'ms' ? 'Microsoft не подтвердил аккаунт.' : 'Ely.by не подтвердил аккаунт.');
@@ -199,21 +203,39 @@ async function finishChallenge(request, env) {
   return json(await createSession(env, await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first()));
 }
 
+/**
+ * Offline accounts: the name is held by the launcher's secret. Popular names (Steve, Alex…) are
+ * taken many times over, so a second player with a taken name gets a short code from their own
+ * secret — "Steve#3fa1" — and friends add them by the name with the code.
+ */
 async function offlineSignIn(request, env) {
   const { name, secret } = await readJson(request);
   if (!NAME.test(name ?? '') || !/^[0-9a-f]{64}$/.test(secret ?? '')) throw new Failure(400, 'Неверные данные аккаунта.');
-  const id = `offline:${name.toLowerCase()}`;
+  const lower = name.toLowerCase();
   const secretHash = await sha256(secret);
-  const existing = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
-  if (existing && existing.secret_hash !== secretHash) {
-    throw new Failure(409, `Ник ${name} в Vanilla+ уже занят другим офлайн-игроком.`);
-  }
-  if (!existing) {
-    await env.DB.prepare('INSERT INTO users (id, ns, uuid, name, name_lower, secret_hash, created_at) VALUES (?, ?, NULL, ?, ?, ?, ?)')
-      .bind(id, 'offline', name, name.toLowerCase(), secretHash, Date.now())
+  const byId = (id) => env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+  const create = (id, nameLower) =>
+    env.DB.prepare('INSERT INTO users (id, ns, uuid, name, name_lower, secret_hash, created_at) VALUES (?, ?, NULL, ?, ?, ?, ?)')
+      .bind(id, 'offline', name, nameLower, secretHash, Date.now())
       .run();
+
+  const plainId = `offline:${lower}`;
+  const plain = await byId(plainId);
+  if (plain && plain.secret_hash === secretHash) return json(await createSession(env, plain));
+  if (!plain) {
+    await create(plainId, lower);
+    return json(await createSession(env, await byId(plainId)));
   }
-  return json(await createSession(env, await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first()));
+  // The name is someone else's: the same name with this player's code (a longer one in the rare
+  // case that the short code is taken too).
+  for (const length of [4, 8]) {
+    const tagged = `${lower}#${secretHash.slice(0, length)}`;
+    const existing = await byId(`offline:${tagged}`);
+    if (existing && existing.secret_hash !== secretHash) continue;
+    if (!existing) await create(`offline:${tagged}`, tagged);
+    return json(await createSession(env, await byId(`offline:${tagged}`)));
+  }
+  throw new Failure(409, `Ник ${name} в Amethyx уже занят: выберите для офлайн-аккаунта другой ник.`);
 }
 
 // --- Own profile ---------------------------------------------------------------------------
@@ -282,9 +304,13 @@ async function makeFriends(env, a, b) {
 
 async function requestFriend(request, env, user) {
   const { ns, name } = await readJson(request);
-  if (!NAMESPACES.includes(ns) || !NAME.test(name ?? '')) throw new Failure(400, 'Введите ник: латинские буквы, цифры и _, до 16 символов.');
+  // Offline players may have a code after the name: "Steve#3fa1".
+  const parts = /^([A-Za-z0-9_]{1,16})(?:#([0-9a-fA-F]{4}|[0-9a-fA-F]{8}))?$/.exec(String(name ?? ''));
+  if (!NAMESPACES.includes(ns) || !parts || (parts[2] && ns !== 'offline')) {
+    throw new Failure(400, 'Введите ник: латинские буквы, цифры и _, до 16 символов (у офлайн-игрока может быть код: Ник#1a2b).');
+  }
   const target = await userByName(env, ns, name);
-  if (!target) throw new Failure(404, `${name} ещё не заходил в Vanilla+ с таким аккаунтом.`);
+  if (!target) throw new Failure(404, `${name} ещё не заходил в Amethyx с таким аккаунтом: пусть откроет «Друзья» в своём лаунчере.`);
   if (target.id === user.id) throw new Failure(400, 'Это вы.');
   const already = await env.DB.prepare('SELECT 1 FROM friends WHERE user_id = ? AND friend_id = ?').bind(user.id, target.id).first();
   if (already) return json({ state: 'friends', user: publicUser(target) });
@@ -671,7 +697,7 @@ async function route(request, env) {
   const { pathname } = url;
   const method = request.method;
 
-  if (pathname === '/' && method === 'GET') return json({ name: 'Vanilla+ server', api: 1 });
+  if (pathname === '/' && method === 'GET') return json({ name: 'Amethyx server', api: 1 });
 
   let match = /^\/csl\/(ms|ely|offline)\/([A-Za-z0-9_]{1,16})\.json$/.exec(pathname);
   if (match && method === 'GET') return cslProfile(env, match[1], match[2]);

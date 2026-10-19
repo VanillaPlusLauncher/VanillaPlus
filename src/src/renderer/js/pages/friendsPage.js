@@ -32,7 +32,7 @@ export function createFriendsPage() {
   const heads = new Map();
 
   // --- Left: add, requests, friends -------------------------------------------------------
-  const nameInput = h('input', { class: 'input', type: 'text', maxlength: '16', placeholder: 'Ник друга', spellcheck: 'false' });
+  const nameInput = h('input', { class: 'input', type: 'text', maxlength: '25', placeholder: 'Ник друга', spellcheck: 'false' });
   const addButton = h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => addFriend() }, 'Добавить');
   const kindControl = createSegmented({ options: KINDS, value: state.kind, onChange: (value) => { state.kind = value; } });
   nameInput.addEventListener('keydown', (event) => event.key === 'Enter' && addFriend());
@@ -144,13 +144,18 @@ export function createFriendsPage() {
   }
 
   // --- Left list ------------------------------------------------------------------------------
+  /** The name friends use: an offline player whose name was taken has a code after it ("Steve#3fa1"). */
+  function nameOf(user) {
+    return user.tag ? `${user.name}#${user.tag}` : user.name;
+  }
+
   function friendRow(user) {
     const unread = state.data?.unread?.[user.id] ?? 0;
     return h(
       'button',
       { class: `friend friend--button${state.chatWith === user.id ? ' friend--active' : ''}`, type: 'button', onclick: () => openChat(user.id) },
       h('span', { class: 'friend__head' }, headImage(user, 36), h('span', { class: dotClass(user) })),
-      h('span', { class: 'friend__text' }, h('b', { 'data-i18n': 'off' }, user.name), h('span', { class: 'friend__status' }, statusText(user))),
+      h('span', { class: 'friend__text' }, h('b', { 'data-i18n': 'off' }, nameOf(user)), h('span', { class: 'friend__status' }, statusText(user))),
       unread ? h('span', { class: 'friend__badge' }, String(unread)) : null,
     );
   }
@@ -160,14 +165,18 @@ export function createFriendsPage() {
       'div',
       { class: 'friend friend--request' },
       h('span', { class: 'friend__head' }, headImage(user, 32)),
-      h('span', { class: 'friend__text' }, h('b', { 'data-i18n': 'off' }, user.name), h('span', { class: 'friend__status' }, KIND_LABELS[user.ns])),
+      h('span', { class: 'friend__text' }, h('b', { 'data-i18n': 'off' }, nameOf(user)), h('span', { class: 'friend__status' }, KIND_LABELS[user.ns])),
       h('span', { class: 'friend__actions' }, ...actions),
     );
   }
 
   function renderSide() {
     const data = state.data;
-    meHost.replaceChildren(h('p', { class: 'text-soft' }, h('span', null, 'Вы:'), ' ', h('b', { 'data-i18n': 'off' }, data.me.name), ' · ', h('span', null, KIND_LABELS[data.me.ns])));
+    meHost.replaceChildren(
+      h('p', { class: 'text-soft' }, h('span', null, 'Вы:'), ' ', h('b', { 'data-i18n': 'off' }, nameOf(data.me)), ' · ', h('span', null, KIND_LABELS[data.me.ns])),
+      // A popular offline name (Steve, Alex…) was taken before: friends need the code too.
+      data.me.tag ? h('p', { class: 'text-muted friends-tag-note' }, `Ник ${data.me.name} уже был занят, поэтому у вас есть код. Друзья добавляют вас так: ${nameOf(data.me)}`) : null,
+    );
     const order = (user) => (user.online ? (user.presence?.status === 'playing' ? 0 : 1) : 2);
     const friends = [...data.friends].sort((a, b) => order(a) - order(b) || a.name.localeCompare(b.name));
     friendsHost.replaceChildren(...(friends.length ? friends.map(friendRow) : [h('p', { class: 'friends-empty' }, 'Пока никого. Добавьте друга по нику выше.')]));
@@ -196,7 +205,7 @@ export function createFriendsPage() {
     chat.classList.remove('chat--empty');
     chatHead.replaceChildren(
       h('span', { class: 'friend__head' }, headImage(friend, 40), h('span', { class: dotClass(friend) })),
-      h('span', { class: 'friend__text' }, h('b', { 'data-i18n': 'off' }, friend.name), h('span', { class: 'friend__status' }, statusText(friend))),
+      h('span', { class: 'friend__text' }, h('b', { 'data-i18n': 'off' }, nameOf(friend)), h('span', { class: 'friend__status' }, statusText(friend))),
       h(
         'span',
         { class: 'friend__actions' },
@@ -592,9 +601,10 @@ export function createFriendsPage() {
     }
     addButton.disabled = true;
     try {
-      const result = await api.friends.request(state.kind, name);
+      // "Name#code" is always an offline player, whatever kind is picked above.
+      const result = await api.friends.request(name.includes('#') ? 'offline' : state.kind, name);
       nameInput.value = '';
-      toast(result.state === 'friends' ? `${result.user.name} теперь в друзьях` : `Заявка отправлена: ${result.user.name}`, 'success');
+      toast(result.state === 'friends' ? `${nameOf(result.user)} теперь в друзьях` : `Заявка отправлена: ${nameOf(result.user)}`, 'success');
       refresh();
     } catch (error) {
       toast(errorMessage(error), 'error');

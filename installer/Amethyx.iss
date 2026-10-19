@@ -27,7 +27,10 @@ OutputBaseFilename=Amethyx-Setup-{#AppVersion}
 SetupIconFile=art\setup.ico
 UninstallDisplayIcon={app}\Amethyx.exe
 UninstallDisplayName={#AppName}
-WizardStyle=modern
+; Dark like the launcher (Inno Setup 6.6+): its violet-black behind every page, no grey lines.
+WizardStyle=modern dark hidebevels
+WizardBackColor=#0a080f
+WizardBackColorDynamicDark=#0a080f
 WizardSizePercent=140
 WizardImageFile=art\wizard-side.bmp
 WizardSmallImageFile=art\wizard-small.bmp

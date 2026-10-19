@@ -8,6 +8,7 @@
 
 ### Friends
 - Friends in the sidebar: add by name, requests, who is online and what they play, "Join" a friend's server
+- Offline accounts with a popular name (Steve, Alex…) are no longer turned away: when the name is taken, the account gets a short code and friends add it as "Steve#3fa1"
 - Chat like in Essential: text, in-game screenshots (kept for 30 days), clickable links, an invite to play with an instance your friend builds in one click ("Build and play"). Messages arrive instantly
 - Friends join your world: the launcher installs the e4mc mod into modded instances. Open the world to LAN (Esc → "Open to LAN"), the world gets an address for friends, press ▶ → "Into my world" in the chat. Your friend gets a "Join world" button: the launcher picks or builds the right instance and joins the address — no public IP or router setup. In an instance without mods friends can only join on the same network (Wi-Fi, Radmin VPN)
 - Export → "Send to a friend": the instance goes straight into the chat
@@ -37,6 +38,8 @@
 - Custom instance groups with drag and drop; "Change picture…" on right click; a "Notes" tab; Notes, Version, Java and Files are gathered under the instance's "Settings"
 
 ### Launcher
+- A short tutorial on the first start (after the language question): the account, Play, Instances, Library, Friends, the Wardrobe and Settings are lit up one by one with a few plain words about each. Nothing to choose; "Skip" ends it. It can be shown again in Settings → "Launcher"
+- The installer is dark like the launcher, with screenshots of the current look
 - A new pixel-cut look: buttons, panels, fields, switches and cards have corners cut by one pixel step instead of rounded ones; buttons are solid raised blocks (a light strip on top, a darker one at the bottom) that press down when clicked, the main one in the theme colour with light specks. The Friends panel is wider so the account switch fits
 - The close button hides the launcher in the tray: friends' messages and downloads go on; click the icon to open it, right-click → "Quit" to exit. Can be turned off in Settings → "Launcher"
 - Tooltips in the launcher's style instead of Windows' grey ones; a glint on the main buttons, hopping sidebar icons, a breathing Play button, springy dialogs

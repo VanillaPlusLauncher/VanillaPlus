@@ -8,6 +8,7 @@ import { saveSettings } from '../state/actions.js';
 import { toast } from '../components/toast.js';
 import { createSegmented, createToggle } from '../components/controls.js';
 import { confirmDialog } from '../components/modal.js';
+import { startTour } from '../components/tour.js';
 import { createJavaPage } from './javaPage.js';
 import { currentLanguage, LANGUAGES, locale } from '../core/i18n.js';
 
@@ -310,6 +311,9 @@ export function createSettingsPage() {
         row('Открывать журнал игры', 'Удобно, если игра вылетает и нужно понять почему.', toggle(settings.showLogOnLaunch, (value) => save({ showLogOnLaunch: value }), 'Журнал'))),
       card('При закрытии окна', null,
         row('Сворачивать в трей', 'Крестик прячет лаунчер к часам: сообщения друзей и загрузки продолжаются. Открыть — кликом по значку, выйти совсем — правой кнопкой по значку → «Выйти». Если выключить, крестик закрывает лаунчер.', toggle(settings.closeToTray !== false, (value) => save({ closeToTray: value }, false), 'Трей'))),
+      card('Обучение', 'Короткая экскурсия по лаунчеру: что где находится и зачем.',
+        h('div', { class: 'settings-row', style: { justifyContent: 'flex-start' } },
+          h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => startTour() }, 'Показать обучение'))),
       card('Данные лаунчера', 'Настройки, аккаунты, скины, журналы и загруженная Java.',
         h('span', { class: 'mono text-muted', style: { fontSize: '12px', overflowWrap: 'anywhere' } }, info?.dataDirectory ?? ''),
         h('div', { class: 'settings-row', style: { justifyContent: 'flex-start' } },

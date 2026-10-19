@@ -6160,3 +6160,122 @@ button:disabled {
   box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.6);
   transition: width 420ms var(--ease-out);
 }
+
+/* Friends: why an offline player has a code after the name. */
+.friends-tag-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* --- First-start walk-through (components/tour.js): the lit-up part, the rest dimmed, a card ---- */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  animation: fadeIn 220ms both;
+}
+
+.tour--leaving {
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+.tour__spot {
+  position: absolute;
+  box-shadow: 0 0 0 200vmax rgba(5, 4, 9, 0.74), 0 0 0 2px rgba(var(--accent-rgb), 0.9), 0 0 24px rgba(var(--accent-rgb), 0.45);
+  transition: left 380ms var(--ease-out), top 380ms var(--ease-out), width 380ms var(--ease-out), height 380ms var(--ease-out);
+  pointer-events: none;
+}
+
+.tour__spot--none {
+  box-shadow: 0 0 0 200vmax rgba(5, 4, 9, 0.74);
+}
+
+.tour__card {
+  --cut: 5px;
+  position: absolute;
+  width: 340px;
+  padding: 16px 18px 14px;
+  background: #17121f;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.07), inset 0 -3px 0 rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(var(--accent-rgb), 0.3);
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+  transition: left 380ms var(--ease-out), top 380ms var(--ease-out);
+}
+
+.tour__card--in {
+  animation: tour-in 300ms var(--ease-spring) both;
+}
+
+@keyframes tour-in {
+  from { opacity: 0; scale: 0.94; }
+}
+
+.tour__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.tour__skip {
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: var(--cursor-hand);
+}
+
+.tour__skip:hover {
+  color: var(--color-text);
+}
+
+.tour__title {
+  margin: 8px 0 6px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--color-text);
+}
+
+.tour__text {
+  margin: 0 0 14px;
+  color: var(--color-text-soft);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.tour__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tour__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.tour__dots {
+  display: flex;
+  gap: 5px;
+}
+
+.tour__dots i {
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  transition: background var(--duration-fast), transform var(--duration-fast);
+}
+
+.tour__dots i.is-on {
+  background: var(--color-accent);
+  transform: scale(1.3);
+}

@@ -4,6 +4,7 @@ import { askLanguageOnce } from './components/languagePicker.js';
 import { installTooltips } from './components/tooltip.js';
 import { installAliveUi } from './components/alive.js';
 import { runSplash } from './components/splash.js';
+import { startTourOnce } from './components/tour.js';
 import { store } from './state/appStore.js';
 import { applyGameState, applyTaskEvent, appendLogLine, loadCatalog, loadInitialData, refreshInstances } from './state/actions.js';
 import { createRouter } from './router/router.js';
@@ -241,8 +242,10 @@ async function start() {
     ],
   });
   if (dataError) toast(errorMessage(dataError), 'error', 8000);
-  // The very first start: which language (Windows' one is offered first).
+  // The very first start: which language (Windows' one is offered first), then a short walk
+  // through the launcher.
   askLanguageOnce(resolveLanguage(null));
+  startTourOnce();
 }
 
 /** Resolves when the game's look is ready (onMcReady), or after `ms` at most. */

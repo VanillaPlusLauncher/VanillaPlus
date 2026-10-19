@@ -1,4 +1,4 @@
-// Runs the Vanilla+ worker against an in-memory SQLite database shaped like D1, with Mojang and
+// Runs the Amethyx worker against an in-memory SQLite database shaped like D1, with Mojang and
 // Ely.by answers faked. Run from the repository root: node server/test/worker.test.mjs
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
@@ -70,10 +70,29 @@ const secretA = 'a'.repeat(64);
 let r = await call('POST', '/v1/auth/offline', { name: 'Steve', secret: secretA });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const steve = r.body.token;
-r = await call('POST', '/v1/auth/offline', { name: 'steve', secret: 'b'.repeat(64) });
-assert.equal(r.status, 409);
+assert.equal(r.body.user.tag, null);
+// A second Steve is not turned away: he gets the name with a code from his own secret.
+const secretB = 'b'.repeat(64);
+const tagB = (await import('node:crypto')).createHash('sha256').update(secretB).digest('hex').slice(0, 4);
+r = await call('POST', '/v1/auth/offline', { name: 'steve', secret: secretB });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.user.id, `offline:steve#${tagB}`);
+assert.equal(r.body.user.tag, tagB);
+const steveB = r.body.token;
+r = await call('POST', '/v1/auth/offline', { name: 'steve', secret: secretB });
+assert.equal(r.body.user.id, `offline:steve#${tagB}`);
 r = await call('POST', '/v1/auth/offline', { name: 'Steve', secret: secretA });
 assert.equal(r.status, 200);
+assert.equal(r.body.user.id, 'offline:steve');
+// The first Steve finds the second one by the name with the code.
+r = await call('POST', '/v1/friends/request', { ns: 'offline', name: `Steve#${tagB}` }, steve);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.user.tag, tagB);
+r = await call('POST', '/v1/friends/request', { ns: 'ms', name: `Steve#${tagB}` }, steve);
+assert.equal(r.status, 400);
+r = await call('POST', '/v1/friends/decline', { id: `offline:steve#${tagB}` }, steve);
+assert.equal(r.status, 200);
+assert.ok(steveB);
 
 // Microsoft sign-in: fails without join, works after it.
 const uuid = '0123456789abcdef0123456789abcdef';
