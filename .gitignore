@@ -22,3 +22,6 @@ __pycache__/
 server/node_modules/
 server/.wrangler/
 installer/ely-oauth.json
+
+# Promo video project: frames, renders and the music never go to git
+promo-video/

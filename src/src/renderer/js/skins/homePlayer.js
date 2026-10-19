@@ -38,6 +38,10 @@ export function createHomePlayer({ width = 220, height = 300, onClick } = {}) {
   viewer.playerWrapper.rotation.y = -0.4;
 
   const look = { yaw: 0, pitch: 0, targetYaw: 0, targetPitch: 0 };
+  // Turning the player with the mouse to look at the skin from every side (see below).
+  const REST_YAW = -0.4;
+  const TURN_BACK_MS = 4000;
+  const spin = { yaw: 0, tilt: 0, targetYaw: 0, targetTilt: 0, dragging: false, moved: false, startX: 0, startY: 0, startYaw: 0, startTilt: 0, releasedAt: 0 };
   let gesture = null;
   let gestureStart = 0;
   let idleTimer = 0;
@@ -52,6 +56,15 @@ export function createHomePlayer({ width = 220, height = 300, onClick } = {}) {
     if (gesture && GESTURES[gesture](player, progress - gestureStart)) {
       gesture = null;
     }
+    // Back to its usual angle a while after it was turned by hand (the nearest full turn).
+    if (!spin.dragging && spin.releasedAt && performance.now() - spin.releasedAt > TURN_BACK_MS) {
+      spin.targetYaw = Math.round(spin.yaw / (Math.PI * 2)) * Math.PI * 2;
+      spin.targetTilt = 0;
+    }
+    spin.yaw += (spin.targetYaw - spin.yaw) * 0.22;
+    spin.tilt += (spin.targetTilt - spin.tilt) * 0.22;
+    viewer.playerWrapper.rotation.y = REST_YAW + spin.yaw;
+    viewer.playerWrapper.rotation.x = spin.tilt;
     look.yaw += (look.targetYaw - look.yaw) * 0.12;
     look.pitch += (look.targetPitch - look.pitch) * 0.12;
     player.skin.head.rotation.y += look.yaw;
@@ -62,6 +75,12 @@ export function createHomePlayer({ width = 220, height = 300, onClick } = {}) {
   function onPointer(event) {
     const rect = canvas.getBoundingClientRect();
     if (!rect.width) return;
+    // While it is being turned, the player looks straight ahead.
+    if (spin.dragging || Math.abs(spin.yaw) > 0.05) {
+      look.targetYaw = 0;
+      look.targetPitch = 0;
+      return;
+    }
     const dx = (event.clientX - (rect.left + rect.width / 2)) / 700;
     const dy = (event.clientY - (rect.top + rect.height * 0.25)) / 500;
     // The model is turned: its own left-right is shifted by that turn.
@@ -99,7 +118,30 @@ export function createHomePlayer({ width = 220, height = 300, onClick } = {}) {
     play(GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
   });
 
-  canvas.addEventListener('click', () => onClick?.());
+  // Hold and drag: the player turns round (and tilts a little); a plain click opens the Wardrobe.
+  canvas.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    Object.assign(spin, { dragging: true, moved: false, startX: event.clientX, startY: event.clientY, startYaw: spin.targetYaw, startTilt: spin.targetTilt });
+    canvas.setPointerCapture?.(event.pointerId);
+    canvas.classList.add('home-player__canvas--grabbing');
+  });
+  canvas.addEventListener('pointermove', (event) => {
+    if (!spin.dragging) return;
+    const dx = event.clientX - spin.startX;
+    const dy = event.clientY - spin.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 5) spin.moved = true;
+    spin.targetYaw = spin.startYaw + dx * 0.012;
+    spin.targetTilt = Math.max(-0.35, Math.min(0.35, spin.startTilt + dy * 0.005));
+  });
+  const release = (event, cancelled = false) => {
+    if (!spin.dragging) return;
+    spin.dragging = false;
+    spin.releasedAt = performance.now();
+    canvas.classList.remove('home-player__canvas--grabbing');
+    if (!spin.moved && !cancelled) onClick?.();
+  };
+  canvas.addEventListener('pointerup', (event) => release(event));
+  canvas.addEventListener('pointercancel', (event) => release(event, true));
 
   return {
     canvas,

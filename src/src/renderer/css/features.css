@@ -5280,3 +5280,12 @@
   0% { transform: translateY(14px) scale(0.94); }
   100% { transform: none; }
 }
+/* The home player can be turned with the mouse (skins/homePlayer.js). */
+.home-player__canvas {
+  cursor: grab;
+  touch-action: none;
+}
+
+.home-player__canvas--grabbing {
+  cursor: grabbing;
+}

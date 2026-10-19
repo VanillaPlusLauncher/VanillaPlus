@@ -2,10 +2,29 @@
  * Gestures of the 3D player, shared by the home screen and the Wardrobe: small functions of time
  * (player, t seconds) => done?, run inside skinview3d's FunctionAnimation, each from the resting
  * pose. Arms never swing into the head: raised arms go out to the side, arms brought to the face
- * stop in front of it.
+ * stop in front of it (checked side-on: no arm passes through the head).
  */
 
 export const ease = (t) => (t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t));
+/**
+ * Leaning the upper body forward by `amount` (1 = the game's sneak), around the hips: the body tilts
+ * and moves, the head, arms and legs follow, so nothing comes apart (skinview3d's crouch offsets).
+ */
+function lean(player, amount) {
+  const { body, head, leftArm, rightArm, leftLeg, rightLeg } = player.skin;
+  body.rotation.x = 0.4538 * amount;
+  body.position.z += -2.1244 * amount;
+  body.position.y += -2.1037 * amount;
+  head.position.y += -3.6183 * amount;
+  for (const arm of [leftArm, rightArm]) {
+    arm.position.z += 0.1683 * amount;
+    arm.position.y += -2.5394 * amount;
+    arm.rotation.x += 0.4104 * amount;
+  }
+  leftLeg.position.z += -3.45 * amount;
+  rightLeg.position.z += -3.45 * amount;
+}
+
 /** 0 → 1 over `rise` s, held, back to 0 over the last `fall` s of `length`. */
 const envelope = (t, length, rise = 0.3, fall = 0.3) => ease(t / rise) * (1 - ease((t - (length - fall)) / fall));
 
@@ -53,10 +72,7 @@ export const GESTURES = {
     return t > 0.7;
   },
   crouch(player, t) {
-    const down = Math.sin(Math.min(t / 1.0, 1) * Math.PI);
-    player.skin.body.rotation.x = down * 0.45;
-    player.skin.head.position.z = -down * 1;
-    player.position.y = -down * 1.2;
+    lean(player, Math.sin(Math.min(t / 1.0, 1) * Math.PI));
     return t > 1.05;
   },
   dance(player, t) {
@@ -113,15 +129,15 @@ export const GESTURES = {
   /** The hand stops at the brim of the forehead, in front of the head. */
   salute(player, t) {
     const lift = envelope(t, 1.6);
-    player.skin.rightArm.rotation.x = -2.1 * lift;
-    player.skin.rightArm.rotation.z = 0.18 * lift;
+    player.skin.rightArm.rotation.x = -1.95 * lift;
+    player.skin.rightArm.rotation.z = -0.6 * lift;
     player.skin.head.rotation.x -= 0.1 * lift;
     return t > 1.6;
   },
   think(player, t) {
     const lift = envelope(t, 2.4, 0.4, 0.4);
-    player.skin.rightArm.rotation.x = -1.7 * lift;
-    player.skin.rightArm.rotation.z = 0.35 * lift;
+    player.skin.rightArm.rotation.x = -1.2 * lift;
+    player.skin.rightArm.rotation.z = 0.45 * lift;
     player.skin.head.rotation.x += 0.2 * lift;
     player.skin.head.rotation.z = -0.15 * lift + Math.sin(t * 3) * 0.05 * lift;
     return t > 2.4;
@@ -138,12 +154,12 @@ export const GESTURES = {
   /** The dab: head down into one elbow, the other arm thrown up and out. */
   dab(player, t) {
     const pose = envelope(t, 1.5, 0.18, 0.35);
-    player.skin.head.rotation.x += 0.45 * pose;
-    player.skin.head.rotation.y += -0.5 * pose;
+    player.skin.head.rotation.x += 0.22 * pose;
+    player.skin.head.rotation.y += -0.55 * pose;
     player.skin.leftArm.rotation.z = 2.2 * pose;
     player.skin.leftArm.rotation.x = -0.3 * pose;
-    player.skin.rightArm.rotation.x = -1.5 * pose;
-    player.skin.rightArm.rotation.z = -0.25 * pose;
+    player.skin.rightArm.rotation.x = -1.25 * pose;
+    player.skin.rightArm.rotation.z = 0.2 * pose;
     player.skin.body.rotation.y = -0.2 * pose;
     return t > 1.5;
   },
@@ -162,18 +178,18 @@ export const GESTURES = {
   kiss(player, t) {
     const toFace = envelope(t, 0.9, 0.3, 0.25);
     const send = t > 0.7 ? envelope(t - 0.7, 0.9, 0.2, 0.4) : 0;
-    player.skin.rightArm.rotation.x = -1.85 * toFace - 1.3 * send;
-    player.skin.rightArm.rotation.z = 0.3 * toFace;
+    player.skin.rightArm.rotation.x = -1.5 * toFace - 1.0 * send;
+    player.skin.rightArm.rotation.z = -0.15 * toFace;
     player.skin.head.rotation.x += 0.1 * toFace - 0.12 * send;
     return t > 1.6;
   },
   bow(player, t) {
     const down = envelope(t, 1.6, 0.4, 0.5);
-    player.skin.body.rotation.x = 0.55 * down;
-    player.skin.head.position.z = -1.6 * down;
-    player.skin.head.rotation.x += 0.4 * down;
-    player.skin.rightArm.rotation.x = -0.5 * down;
-    player.skin.leftArm.rotation.x = 0.3 * down;
+    lean(player, down);
+    player.skin.head.rotation.x += 0.35 * down;
+    // One hand to the chest, the other behind the back.
+    player.skin.rightArm.rotation.x -= 0.6 * down;
+    player.skin.leftArm.rotation.x += 0.25 * down;
     return t > 1.6;
   },
   /** A confident pose: hands on the hips, the body swaying. */
@@ -191,9 +207,9 @@ export const GESTURES = {
   },
   facepalm(player, t) {
     const hand = envelope(t, 1.7, 0.25, 0.4);
-    player.skin.rightArm.rotation.x = -1.95 * hand;
-    player.skin.rightArm.rotation.z = 0.28 * hand;
-    player.skin.head.rotation.x += 0.35 * hand;
+    player.skin.rightArm.rotation.x = -1.55 * hand;
+    player.skin.rightArm.rotation.z = 0.1 * hand;
+    player.skin.head.rotation.x += 0.22 * hand;
     player.skin.head.rotation.y += Math.sin(t * 6) * 0.12 * hand;
     return t > 1.7;
   },
@@ -216,11 +232,17 @@ export const GREETINGS = ['wave', 'hello', 'kiss', 'flex', 'bow', 'salute'];
 /** What a skin does when it comes to the middle of the Wardrobe. */
 export const SHOWCASE = ['hello', 'pose', 'flex', 'dab', 'victory', 'kiss', 'bow', 'dance', 'jumpSpin'];
 
+const PARTS = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'];
+
+/** Every part back to its place and angle (the places are remembered the first time). */
 export function resetPose(player) {
-  for (const part of ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg']) {
+  player.userData.restPositions ??= Object.fromEntries(PARTS.map((part) => [part, player.skin[part].position.clone()]));
+  for (const part of PARTS) {
     player.skin[part].rotation.set(0, 0, 0);
+    // Height and depth only: the arms' sideways place changes with the model (slim or classic).
+    player.skin[part].position.y = player.userData.restPositions[part].y;
+    player.skin[part].position.z = player.userData.restPositions[part].z;
   }
-  player.skin.head.position.z = 0;
   player.position.y = 0;
   player.rotation.set(0, 0, 0);
 }
