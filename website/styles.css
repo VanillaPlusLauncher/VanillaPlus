@@ -228,6 +228,8 @@ img { max-width: 100%; height: auto; display: block; }
   font-size: 20px;
   transition: transform 420ms var(--ease-spring);
 }
+.feature__icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.feature__icon--pixel svg { width: 20px; height: 20px; fill: currentColor; stroke: none; shape-rendering: crispEdges; }
 .feature:hover .feature__icon { transform: rotate(-10deg) scale(1.12); }
 .feature h3 { margin: 14px 0 6px; font-size: 17px; }
 .feature p { margin: 0; color: var(--text-soft); font-size: 14.5px; }
@@ -293,7 +295,8 @@ img { max-width: 100%; height: auto; display: block; }
 .lightbox { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 4vw; background: rgba(5, 4, 9, 0.88); backdrop-filter: blur(6px); animation: fade 220ms both; }
 .lightbox[hidden] { display: none; }
 .lightbox img { max-height: 90vh; border-radius: 12px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); animation: pop 320ms var(--ease-spring) both; }
-.lightbox__close { position: absolute; top: 18px; right: 24px; border: 0; background: none; color: var(--text); font-size: 38px; cursor: pointer; }
+.lightbox__close { position: absolute; top: 18px; right: 24px; padding: 6px; border: 0; background: none; color: var(--text); cursor: pointer; }
+.lightbox__close svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 @keyframes fade { from { opacity: 0; } }
 @keyframes pop { from { opacity: 0; transform: scale(0.92); } }
 
