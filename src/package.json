@@ -1,0 +1,14 @@
+{
+  "name": "vanillaplus-launcher",
+  "productName": "Vanilla+ Launcher",
+  "version": "1.7.0",
+  "description": "Minecraft Java Edition launcher for Windows",
+  "main": "src/main/index.js",
+  "author": "VanillaPlusLauncher",
+  "license": "GPL-3.0-only",
+  "private": true,
+  "repository": "github:VanillaPlusLauncher/VanillaPlus",
+  "dependencies": {
+    "adm-zip": "0.6.1"
+  }
+}

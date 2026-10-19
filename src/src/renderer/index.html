@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru" data-accent="vanilla" data-font="pixel" data-sidebar="labels" data-cards="tile">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' app:; img-src 'self' app: data: https:; media-src 'self' app:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' app: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' app:"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Vanilla+ Launcher</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tiny5&display=swap" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/pages.css" />
+    <link rel="stylesheet" href="css/mc.css" />
+    <link rel="stylesheet" href="css/features.css" />
+    <!-- 3D skin viewer (skinview3d, MIT): a classic script that defines window.skinview3d. -->
+    <script src="vendor/skinview3d.bundle.js" defer></script>
+  </head>
+  <body>
+    <div class="app-background" id="app-background" aria-hidden="true"></div>
+    <div class="app-vignette" aria-hidden="true"></div>
+
+    <div class="app-shell" id="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar__brand">
+          <span class="sidebar__version" id="brand-version" data-i18n="off"></span>
+          <img class="sidebar__logo" id="brand-logo" alt="Vanilla+ Launcher" />
+          <span class="sidebar__name" data-i18n="off">Vanilla<span class="topbar__brand-plus">+</span></span>
+        </div>
+        <nav class="sidebar__nav" id="sidebar-nav" aria-label="Разделы"></nav>
+        <div class="sidebar__footer" id="sidebar-footer"></div>
+      </aside>
+
+      <header class="topbar">
+        <span class="topbar__title" id="topbar-title"></span>
+        <div class="topbar__tasks" id="topbar-tasks"></div>
+        <div class="topbar__actions">
+          <button class="btn btn--ghost btn--compact" id="logs-button" type="button" hidden>Журнал игры</button>
+          <button class="account-chip" id="account-button" type="button" aria-label="Аккаунты">
+            <span class="account-chip__avatar" id="account-avatar"></span>
+            <span class="account-chip__text">
+              <span class="account-chip__name" id="account-name">Войти</span>
+              <span class="account-chip__type" id="account-type"></span>
+            </span>
+            <span class="icon icon--chevron" aria-hidden="true"></span>
+          </button>
+          <div class="window-controls">
+            <button class="icon-button icon-button--window" id="window-minimize" type="button" aria-label="Свернуть">
+              <span class="icon icon--minus" aria-hidden="true"></span>
+            </button>
+            <button class="icon-button icon-button--window" id="window-fullscreen" type="button" aria-label="Во весь экран" title="Во весь экран (F11)">
+              <span class="icon icon--fullscreen" aria-hidden="true"></span>
+            </button>
+            <button class="icon-button icon-button--window icon-button--close" id="window-close" type="button" aria-label="Закрыть">
+              <span class="icon icon--close" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-host" id="page-host"></main>
+    </div>
+
+    <div class="drop-overlay" id="drop-overlay" hidden>
+      <div class="drop-overlay__box">
+        <span class="drop-overlay__title">Отпустите файлы</span>
+        <span class="drop-overlay__text" id="drop-overlay-text">Модпаки (.mrpack, .zip) станут новыми сборками</span>
+      </div>
+    </div>
+    <div id="modal-root"></div>
+    <div class="toast-stack" id="toast-root" aria-live="polite"></div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

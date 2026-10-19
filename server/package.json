@@ -1,0 +1,1 @@
+{"name":"vanillaplus-server","private":true,"type":"module","scripts":{"deploy":"wrangler deploy","test":"node test/worker.test.mjs"},"devDependencies":{"wrangler":"^4.151.1"}}

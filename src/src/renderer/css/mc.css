@@ -1,0 +1,720 @@
+/*
+ * Minecraft look: pixel bevels, the game's own button and toast sprites (served as app://mc/...
+ * once the launcher has taken them from Minecraft), slots in the sidebar, the title panorama.
+ * Loaded after the other stylesheets, so it refines their components.
+ */
+
+/* --- Typography ------------------------------------------------------------------- */
+.page-title,
+.modal__title,
+.hero__title,
+.play-bar__name,
+.settings-card__title,
+.btn,
+.tabs__button,
+.instance-card__name,
+.group-header__title {
+  font-family: var(--font-display);
+}
+
+/*
+ * Pixel mode uses the pixel font for every text. font-size-adjust is inherited, so setting it on
+ * body scales Tiny5 (drawn small for its size) up to normal text height everywhere; monospace
+ * paths and logs keep their own font and size.
+ */
+:root[data-font="pixel"] body,
+:root[data-font="pixel"] input,
+:root[data-font="pixel"] select,
+:root[data-font="pixel"] textarea,
+:root[data-font="pixel"] button {
+  font-family: var(--font-pixel);
+  font-size-adjust: 0.62;
+  letter-spacing: 0.02em;
+}
+
+:root[data-font="pixel"] .mono,
+:root[data-font="pixel"] .log-view,
+:root[data-font="pixel"] .textarea:not(.textarea--plain),
+:root[data-font="pixel"] .input--readonly,
+:root[data-font="pixel"] .project-description pre,
+:root[data-font="pixel"] .project-description code {
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size-adjust: none;
+  letter-spacing: 0;
+}
+
+/* Tiny5 is drawn small for its size: font-size-adjust brings its letters to the UI text height. */
+:root[data-font="pixel"] .page-title,
+:root[data-font="pixel"] .hero__title,
+:root[data-font="pixel"] .modal__title,
+:root[data-font="pixel"] .play-bar__name,
+:root[data-font="pixel"] .settings-card__title,
+:root[data-font="pixel"] .btn,
+:root[data-font="pixel"] .tabs__button,
+:root[data-font="pixel"] .instance-card__name,
+:root[data-font="pixel"] .group-header__title,
+:root[data-font="pixel"] .project-card__name,
+:root[data-font="pixel"] .project-header__title,
+:root[data-font="pixel"] .recent-card__name,
+:root[data-font="pixel"] .nav-tooltip,
+:root[data-font="pixel"] .loader-button,
+:root[data-font="pixel"] .platform-button,
+:root[data-font="pixel"] .version-picker__id,
+:root[data-font="pixel"] .world-card__name,
+:root[data-font="pixel"] .accent-option,
+:root[data-font="pixel"] .settings-nav__item,
+:root[data-font="pixel"] .drop-overlay__title,
+:root[data-font="pixel"] .news-tile__title,
+:root[data-font="pixel"] .toast__title,
+:root[data-font="pixel"] .home-splash,
+:root[data-font="pixel"] .ram-value,
+:root[data-font="pixel"] .runtime-card__version,
+:root[data-font="pixel"] .ely-banner__logo,
+:root[data-font="pixel"] .empty-state--big h2 {
+  font-size-adjust: 0.62;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+.mc-text-shadow,
+.btn,
+.page-title,
+.hero__title {
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* --- Buttons ----------------------------------------------------------------------
+ * One style for every ordinary button: dark, a thin frame, the theme colour on hover.
+ * Only the main action (Play, Create, Install) is the filled accent button.
+ */
+.btn {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-image: none;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text);
+  box-shadow: none;
+  text-shadow: none;
+  transition: transform 90ms ease-out, background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast), filter var(--duration-fast);
+}
+
+.btn:hover:not(:disabled) {
+  transform: none;
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--color-accent);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+}
+
+.btn--secondary {
+  color: var(--color-text);
+}
+.btn--primary {
+  border-color: rgba(0, 0, 0, 0.45);
+  background: var(--color-accent-strong);
+  color: var(--color-text-on-accent);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+}
+
+.btn--primary:hover:not(:disabled) {
+  border-color: rgba(0, 0, 0, 0.45);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  filter: drop-shadow(0 0 12px var(--color-accent-glow));
+}
+
+.btn--primary:active:not(:disabled) {
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.2);
+}
+
+.btn--danger:hover:not(:disabled) {
+  border-color: rgba(255, 107, 94, 0.6);
+  background: rgba(255, 107, 94, 0.1);
+  color: var(--color-danger);
+}
+
+.btn--primary:disabled {
+  background: #3d4a45;
+  color: #8b9893;
+  text-shadow: none;
+}
+
+.btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-soft);
+  text-shadow: none;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  filter: none;
+}
+
+.btn--danger {
+  color: #ff8a80;
+}
+
+.btn--play {
+  font-size: 17px;
+}
+
+.icon-button {
+  border-radius: var(--radius-sm);
+}
+
+/* --- Surfaces ------------------------------------------------------------------- */
+.surface {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), var(--shadow-card);
+}
+
+/*
+ * Performance: backdrop blur is recomputed every frame when the background moves (the turning
+ * panorama), for every panel on screen — that made the window lag. Panels are opaque enough
+ * without it; blur is used only over still pictures and only when enabled in Settings.
+ */
+.surface,
+.sidebar,
+.modal-layer,
+.drop-overlay {
+  backdrop-filter: none;
+}
+
+:root[data-blur="on"]:not([data-bg="panorama"]) .surface,
+:root[data-blur="on"]:not([data-bg="panorama"]) .sidebar {
+  backdrop-filter: blur(12px);
+}
+
+:root[data-bg="panorama"] .modal-layer {
+  background: rgba(3, 5, 5, 0.72);
+}
+
+.surface--panel {
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  background: linear-gradient(180deg, rgba(27, 23, 19, 0.86), rgba(16, 12, 8, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), var(--shadow-card);
+}
+
+.surface--panel::before {
+  display: none;
+}
+
+.badge {
+  border-radius: 3px;
+  height: 20px;
+  font-size: 10.5px;
+}
+
+/* --- Form controls ---------------------------------------------------------------- */
+.input,
+.textarea,
+.select {
+  border-radius: var(--radius-sm);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: rgba(var(--accent-rgb), 0.8);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+}
+
+.select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  color: var(--color-text);
+  outline: none;
+}
+
+.select option {
+  background: #1a1512;
+}
+
+.chip {
+  border-radius: var(--radius-sm);
+  height: 34px;
+  border-width: 2px;
+}
+
+.toggle__track,
+.toggle__thumb {
+  border-radius: 3px;
+}
+
+.segmented,
+.segmented button,
+.segmented__thumb {
+  border-radius: var(--radius-sm);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-row--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* --- Tabs --------------------------------------------------------------------------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(0, 0, 0, 0.45);
+}
+
+.tabs__button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-soft);
+  font-size: 14px;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.tabs__button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+}
+
+.tabs__button[aria-selected="true"] {
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--color-accent);
+  box-shadow: inset 0 -3px 0 var(--color-accent);
+}
+
+.tabs__count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  color: var(--color-text-soft);
+}
+
+/* --- Sidebar: three styles (Settings → Appearance) ------------------------------------
+ * labels — icon with the section name, flat highlight and a straight accent bar (default);
+ * hotbar — the game's hotbar: its slot texture and its white selection frame;
+ * icons  — icons only, compact.
+ */
+.sidebar {
+  background: rgba(14, 10, 6, 0.82);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
+}
+
+.sidebar__nav {
+  gap: 6px;
+}
+
+.nav-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 76px;
+  height: 64px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+
+.nav-button:hover {
+  transform: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-soft);
+}
+
+.nav-button[aria-current="page"] {
+  color: var(--color-text);
+}
+
+.nav-button__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+}
+
+.nav-button .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.nav-button__img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.4));
+  transition: transform 220ms var(--ease-out);
+}
+
+.nav-button:hover .nav-button__img {
+  transform: translateY(-2px);
+}
+
+.nav-button__label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+:root[data-font="pixel"] .nav-button__label {
+  font-size-adjust: 0.62;
+}
+
+.sidebar__indicator {
+  left: 50%;
+  top: 0;
+  width: 76px;
+  height: 64px;
+  margin-left: -38px;
+  border-radius: 4px;
+  background: rgba(var(--accent-rgb), 0.13);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.28);
+  pointer-events: none;
+  transition: transform 300ms var(--ease-out), height 300ms var(--ease-out);
+}
+
+.sidebar__indicator::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  background: var(--color-accent);
+}
+
+.nav-button[aria-current="page"] .nav-button__label {
+  color: var(--color-accent);
+}
+
+/* icons: no labels, square tiles. */
+:root[data-sidebar="icons"] .nav-button {
+  width: 58px;
+  height: 58px;
+}
+
+:root[data-sidebar="icons"] .nav-button__label {
+  display: none;
+}
+
+:root[data-sidebar="icons"] .sidebar__indicator {
+  width: 58px;
+  margin-left: -29px;
+}
+
+/* hotbar: Minecraft's hotbar slots stacked vertically, the selection is the game's own frame. */
+:root[data-sidebar="hotbar"] .sidebar__nav {
+  gap: 0;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+:root[data-sidebar="hotbar"] .nav-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 0;
+  background: rgba(70, 70, 70, 0.55);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.6), inset 0 0 0 6px rgba(140, 140, 140, 0.35);
+}
+
+:root.mc-ready[data-sidebar="hotbar"] .nav-button {
+  background: url("app://mc/gui/hotbar.png") 0 0 / 546px 66px no-repeat;
+  box-shadow: none;
+  image-rendering: pixelated;
+}
+
+:root[data-sidebar="hotbar"] .nav-button:hover {
+  filter: brightness(1.2);
+}
+
+:root[data-sidebar="hotbar"] .nav-button__label {
+  display: none;
+}
+
+:root[data-sidebar="hotbar"] .sidebar__indicator {
+  width: 72px;
+  margin-left: -36px;
+  margin-top: -6px;
+  height: 72px !important;
+  border-radius: 0;
+  background: none;
+  box-shadow: 0 0 0 3px #fff, inset 0 0 0 3px #fff, 0 0 0 6px rgba(0, 0, 0, 0.7);
+  z-index: 2;
+}
+
+:root.mc-ready[data-sidebar="hotbar"] .sidebar__indicator {
+  box-shadow: none;
+  background: url("app://mc/gui/hotbar_selection.png") center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+
+:root[data-sidebar="hotbar"] .sidebar__indicator::before {
+  display: none;
+}
+/* The game's item tooltip: dark purple box with a violet frame. */
+.nav-tooltip {
+  position: fixed;
+  z-index: 90;
+  padding: 6px 10px;
+  border-radius: 3px;
+  background: rgba(16, 0, 16, 0.94);
+  border: 2px solid #1a0533;
+  box-shadow: inset 0 0 0 2px rgba(80, 0, 255, 0.35);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 14px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 120ms, transform 160ms var(--ease-out);
+}
+
+.nav-tooltip--visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* --- Backgrounds ----------------------------------------------------------------- */
+.app-background[data-kind="valley"] { background-image: url("../../../assets/backgrounds/emerald-valley.png"); }
+.app-background[data-kind="forest"] { background-image: url("../../../assets/backgrounds/news-forest.png"); }
+.app-background[data-kind="village"] { background-image: url("../../../assets/backgrounds/news-village.png"); }
+
+.app-background[data-kind="dirt"] {
+  background: url("app://mc/gui/menu_background.png") 0 0 / 64px 64px repeat;
+  image-rendering: pixelated;
+  filter: brightness(0.32);
+}
+
+.app-background[data-kind="panorama"] {
+  background: #000;
+}
+
+.panorama {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 50vmax;
+  opacity: 0;
+  transition: opacity 1200ms ease;
+}
+
+.panorama--visible {
+  opacity: 1;
+}
+
+.panorama__cube {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation: panoramaSpin 220s linear infinite;
+}
+
+/* No CSS filter on the faces: a filter on a turning 3D layer is re-rendered every frame. */
+.panorama__face {
+  position: absolute;
+  width: 100vmax;
+  height: 100vmax;
+  margin: -50vmax 0 0 -50vmax;
+  background-size: cover;
+  backface-visibility: hidden;
+}
+
+/* The game's panorama order: 0 front, 1 right, 2 back, 3 left, 4 top, 5 bottom. */
+.panorama__face--0 { transform: translateZ(-49.9vmax); }
+.panorama__face--1 { transform: rotateY(-90deg) translateZ(-49.9vmax); }
+.panorama__face--2 { transform: rotateY(180deg) translateZ(-49.9vmax); }
+.panorama__face--3 { transform: rotateY(90deg) translateZ(-49.9vmax); }
+.panorama__face--4 { transform: rotateX(-90deg) translateZ(-49.9vmax); }
+.panorama__face--5 { transform: rotateX(90deg) translateZ(-49.9vmax); }
+
+@keyframes panoramaSpin {
+  from { transform: rotateX(-8deg) rotateY(0deg); }
+  to { transform: rotateX(-8deg) rotateY(360deg); }
+}
+
+:root[data-animations="off"] .panorama__cube {
+  animation-play-state: paused;
+}
+
+/* --- Toasts as advancement pop-ups --------------------------------------------------- */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 4px;
+  background: rgba(21, 17, 13, 0.95);
+  border: 2px solid #000;
+  box-shadow: inset 0 0 0 2px #555, var(--shadow-card);
+  font-family: var(--font-ui);
+  animation: toastIn 520ms var(--ease-spring) both;
+}
+
+:root.mc-ready .toast {
+  border: 8px solid transparent;
+  border-image: url("app://mc/gui/toast.png") 4 fill / 8px stretch;
+  box-shadow: var(--shadow-card);
+  image-rendering: pixelated;
+  padding: 8px 12px;
+}
+
+.toast__icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  image-rendering: pixelated;
+}
+
+.toast__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.toast__title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: #ffff55;
+}
+
+.toast--error .toast__title {
+  color: #ff5555;
+}
+
+.toast--info .toast__title {
+  color: #55ffff;
+}
+
+.toast__text {
+  color: #fff;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(110%); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes toastOut {
+  to { opacity: 0; transform: translateX(110%); }
+}
+
+/* --- Modal ------------------------------------------------------------------------- */
+.modal {
+  border-radius: var(--radius-lg);
+  border: 2px solid #000;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08), 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.modal--xl {
+  width: min(1040px, 100%);
+  max-height: 90vh;
+}
+
+/* --- Pixel particles: launch burst and floating sparks ---------------------------------- */
+.pixel-burst {
+  position: fixed;
+  z-index: 120;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  image-rendering: pixelated;
+  animation: pixelBurst var(--life, 900ms) cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes pixelBurst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.4) rotate(var(--rot, 90deg)); opacity: 0; }
+}
+
+.sparks {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.spark {
+  position: absolute;
+  bottom: -12px;
+  width: 6px;
+  height: 6px;
+  background: rgba(var(--accent-rgb), 0.85);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.8);
+  animation: sparkRise var(--duration, 12s) linear var(--delay, 0s) infinite;
+  opacity: 0;
+}
+
+@keyframes sparkRise {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 0.9; }
+  90% { opacity: 0.6; }
+  100% { transform: translate(var(--drift, 30px), -110vh); opacity: 0; }
+}
+
+:root[data-animations="off"] .spark,
+:root[data-animations="off"] .pixel-burst {
+  display: none;
+}
+
+:root[data-animations="off"] *,
+:root[data-animations="off"] *::before,
+:root[data-animations="off"] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}
+
+/* Generic pixel image (textures from the game). */
+.pixelated {
+  image-rendering: pixelated;
+}
+
+.block-icon {
+  image-rendering: pixelated;
+}
+
+/* Pre-rendered block icons and remote pictures are scaled smoothly (see iconImage in core/mc.js). */
+img.is-smooth {
+  image-rendering: auto !important;
+}

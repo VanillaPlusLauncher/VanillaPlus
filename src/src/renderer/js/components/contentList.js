@@ -1,0 +1,620 @@
+import { api } from '../services/api.js';
+import { locale } from '../core/i18n.js';
+import { h, icon } from '../core/dom.js';
+import { errorMessage } from '../core/format.js';
+import { formatBytes, PLATFORM_LABELS } from '../core/content.js';
+import { browseFor } from '../core/nav.js';
+import { sfx } from '../core/sound.js';
+import { confirmDialog, openModal } from './modal.js';
+import { createSegmented } from './controls.js';
+import { confirmCompatibility } from './compatDialog.js';
+import { openOptimizeDialog } from './optimizeDialog.js';
+import { toast } from './toast.js';
+import { updateInstance } from '../state/actions.js';
+
+/** Mods: where they are needed (Modrinth data or the mod's own file). */
+const SIDE_LABELS = { client: 'Клиент', server: 'Сервер', both: 'Везде' };
+const SIDE_FILTERS = [
+  { value: '', label: 'Все моды' },
+  { value: 'client', label: 'Только для клиента' },
+  { value: 'server', label: 'Только для сервера' },
+  { value: 'both', label: 'Нужны везде' },
+  { value: 'unknown', label: 'Неизвестно где' },
+];
+
+/** Folder of each content type inside an instance. */
+const FOLDERS = { mod: 'mods', resourcepack: 'resourcepacks', shader: 'shaderpacks' };
+const VERSION_TYPE_LABELS = { release: 'релиз', beta: 'бета', alpha: 'альфа' };
+
+function projectPage(item) {
+  if (item.platform === 'modrinth') return `https://modrinth.com/project/${encodeURIComponent(item.projectId)}`;
+  if (item.platform === 'curseforge') return `https://www.curseforge.com/projects/${encodeURIComponent(item.projectId)}`;
+  return null;
+}
+
+const LABELS = {
+  mod: { title: 'Моды', empty: 'Модов пока нет.', add: 'Найти моды', picker: [{ name: 'Моды', extensions: ['jar', 'zip'] }] },
+  resourcepack: { title: 'Ресурспаки', empty: 'Ресурспаков пока нет.', add: 'Найти ресурспаки', picker: [{ name: 'Ресурспаки', extensions: ['zip'] }] },
+  shader: { title: 'Шейдеры', empty: 'Шейдеров пока нет. Для них нужен Iris или OptiFine.', add: 'Найти шейдеры', picker: [{ name: 'Шейдеры', extensions: ['zip'] }] },
+};
+
+/**
+ * Installed mods / resource packs / shaders of an instance, like Prism's "Mods" tab:
+ * enable/disable, delete, updates, add from the catalog or from files.
+ */
+export function createContentList(getInstance, type) {
+  const labels = LABELS[type];
+  const state = { items: [], updates: new Map(), selected: new Set(), query: '', side: '', identified: false, sidesResolved: false, loading: false, token: 0 };
+
+  const filterInput = h('input', {
+    class: 'input',
+    type: 'search',
+    placeholder: 'Фильтр',
+    oninput: (event) => {
+      state.query = event.target.value.trim().toLowerCase();
+      renderRows();
+    },
+  });
+  const counter = h('span', { class: 'content-counter' });
+  const updatesButton = h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => checkUpdates() }, 'Проверить обновления');
+  const updateAllButton = h('button', { class: 'btn btn--secondary btn--compact', type: 'button', hidden: true, onclick: () => updateAll() }, 'Обновить все');
+  const rows = h('div', { class: 'content-rows' });
+  // Selection (Prism-style): tick rows, then act on all of them at once.
+  const selectAll = h('input', { type: 'checkbox', class: 'content-check', title: 'Выбрать все', onchange: (event) => toggleAll(event.target.checked) });
+  const selectionText = h('span', { class: 'selection-bar__text' });
+  const selectionBar = h(
+    'div',
+    { class: 'selection-bar', hidden: true },
+    selectionText,
+    h('span', { class: 'content-toolbar__spacer' }),
+    h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => bulkEnable(true) }, 'Включить'),
+    h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => bulkEnable(false) }, 'Выключить'),
+    h('button', { class: 'btn btn--secondary btn--compact btn--danger', type: 'button', onclick: () => bulkRemove() }, 'Удалить'),
+    h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => { state.selected.clear(); renderRows(); } }, 'Снять выбор'),
+  );
+  const isMods = type === 'mod';
+  const sideSelect = isMods
+    ? h('select', { class: 'select select--compact', 'aria-label': 'Где нужны моды', onchange: () => { state.side = sideSelect.value; renderRows(); } }, SIDE_FILTERS.map((entry) => h('option', { value: entry.value }, entry.label)))
+    : null;
+  const serverButton = isMods ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Включить или выключить моды по стороне', onclick: (event) => openSideMenu(event.currentTarget) }, 'Клиент / сервер ▾') : null;
+  const autoUpdateInput = h('input', { type: 'checkbox', onchange: (event) => setAutoUpdate(event.target.checked) });
+  const autoUpdateToggle = isMods
+    ? h('label', { class: 'auto-update', title: 'Перед каждым запуском лаунчер ставит новые версии модов для этой версии игры' }, h('span', { class: 'toggle toggle--small' }, autoUpdateInput, h('span', { class: 'toggle__track' }), h('span', { class: 'toggle__thumb' })), h('span', null, 'Автообновление'))
+    : null;
+  const element = h(
+    'div',
+    { class: 'content-list' },
+    h(
+      'div',
+      { class: 'content-toolbar' },
+      h('div', { class: 'input-with-icon content-toolbar__filter' }, icon('search'), filterInput),
+      sideSelect,
+      counter,
+      h('span', { class: 'content-toolbar__spacer' }),
+      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => addFiles() }, icon('folder'), 'Из файла'),
+      h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => browseFor(getInstance().id, type) }, icon('download'), labels.add),
+    ),
+    h(
+      'div',
+      { class: 'content-toolbar content-toolbar--secondary' },
+      h('label', { class: 'select-all' }, selectAll, h('span', null, 'Все')),
+      autoUpdateToggle,
+      h('span', { class: 'content-toolbar__spacer' }),
+      isMods ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Память и моды для скорости под этот компьютер', onclick: () => openOptimizeDialog(getInstance(), () => load({ quiet: true })) }, icon('bolt'), 'Оптимизация') : null,
+      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Открыть папку в проводнике', onclick: () => openFolder(FOLDERS[type]) }, icon('folder'), 'Папка'),
+      isMods ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Настройки модов (папка config)', onclick: () => openFolder('config') }, 'Конфиги') : null,
+      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Сохранить список в файл', onclick: () => exportList() }, 'Экспорт списка'),
+      serverButton,
+      updateAllButton,
+      updatesButton,
+    ),
+    selectionBar,
+    rows,
+    h('p', { class: 'content-hint' }, 'Файлы можно перетащить прямо в окно. Выключенные остаются в папке, но игра их не загружает.'),
+  );
+
+  async function load({ quiet = false } = {}) {
+    const instance = getInstance();
+    if (!instance) {
+      return;
+    }
+    const token = ++state.token;
+    autoUpdateInput.checked = Boolean(instance.overrides?.autoUpdateMods);
+    if (!quiet) {
+      rows.replaceChildren(...Array.from({ length: 4 }, () => h('div', { class: 'skeleton', style: { height: '58px' } })));
+    }
+    try {
+      const items = await api.content.list(instance.id, type);
+      if (token !== state.token) {
+        return;
+      }
+      state.items = items;
+      renderRows();
+      // Files added by hand get their names and icons from Modrinth, once per visit.
+      if (!state.identified && items.some((item) => !item.platform && !item.folder)) {
+        state.identified = true;
+        api.content.identify(instance.id, type).then((count) => count > 0 && load({ quiet: true })).catch(() => {});
+      }
+      // Client/server sides of mods from Modrinth installed before sides were stored.
+      if (isMods && !state.sidesResolved && items.some((item) => item.platform === 'modrinth' && !item.side)) {
+        state.sidesResolved = true;
+        api.content.resolveSides(instance.id).then((count) => count > 0 && load({ quiet: true })).catch(() => {});
+      }
+    } catch (error) {
+      rows.replaceChildren(h('p', { class: 'text-danger' }, errorMessage(error)));
+    }
+  }
+
+  function renderRows() {
+    // Files that are gone (deleted, renamed by enabling) leave the selection.
+    const files = new Set(state.items.map((item) => item.file));
+    for (const file of [...state.selected]) {
+      if (!files.has(file)) state.selected.delete(file);
+    }
+    selectionBar.hidden = state.selected.size === 0;
+    selectionText.textContent = `Выбрано: ${state.selected.size}`;
+    selectAll.checked = state.items.length > 0 && state.selected.size === state.items.length;
+    selectAll.indeterminate = state.selected.size > 0 && state.selected.size < state.items.length;
+    const enabled = state.items.filter((item) => item.enabled).length;
+    counter.textContent = state.items.length ? `${enabled} из ${state.items.length} включено` : '';
+    const visible = state.items.filter(
+      (item) =>
+        (!state.query || [item.title, item.file, item.description].some((value) => String(value ?? '').toLowerCase().includes(state.query))) &&
+        (!state.side || (state.side === 'unknown' ? !item.side : item.side === state.side)),
+    );
+    if (state.items.length === 0) {
+      rows.replaceChildren(
+        h('div', { class: 'empty-state' }, icon('cube'), h('p', null, labels.empty), h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => browseFor(getInstance().id, type) }, labels.add)),
+      );
+      return;
+    }
+    rows.replaceChildren(...visible.map(row));
+  }
+
+  function row(item) {
+    const update = state.updates.get(item.file);
+    const toggle = h('label', { class: 'toggle toggle--small', title: item.enabled ? 'Выключить' : 'Включить' },
+      h('input', { type: 'checkbox', checked: item.enabled, disabled: item.folder, onchange: (event) => setEnabled(item, event.target.checked) }),
+      h('span', { class: 'toggle__track' }),
+      h('span', { class: 'toggle__thumb' }),
+    );
+    const selected = state.selected.has(item.file);
+    return h(
+      'div',
+      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}` },
+      h('input', { type: 'checkbox', class: 'content-check', checked: selected, title: 'Выбрать', onchange: (event) => { if (event.target.checked) state.selected.add(item.file); else state.selected.delete(item.file); renderRows(); } }),
+      toggle,
+      item.icon ? h('img', { class: 'content-row__icon', src: item.icon, alt: '', loading: 'lazy' }) : h('div', { class: 'content-row__icon content-row__icon--empty' }, icon('cube')),
+      h(
+        'div',
+        { class: 'content-row__meta' },
+        h('div', { class: 'content-row__title' }, item.title, item.version ? h('span', { class: 'content-row__version' }, item.version) : null),
+        h('div', { class: 'content-row__sub' }, [item.authors?.length ? item.authors.slice(0, 2).join(', ') : null, item.file, item.folder ? 'папка' : formatBytes(item.size)].filter(Boolean).join(' · ')),
+      ),
+      item.side && item.side !== 'both' ? h('span', { class: `side-tag side-tag--${item.side}`, title: item.side === 'client' ? 'Нужен только в игре: на сервер ставить не надо' : 'Нужен только на сервере' }, SIDE_LABELS[item.side]) : null,
+      item.platform ? h('span', { class: `badge badge--${item.platform}` }, h('span', { class: `platform-logo platform-logo--${item.platform}` }), PLATFORM_LABELS[item.platform]) : null,
+      update
+        ? h('button', { class: 'btn btn--secondary btn--compact content-row__update', type: 'button', title: `Обновить до ${update.version.versionNumber}`, onclick: (event) => applyUpdate(item, update, event.currentTarget) }, '↑ ', update.version.versionNumber)
+        : null,
+      h('button', { class: 'icon-button content-row__more', type: 'button', title: 'Действия', onclick: (event) => openRowMenu(item, event.currentTarget) }, h('span', { class: 'dots' }, '⋯')),
+      h('button', { class: 'icon-button', type: 'button', title: 'Удалить', onclick: () => remove(item) }, icon('close')),
+    );
+  }
+
+  async function setEnabled(item, enabled) {
+    try {
+      const file = await api.content.setEnabled(getInstance().id, type, item.file, enabled);
+      item.file = file;
+      item.enabled = enabled;
+      renderRows();
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+      load({ quiet: true });
+    }
+  }
+
+  async function remove(item) {
+    const confirmed = await confirmDialog({ title: `Удалить «${item.title}»?`, message: `Файл ${item.file} будет удалён из сборки.`, confirmLabel: 'Удалить', danger: true });
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await api.content.remove(getInstance().id, type, item.file);
+      sfx('delete');
+      state.items = state.items.filter((candidate) => candidate !== item);
+      renderRows();
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    }
+  }
+
+  async function addFiles(paths = null) {
+    const files = paths ?? (await api.app.pickFiles({ title: `Добавить: ${labels.title.toLowerCase()}`, filters: labels.picker }));
+    if (files.length === 0) {
+      return;
+    }
+    try {
+      const added = await api.content.addFiles(getInstance().id, type, files);
+      toast(`Добавлено: ${added.join(', ')}`, 'success');
+      state.identified = false;
+      await load({ quiet: true });
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    }
+  }
+
+  async function checkUpdates() {
+    updatesButton.disabled = true;
+    updatesButton.textContent = 'Проверяем…';
+    try {
+      const updates = await api.content.checkUpdates(getInstance().id, type);
+      state.updates = new Map(updates.map((update) => [update.file, update]));
+      updateAllButton.hidden = updates.length === 0;
+      updateAllButton.textContent = `Обновить все (${updates.length})`;
+      toast(updates.length ? `Доступно обновлений: ${updates.length}` : 'Всё обновлено', updates.length ? 'info' : 'success');
+      renderRows();
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    } finally {
+      updatesButton.disabled = false;
+      updatesButton.textContent = 'Проверить обновления';
+    }
+  }
+
+  async function applyUpdate(item, update, button) {
+    if (button) {
+      button.disabled = true;
+      button.textContent = '…';
+    }
+    try {
+      await api.content.install({
+        instanceId: getInstance().id,
+        platform: update.platform,
+        projectId: update.projectId,
+        versionId: update.version.id,
+        type,
+        title: item.title,
+        iconUrl: item.icon?.startsWith('https://') ? item.icon : null,
+        replaceFile: item.file,
+      });
+      state.updates.delete(item.file);
+      await load({ quiet: true });
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function updateAll() {
+    updateAllButton.disabled = true;
+    // New mod versions can break a world: every world is backed up first.
+    if (type === 'mod') {
+      await api.instances.backupAll(getInstance().id, 'Перед обновлением модов').catch(() => 0);
+    }
+    const entries = [...state.updates.entries()];
+    for (const [file, update] of entries) {
+      const item = state.items.find((candidate) => candidate.file === file);
+      if (item) {
+        await applyUpdate(item, update, null);
+      }
+    }
+    updateAllButton.disabled = false;
+    updateAllButton.hidden = state.updates.size === 0;
+    toast(`Обновлено: ${entries.length}`, 'success');
+  }
+
+  // --- Selection and actions on many files ----------------------------------------------
+
+  function toggleAll(checked) {
+    state.selected = new Set(checked ? state.items.map((item) => item.file) : []);
+    renderRows();
+  }
+
+  function selectedItems() {
+    return state.items.filter((item) => state.selected.has(item.file) && !item.folder);
+  }
+
+  async function bulkEnable(enabled) {
+    const targets = selectedItems().filter((item) => item.enabled !== enabled);
+    if (targets.length === 0) {
+      toast(enabled ? 'Выбранные уже включены' : 'Выбранные уже выключены', 'info');
+      return;
+    }
+    try {
+      const { changed, files } = await api.content.setEnabledMany(getInstance().id, type, targets.map((item) => item.file), enabled);
+      // Enabling renames files (.disabled): the selection follows the new names.
+      targets.forEach((item) => state.selected.delete(item.file));
+      files.forEach((file) => state.selected.add(file));
+      toast(`${enabled ? 'Включено' : 'Выключено'}: ${changed}`, 'success');
+      await load({ quiet: true });
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+      load({ quiet: true });
+    }
+  }
+
+  async function bulkRemove() {
+    const targets = selectedItems();
+    if (targets.length === 0) return;
+    const confirmed = await confirmDialog({
+      title: `Удалить выбранные (${targets.length})?`,
+      message: `${targets.slice(0, 10).map((item) => item.title).join(', ')}${targets.length > 10 ? '…' : ''} — файлы будут удалены из сборки.`,
+      confirmLabel: 'Удалить',
+      danger: true,
+    });
+    if (!confirmed) return;
+    let removed = 0;
+    for (const item of targets) {
+      try {
+        await api.content.remove(getInstance().id, type, item.file);
+        removed += 1;
+      } catch (error) {
+        toast(`${item.title}: ${errorMessage(error)}`, 'error');
+      }
+    }
+    sfx('delete');
+    state.selected.clear();
+    toast(`Удалено: ${removed}`, 'success');
+    await load({ quiet: true });
+  }
+
+  function openFolder(folder) {
+    const instance = getInstance();
+    api.app.openFolder(`${instance.directory}\\${folder}`).catch((error) => toast(errorMessage(error), 'error'));
+  }
+
+  // --- One file: menu, version, page ------------------------------------------------------
+
+  function openRowMenu(item, anchor) {
+    document.querySelector('.context-menu')?.remove();
+    const page = projectPage(item);
+    const entry = (label, action, disabled = false, danger = false) =>
+      h('button', { class: `context-menu__item${danger ? ' context-menu__item--danger' : ''}`, type: 'button', disabled, onclick: () => { menu.remove(); action(); } }, label);
+    const menu = h(
+      'div',
+      { class: 'context-menu', role: 'menu' },
+      entry('Сменить версию…', () => changeVersion(item), !item.platform),
+      entry('Открыть страницу', () => api.app.openExternal(page), !page),
+      entry('Показать в папке', () => api.instances.openEntry(getInstance().id, `${FOLDERS[type]}/${item.file}`, { reveal: true }).catch((error) => toast(errorMessage(error), 'error'))),
+      h('div', { class: 'context-menu__divider' }),
+      entry(item.enabled ? 'Выключить' : 'Включить', () => setEnabled(item, !item.enabled), item.folder),
+      entry('Удалить', () => remove(item), false, true),
+    );
+    document.body.append(menu);
+    const rect = anchor.getBoundingClientRect();
+    menu.style.left = `${Math.max(12, rect.right - menu.offsetWidth)}px`;
+    const below = rect.bottom + 6 + menu.offsetHeight < window.innerHeight;
+    menu.style.top = `${below ? rect.bottom + 6 : rect.top - menu.offsetHeight - 6}px`;
+    const close = (event) => {
+      if (!menu.contains(event.target)) {
+        menu.remove();
+        document.removeEventListener('pointerdown', close, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('pointerdown', close, true));
+  }
+
+  /** Another version of an installed project (older, newer, a beta), like Prism's "Change version". */
+  function changeVersion(item) {
+    const instance = getInstance();
+    const list = h('div', { class: 'version-choice' }, h('div', { class: 'skeleton', style: { height: '200px' } }));
+    let all = false;
+    const scope = createSegmented({
+      options: [
+        { value: 'fit', label: `Для ${instance.minecraft}${type === 'mod' && instance.loader.type !== 'vanilla' ? ` · ${instance.loader.type}` : ''}` },
+        { value: 'all', label: 'Все версии' },
+      ],
+      value: 'fit',
+      onChange: (value) => {
+        all = value === 'all';
+        loadVersions();
+      },
+    });
+
+    async function loadVersions() {
+      list.replaceChildren(h('div', { class: 'skeleton', style: { height: '200px' } }));
+      try {
+        const filters = all ? { type } : { gameVersion: instance.minecraft, loader: type === 'mod' ? instance.loader.type : null, type };
+        const versions = await api.content.versions(item.platform, item.projectId, filters);
+        if (versions.length === 0) {
+          list.replaceChildren(h('p', { class: 'text-muted' }, 'Подходящих версий нет. Попробуйте «Все версии».'));
+          return;
+        }
+        list.replaceChildren(
+          ...versions.slice(0, 120).map((version) => {
+            const current = version.id === item.versionId;
+            return h(
+              'div',
+              { class: `version-choice__row${current ? ' version-choice__row--current' : ''}` },
+              h('div', { class: 'version-choice__main' },
+                h('span', { class: 'version-choice__number' }, version.versionNumber),
+                h('span', { class: `version-choice__type version-choice__type--${version.type}` }, VERSION_TYPE_LABELS[version.type] ?? version.type),
+              ),
+              h('span', { class: 'version-choice__meta text-muted' }, [(version.gameVersions ?? []).slice(-3).join(', '), version.date ? new Date(version.date).toLocaleDateString(locale()) : null].filter(Boolean).join(' · ')),
+              current
+                ? h('span', { class: 'badge badge--muted' }, 'Установлена')
+                : h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: (event) => install(version, event.currentTarget) }, 'Установить'),
+            );
+          }),
+        );
+      } catch (error) {
+        list.replaceChildren(h('p', { class: 'text-danger' }, errorMessage(error)));
+      }
+    }
+
+    async function install(version, button) {
+      if (!(await confirmCompatibility({ instanceId: instance.id, platform: item.platform, projectId: item.projectId, versionId: version.id, type, title: item.title }))) {
+        return;
+      }
+      button.disabled = true;
+      button.textContent = '…';
+      try {
+        await api.content.install({
+          instanceId: instance.id,
+          platform: item.platform,
+          projectId: item.projectId,
+          versionId: version.id,
+          type,
+          title: item.title,
+          iconUrl: item.icon?.startsWith('https://') ? item.icon : null,
+          replaceFile: item.file,
+        });
+        toast(`${item.title}: установлена ${version.versionNumber}`, 'success');
+        state.updates.delete(item.file);
+        modal.close();
+        await load({ quiet: true });
+      } catch (error) {
+        toast(errorMessage(error), 'error');
+        button.disabled = false;
+        button.textContent = 'Установить';
+      }
+    }
+
+    const modal = openModal({
+      title: `Версия: ${item.title}`,
+      wide: true,
+      content: h('div', { class: 'version-choice__wrap' }, scope.element, list),
+    });
+    requestAnimationFrame(() => scope.setValue('fit'));
+    loadVersions();
+  }
+
+  /** The installed list as Markdown, plain text or CSV: copied or saved to a file. */
+  function exportList() {
+    const instance = getInstance();
+    const items = state.items.filter((item) => !item.folder);
+    if (items.length === 0) {
+      toast('Список пуст', 'info');
+      return;
+    }
+    const formats = {
+      markdown: {
+        label: 'Markdown',
+        ext: 'md',
+        make: () =>
+          [`# ${instance.name} — ${labels.title.toLowerCase()}`, '', `Minecraft ${instance.minecraft}${instance.loader.type !== 'vanilla' ? `, ${instance.loader.type} ${instance.loader.version ?? ''}` : ''}`, '',
+            ...items.map((item) => {
+              const page = projectPage(item);
+              const name = page ? `[${item.title}](${page})` : item.title;
+              return `- ${name}${item.version ? ` ${item.version}` : ''}${item.enabled ? '' : ' (выключен)'}`;
+            })].join('\n'),
+      },
+      text: {
+        label: 'Текст',
+        ext: 'txt',
+        make: () => items.map((item) => `${item.title}${item.version ? ` ${item.version}` : ''}${item.enabled ? '' : ' (выключен)'}`).join('\n'),
+      },
+      csv: {
+        label: 'CSV',
+        ext: 'csv',
+        make: () => {
+          const cell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+          return ['Название;Версия;Файл;Включён;Источник;Страница', ...items.map((item) => [item.title, item.version, item.file, item.enabled ? 'да' : 'нет', item.platform ?? '', projectPage(item) ?? ''].map(cell).join(';'))].join('\n');
+        },
+      },
+    };
+    let format = 'markdown';
+    const preview = h('textarea', { class: 'textarea mono export-preview', rows: '14', readonly: true });
+    const refresh = () => {
+      preview.value = formats[format].make();
+    };
+    const picker = createSegmented({
+      options: Object.entries(formats).map(([value, entry]) => ({ value, label: entry.label })),
+      value: format,
+      onChange: (value) => {
+        format = value;
+        refresh();
+      },
+    });
+    refresh();
+    const modal = openModal({
+      title: `Экспорт: ${labels.title.toLowerCase()} (${items.length})`,
+      wide: true,
+      content: h('div', { class: 'export-dialog' }, picker.element, preview),
+      footer: [
+        h('button', { class: 'btn btn--ghost', type: 'button', onclick: async () => { await navigator.clipboard.writeText(preview.value); toast('Список скопирован', 'success'); } }, 'Копировать'),
+        h('button', {
+          class: 'btn btn--primary btn--compact',
+          type: 'button',
+          onclick: async () => {
+            try {
+              const saved = await api.app.saveText({ title: 'Сохранить список', defaultName: `${instance.name} — ${labels.title.toLowerCase()}.${formats[format].ext}`, content: preview.value, filters: [{ name: formats[format].label, extensions: [formats[format].ext] }] });
+              if (saved) {
+                toast('Список сохранён', 'success');
+                modal.close();
+              }
+            } catch (error) {
+              toast(errorMessage(error), 'error');
+            }
+          },
+        }, 'Сохранить файл'),
+      ],
+    });
+    requestAnimationFrame(() => picker.setValue(format));
+  }
+
+  async function setAutoUpdate(enabled) {
+    const instance = getInstance();
+    try {
+      await updateInstance(instance.id, { overrides: { ...(instance.overrides ?? {}), autoUpdateMods: enabled || null } });
+      toast(enabled ? 'Моды будут обновляться перед каждым запуском' : 'Автообновление модов выключено', 'success');
+    } catch (error) {
+      autoUpdateInput.checked = !enabled;
+      toast(errorMessage(error), 'error');
+    }
+  }
+
+  /** Server preparation: switch mods on or off by where they are needed. */
+  function openSideMenu(anchor) {
+    document.querySelector('.context-menu')?.remove();
+    const count = (side, enabled) => state.items.filter((item) => item.side === side && item.enabled === enabled).length;
+    const disabledCount = state.items.filter((item) => !item.enabled).length;
+    const item = (label, hint, action, disabled) =>
+      h('button', { class: 'context-menu__item', type: 'button', disabled, onclick: () => { menu.remove(); action(); } }, h('span', { class: 'context-menu__text' }, h('span', null, label), h('small', null, hint)));
+    const menu = h(
+      'div',
+      { class: 'context-menu context-menu--wide', role: 'menu' },
+      item('Выключить клиентские моды', `Для сервера: ${count('client', true)} шт. (миникарты, шейдеры, меню…)`, () => bulk((entry) => entry.side === 'client', false, 'клиентские'), count('client', true) === 0),
+      item('Выключить серверные моды', `Для игры без сервера: ${count('server', true)} шт.`, () => bulk((entry) => entry.side === 'server', false, 'серверные'), count('server', true) === 0),
+      h('div', { class: 'context-menu__divider' }),
+      item('Включить все моды', `Выключено сейчас: ${disabledCount}`, () => bulk(() => true, true, 'все'), disabledCount === 0),
+      h('div', { class: 'context-menu__note' }, 'Сторона берётся с Modrinth или из файла мода. Моды с неизвестной стороной не трогаются.'),
+    );
+    document.body.append(menu);
+    const rect = anchor.getBoundingClientRect();
+    menu.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - menu.offsetWidth - 12))}px`;
+    menu.style.top = `${rect.bottom + 6}px`;
+    const close = (event) => {
+      if (!menu.contains(event.target)) {
+        menu.remove();
+        document.removeEventListener('pointerdown', close, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('pointerdown', close, true));
+  }
+
+  async function bulk(match, enabled, label) {
+    const targets = state.items.filter((item) => !item.folder && match(item) && item.enabled !== enabled);
+    if (targets.length === 0) {
+      return;
+    }
+    if (!enabled) {
+      const confirmed = await confirmDialog({
+        title: `Выключить ${label} моды?`,
+        message: `Будет выключено: ${targets.length}. Файлы останутся в папке, включить обратно можно в любой момент.\n\n${targets.slice(0, 12).map((item) => item.title).join(', ')}${targets.length > 12 ? '…' : ''}`,
+        confirmLabel: 'Выключить',
+      });
+      if (!confirmed) return;
+    }
+    try {
+      const { changed } = await api.content.setEnabledMany(getInstance().id, type, targets.map((item) => item.file), enabled);
+      toast(`${enabled ? 'Включено' : 'Выключено'}: ${changed}`, 'success');
+      await load({ quiet: true });
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+      load({ quiet: true });
+    }
+  }
+
+  return { element, load, addFiles, reset: () => { state.updates = new Map(); state.identified = false; state.sidesResolved = false; state.side = ''; if (sideSelect) sideSelect.value = ''; updateAllButton.hidden = true; } };
+}

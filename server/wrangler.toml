@@ -1,0 +1,41 @@
+name = "vanillaplus"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "vanillaplus"
+# The official Vanilla+ server's database. For your own server, replace it with the id printed by
+# "npx wrangler d1 create vanillaplus" (see README.md).
+database_id = "ef5716ee-bd09-41df-8610-8bfa2e309041"
+
+# One LiveHub per player: the WebSocket for instant messages (SQLite Durable Objects work on the free plan).
+[[durable_objects.bindings]]
+name = "LIVE"
+class_name = "LiveHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LiveHub"]
+
+# One TunnelRoom per "join my world" invite: passes the game's bytes between host and friends.
+[[durable_objects.bindings]]
+name = "TUNNEL"
+class_name = "TunnelRoom"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["TunnelRoom"]
+
+# Daily cleanup: pictures older than 30 days, expired sign-ins.
+[triggers]
+crons = ["17 4 * * *"]
+
+# At most 60 requests a minute from one address to /v1/ (sign-in, friends, uploads).
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 60
+  period = 60

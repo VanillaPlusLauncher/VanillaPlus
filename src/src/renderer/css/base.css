@@ -1,0 +1,139 @@
+/* Reset, typography and global behaviour. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Component classes set display; the hidden attribute must still win. */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+img {
+  display: block;
+  -webkit-user-drag: none;
+}
+
+::selection {
+  background: rgba(var(--accent-rgb), 0.3);
+}
+
+/* Scrollbars that match the dark theme. */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--accent-rgb), 0.18);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--accent-rgb), 0.32);
+  background-clip: content-box;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-soft {
+  color: var(--color-text-soft);
+}
+
+.text-accent {
+  color: var(--color-accent);
+}
+
+.text-danger {
+  color: var(--color-danger);
+}
+
+.mono {
+  font-family: Consolas, "Cascadia Mono", monospace;
+}
+
+/* Icons are drawn with CSS masks so that they inherit currentColor. */
+.icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+.icon--home { --icon: url("../../../assets/ui/home.png"); }
+.icon--cube { --icon: url("../../../assets/ui/cube.png"); }
+.icon--stack { --icon: url("../../../assets/ui/stack.png"); }
+.icon--gear { --icon: url("../../../assets/ui/gear.png"); }
+.icon--user { --icon: url("../../../assets/ui/user.png"); }
+.icon--download { --icon: url("../../../assets/ui/download.png"); }
+.icon--folder { --icon: url("../../../assets/ui/folder.png"); }
+.icon--search { --icon: url("../../../assets/ui/search.png"); }
+.icon--play { --icon: url("../../../assets/ui/play.png"); }
+.icon--chevron { --icon: url("../../../assets/ui/chevron.png"); }
+.icon--close { --icon: url("../../../assets/ui/close.png"); }
+.icon--minus { --icon: url("../../../assets/ui/minus.png"); }
+.icon--fullscreen { --icon: url("../../../assets/ui/fullscreen.svg"); }
+.icon--fullscreen-exit { --icon: url("../../../assets/ui/fullscreen-exit.svg"); }
+.icon--bolt { --icon: url("../../../assets/ui/bolt.svg"); }
+.icon--pencil { --icon: url("../../../assets/ui/pencil.svg"); }
+.icon--image { --icon: url("../../../assets/ui/image.svg"); }
