@@ -69,6 +69,10 @@ Type: files; Name: "{app}\VanillaPlus.exe"
 Type: files; Name: "{autoprograms}\Vanilla+ Launcher.lnk"
 Type: files; Name: "{autoprograms}\Удалить Vanilla+ Launcher.lnk"
 Type: files; Name: "{autodesktop}\Vanilla+ Launcher.lnk"
+; A hand-made "Amethyx" shortcut to an unpacked test copy: the installed launcher takes its place
+; (it opens the same data, which lives in %APPDATA%\Amethyx and %APPDATA%\.amethyx).
+Type: files; Name: "{autodesktop}\Amethyx.lnk"
+Type: files; Name: "{autoprograms}\Amethyx.lnk"
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\Amethyx.exe"
