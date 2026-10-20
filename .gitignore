@@ -11,6 +11,8 @@ src/assets/mc-ui/
 # API keys of builds: only ever in the built app
 installer/curseforge.key
 src/src/build-keys.json
+# Token for uploading builds to the launcher's site (installer/publish-site.ps1)
+installer/site-token.txt
 
 # Original archive, local logs and working files
 /launcher/

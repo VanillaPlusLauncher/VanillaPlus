@@ -11,12 +11,17 @@
 # the number of commits, so every build shows a new version (and the released version without the
 # tail still counts as newer for updates). -Release builds the plain version.
 #
-# Usage: .\build.ps1 [-Iscc <path to ISCC.exe>] [-Version 1.3.1 | -Release] [-Output <folder>]
+# -Publish puts the installer on the launcher's site right after (publish-site.ps1, as the newest
+# build of its channel: the site's buttons and update feeds take it at once).
+#
+# Usage: .\build.ps1 [-Iscc <path to ISCC.exe>] [-Version 1.3.1 | -Release] [-Output <folder>] [-Publish] [-Notes "…"]
 param(
   [string]$Iscc = '',
   [string]$Version = '',
   [string]$Output = '',
-  [switch]$Release
+  [switch]$Release,
+  [switch]$Publish,
+  [string]$Notes = ''
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -117,4 +122,6 @@ try {
 } catch {
   Write-Warning "build\Amethyx не обновлён: закройте лаунчер, запущенный оттуда."
 }
-Write-Output (Join-Path $Output "Amethyx-Setup-$Version.exe")
+$installer = Join-Path $Output "Amethyx-Setup-$Version.exe"
+Write-Output $installer
+if ($Publish) { & (Join-Path $PSScriptRoot 'publish-site.ps1') -File $installer -Latest -Notes $Notes }

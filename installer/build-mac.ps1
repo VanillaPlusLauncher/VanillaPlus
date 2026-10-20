@@ -8,12 +8,17 @@
 #
 # Without -Version the build is numbered like build.ps1's (version.ps1: "-beta.N"; -Release: plain).
 #
-# Usage: .\build-mac.ps1 [-Version 1.7.0 | -Release] [-Output <folder>] [-Arch arm64,x64]
+# -Publish puts the zips on the launcher's site right after (publish-site.ps1; the platform comes
+# from the file name, "-mac-arm64" / "-mac-x64").
+#
+# Usage: .\build-mac.ps1 [-Version 1.7.0 | -Release] [-Output <folder>] [-Arch arm64,x64] [-Publish] [-Notes "…"]
 param(
   [string]$Version = '',
   [string]$Output = '',
   [string[]]$Arch = @('arm64', 'x64'),
-  [switch]$Release
+  [switch]$Release,
+  [switch]$Publish,
+  [string]$Notes = ''
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -108,4 +113,5 @@ foreach ($a in $Arch) {
   python -I (Join-Path $PSScriptRoot 'tools\mac_bundle.py') $download $asar $icns $Version $out
   if ($LASTEXITCODE -ne 0) { throw "mac_bundle.py завершился с кодом $LASTEXITCODE" }
   Write-Output $out
+  if ($Publish) { & (Join-Path $PSScriptRoot 'publish-site.ps1') -File $out -Latest -Notes $Notes }
 }
