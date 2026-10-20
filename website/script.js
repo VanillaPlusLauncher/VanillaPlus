@@ -10,6 +10,8 @@
     'nav.faq': 'FAQ',
     'hero.subtitle': 'A Minecraft launcher with mods, skins and friends — beautiful, fast and free.',
     'hero.download': 'Download for Windows',
+    'hero.get': 'Download',
+    'versions.title': 'All versions',
     'hero.source': 'Source code on GitHub',
     'hero.free': 'free',
     'video.watch': 'Watch with sound',
@@ -105,6 +107,57 @@
       button.setAttribute('aria-label', english ? 'Close' : 'Закрыть');
     });
     document.getElementById('video-open').setAttribute('aria-label', english ? 'Watch the video with sound' : 'Смотреть видео со звуком');
+    renderVersions();
+  }
+
+  // ---- Every version, from the admin panel --------------------------------------------------
+  var allVersions = [];
+  var PLATFORM_NAMES = {
+    windows: ['Windows', 'Windows'],
+    'mac-arm64': ['macOS · Apple Silicon', 'macOS · Apple Silicon'],
+    'mac-x64': ['macOS · Intel', 'macOS · Intel'],
+    linux: ['Linux', 'Linux']
+  };
+  function renderVersions() {
+    var box = document.getElementById('versions');
+    if (!box || !allVersions || !allVersions.length) return; // the first call runs before the list is set up
+    var english = document.documentElement.lang === 'en';
+    var list = document.getElementById('versions-list');
+    while (list.firstChild) list.removeChild(list.firstChild);
+    allVersions.forEach(function (v) {
+      var item = document.createElement('li');
+      var head = document.createElement('div');
+      head.className = 'versions__head';
+      var name = document.createElement('b');
+      name.textContent = versionText(v.version);
+      head.appendChild(name);
+      if (v.channel === 'beta') {
+        var tag = document.createElement('span');
+        tag.className = 'versions__tag';
+        tag.textContent = english ? 'beta' : 'бета';
+        head.appendChild(tag);
+      }
+      var meta = document.createElement('span');
+      meta.className = 'versions__meta';
+      var platform = PLATFORM_NAMES[v.platform] ? PLATFORM_NAMES[v.platform][english ? 1 : 0] : v.platform;
+      meta.textContent = platform + ' · ' + v.date.split('-').reverse().join('.') + ' · ' + (v.size / 1048576).toFixed(0) + (english ? ' MB' : ' МБ');
+      head.appendChild(meta);
+      var link = document.createElement('a');
+      link.className = 'btn btn--ghost versions__get';
+      link.href = v.url;
+      link.textContent = english ? 'Download' : 'Скачать';
+      head.appendChild(link);
+      item.appendChild(head);
+      if (v.notes) {
+        var notes = document.createElement('p');
+        notes.className = 'versions__notes';
+        notes.textContent = v.notes;
+        item.appendChild(notes);
+      }
+      list.appendChild(item);
+    });
+    document.getElementById('versions-count').textContent = '(' + allVersions.length + ')';
+    box.hidden = false;
   }
 
   var language = savedLanguage();
@@ -215,7 +268,9 @@
   if (window.fetch) {
     fetch('api.php?a=site').then(function (res) { return res.ok ? res.json() : null; }).then(function (site) {
       if (!site || !site.latest) return;
-      if (site.latest.windows) { version = site.latest.windows.version; applyLanguage(language); }
+      allVersions = site.versions || [];
+      if (site.latest.windows) version = site.latest.windows.version;
+      applyLanguage(language);
       var mac = false;
       ['mac-arm64', 'mac-x64'].forEach(function (platform) {
         var link = document.getElementById('dl-' + platform);
@@ -224,6 +279,21 @@
       document.getElementById('download-mac').hidden = !mac;
     }).catch(function () { /* no server: keep the defaults */ });
   }
+
+  // The logo in the top bar takes you to the very top (the bar is sticky, so "#top" alone
+  // would not move the page); the hero's Download button glides down to the download section.
+  var scrollBehavior = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+  document.querySelector('.brand').addEventListener('click', function (event) {
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: scrollBehavior });
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    setMenu(false);
+  });
+  document.getElementById('download-main').addEventListener('click', function (event) {
+    event.preventDefault();
+    document.getElementById('download').scrollIntoView({ behavior: scrollBehavior, block: 'start' });
+    history.replaceState(null, '', '#download');
+  });
 
   // Five quick clicks on the X logo open the owner's login; the server checks it.
   var owner = document.getElementById('owner');
