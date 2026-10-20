@@ -6008,9 +6008,10 @@ button:disabled {
   animation: fadeIn 600ms 200ms both;
 }
 
-/* A piece of an amethyst geode turning slowly in the air (components/splash.js builds its faces):
-   amethyst and budding amethyst on top, calcite and smooth basalt below; crystals grow on the
-   budding blocks with a little pop at every stage, sparkles blink around it. */
+/* A plate of budding amethyst turning slowly in the air (components/splash.js builds its faces):
+   crystals grow on it like a snake, from the edge round into the middle, with a little pop at
+   every stage; sparkles blink around it. Before the game's textures are on disk (the very first
+   start) the plate is a plain glow without a picture (.geode__slab--blank). */
 .splash__blocks {
   position: relative;
   width: 240px;
@@ -6073,6 +6074,17 @@ button:disabled {
   filter: brightness(var(--shade, 1));
 }
 
+.geode__slab--blank .geode__face {
+  background: linear-gradient(135deg, rgba(150, 106, 230, 0.55), rgba(92, 58, 168, 0.55));
+  box-shadow: inset 0 0 0 1px rgba(214, 180, 255, 0.18);
+  animation: geode-wait 1.6s ease-in-out infinite;
+}
+
+@keyframes geode-wait {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+
 .geode__crystal,
 .geode__grow {
   position: absolute;
@@ -6104,10 +6116,10 @@ button:disabled {
 
 .geode__sprite {
   position: absolute;
-  left: calc(var(--cell) * -0.7);
-  top: calc(var(--cell) * -1.4);
-  width: calc(var(--cell) * 1.4);
-  height: calc(var(--cell) * 1.4);
+  left: calc(var(--cell) * -0.65);
+  top: calc(var(--cell) * -1.3);
+  width: calc(var(--cell) * 1.3);
+  height: calc(var(--cell) * 1.3);
   transform-origin: 50% 100%;
   background-size: 100% 100%;
   image-rendering: pixelated;

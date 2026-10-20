@@ -2,34 +2,36 @@ import { getMcManifest, hasBlock, mcUrl, onMcReady } from '../core/mc.js';
 
 /*
  * The start screen (its markup is in index.html, so it is there from the very first frame): the
- * launcher's X, its name, a piece of an amethyst geode turning slowly in the air — amethyst and
- * budding amethyst on top, calcite and smooth basalt below, the way a geode is layered in the game —
- * with crystals growing on the budding blocks stage by stage (small bud, medium, large, cluster),
- * sparkles around it, and what is loading with a bar. Meanwhile everything the launcher needs is
- * fetched (the game's textures, instances, accounts, fonts, news); when all of it is in, the screen
- * fades and the launcher is ready. Shown once per start of the launcher.
+ * launcher's X, its name, a plate of budding amethyst turning slowly in the air, and what is
+ * loading with a bar. On the plate crystals grow like a snake: from its outer edge round and round
+ * into the middle, each one through the game's stages (small bud, medium, large, cluster); when the
+ * middle is reached they fall away in the same order and grow again. Sparkles blink around it.
+ * Meanwhile everything the launcher needs is fetched (the game's textures, instances, accounts,
+ * fonts, news); when all of it is in, the screen fades and the launcher is ready.
  *
- * The blocks use the game's own textures once they are on disk (main/minecraft/mcResources.js);
- * until then the launcher's look-alike drawings stand in, swapped as soon as the real ones arrive.
+ * Only the game's own textures are used (main/minecraft/mcResources.js puts them on disk). On the
+ * very first start, before they are downloaded, the plate is a plain glow without any picture and
+ * the crystals start as soon as the textures arrive.
  */
 
-/** The piece is SIDE × SIDE columns, LAYERS blocks tall. */
+/** The plate is SIDE × SIDE blocks, one block thick. */
 const SIDE = 3;
-const LAYERS = 3;
 /** One block, in px. */
-const CELL = 26;
-/** Top layer to bottom: what each layer is made of. */
-const LAYER_BLOCKS = ['amethyst_block', 'calcite', 'smooth_basalt'];
-/** Top-layer places (row-major) where budding amethyst grows crystals. */
-const BUDDING = [0, 4, 8];
+const CELL = 28;
+const TOP_BLOCK = 'budding_amethyst';
+const EDGE_BLOCK = 'amethyst_block';
 const STAGES = ['small_amethyst_bud', 'medium_amethyst_bud', 'large_amethyst_bud', 'amethyst_cluster'];
-/** How long each crystal stage lasts, in ms; the cluster stays a little longer, then breaks. */
-const STAGE_MS = 650;
-const CLUSTER_MS = 1500;
+/** Each growth stage, in ms; the snake's head moves on to the next block every STEP_MS. */
+const STAGE_MS = 210;
+const STEP_MS = 260;
+/** The full plate stays a moment, the crystals fall away one by one, a short rest, again. */
+const HOLD_MS = 1300;
+const FALL_STEP_MS = 70;
+const REST_MS = 450;
 /** Shading by the side a face looks to: a light from above and the front. */
-const SHADE = { top: 1.08, south: 0.82, east: 0.92, north: 0.66, west: 0.74 };
+const SHADE = { top: 1.06, south: 0.8, east: 0.9, north: 0.64, west: 0.72 };
 
-// --- Look-alike drawings (16 × 16, like the game's textures) -------------------------------------
+const TEXTURES = [TOP_BLOCK, EDGE_BLOCK, ...STAGES];
 
 function seeded(seed) {
   let value = seed;
@@ -39,86 +41,19 @@ function seeded(seed) {
   };
 }
 
-/** Mottled texture: soft patches from a coarse grid plus per-pixel grain, coloured from `palette`. */
-function mottled(palette, { seed = 1, highlights = null, cracks = null } = {}) {
-  const random = seeded(seed);
-  const canvas = document.createElement('canvas');
-  canvas.width = 16;
-  canvas.height = 16;
-  const context = canvas.getContext('2d');
-  const coarse = Array.from({ length: 25 }, () => random());
-  const at = (x, y) => {
-    const gx = x / 4;
-    const gy = y / 4;
-    const x0 = Math.floor(gx);
-    const y0 = Math.floor(gy);
-    const fx = gx - x0;
-    const fy = gy - y0;
-    const v = (i, j) => coarse[Math.min(4, y0 + j) * 5 + Math.min(4, x0 + i)];
-    return v(0, 0) * (1 - fx) * (1 - fy) + v(1, 0) * fx * (1 - fy) + v(0, 1) * (1 - fx) * fy + v(1, 1) * fx * fy;
-  };
-  for (let y = 0; y < 16; y += 1) {
-    for (let x = 0; x < 16; x += 1) {
-      const value = Math.min(0.999, Math.max(0, at(x, y) * 0.75 + random() * 0.4 - 0.08));
-      context.fillStyle = palette[Math.floor(value * palette.length)];
-      context.fillRect(x, y, 1, 1);
-    }
+/** The blocks of an n × n plate from its outer edge round and round into the middle (clockwise). */
+function spiralOrder(n) {
+  const order = [];
+  let [left, top, right, bottom] = [0, 0, n - 1, n - 1];
+  while (left <= right && top <= bottom) {
+    for (let x = left; x <= right; x += 1) order.push([x, top]);
+    for (let y = top + 1; y <= bottom; y += 1) order.push([right, y]);
+    if (top < bottom) for (let x = right - 1; x >= left; x -= 1) order.push([x, bottom]);
+    if (left < right) for (let y = bottom - 1; y > top; y -= 1) order.push([left, y]);
+    [left, top, right, bottom] = [left + 1, top + 1, right - 1, bottom - 1];
   }
-  if (highlights) {
-    for (let index = 0; index < 7; index += 1) {
-      const x = Math.floor(random() * 15);
-      const y = Math.floor(random() * 15);
-      context.fillStyle = highlights[index % highlights.length];
-      context.fillRect(x, y, 1 + Math.round(random()), 1);
-      context.fillStyle = highlights[(index + 1) % highlights.length];
-      context.fillRect(x, y + 1, 1, 1);
-    }
-  }
-  if (cracks) {
-    context.fillStyle = cracks;
-    for (const [x, y, w, h] of [[2, 3, 3, 1], [4, 3, 1, 2], [10, 2, 1, 3], [9, 4, 3, 1], [6, 10, 1, 3], [6, 12, 3, 1], [12, 11, 2, 1], [13, 9, 1, 3]]) {
-      context.fillRect(x, y, w, h);
-    }
-  }
-  return canvas.toDataURL();
+  return order;
 }
-
-/** A crystal of the given stage (0 small bud … 3 cluster): violet spikes with light tips. */
-function crystal(stage, seed = 3) {
-  const random = seeded(seed + stage * 17);
-  const canvas = document.createElement('canvas');
-  canvas.width = 16;
-  canvas.height = 16;
-  const context = canvas.getContext('2d');
-  const height = [5, 8, 11, 14][stage];
-  const spikes = stage === 3 ? [[3, 9], [7, 14], [11, 10], [5, 6], [10, 6]] : [[7, height]];
-  if (stage === 2) spikes.push([4, 7], [10, 8]);
-  if (stage === 1) spikes.push([10, 5]);
-  for (const [x, tall] of spikes) {
-    for (let y = 0; y < tall; y += 1) {
-      const row = 15 - y;
-      const width = y > tall - 3 ? 1 : 2;
-      context.fillStyle = y > tall - 3 ? '#f3d6ff' : random() < 0.3 ? '#b78cf0' : y % 3 === 0 ? '#6c44c4' : '#8a5ddc';
-      context.fillRect(x, row, width, 1);
-    }
-  }
-  return canvas.toDataURL();
-}
-
-const AMETHYST = ['#3b2470', '#4a2d8a', '#5b39a3', '#6f48bb', '#8459d0', '#9a70de'];
-const AMETHYST_LIGHT = ['#c99cf0', '#e9c6f7', '#ffe3fb'];
-
-function drawnTextures() {
-  return {
-    amethyst_block: mottled(AMETHYST, { seed: 11, highlights: AMETHYST_LIGHT }),
-    budding_amethyst: mottled(AMETHYST, { seed: 23, highlights: AMETHYST_LIGHT, cracks: '#26144f' }),
-    calcite: mottled(['#bdbeb9', '#cacbc6', '#d6d7d2', '#e2e3de', '#eeeeea'], { seed: 5 }),
-    smooth_basalt: mottled(['#2f2f35', '#38383f', '#424249', '#4c4c54', '#56565e'], { seed: 7 }),
-    ...Object.fromEntries(STAGES.map((name, stage) => [name, crystal(stage)])),
-  };
-}
-
-// --- The geode piece -------------------------------------------------------------------------------
 
 function face(texture, side, transform) {
   const element = document.createElement('span');
@@ -130,35 +65,30 @@ function face(texture, side, transform) {
 }
 
 /**
- * Builds the faces that can be seen (tops of the top layer, sides along the edge) of a SIDE × SIDE
- * × LAYERS piece, in a plane where x goes right, y towards the viewer and z up.
+ * The faces that can be seen of the plate (the tops, and the sides along its edge), in a plane
+ * where x goes right, y towards the viewer and z up.
  */
-function buildPiece(slab) {
+function buildPlate(slab) {
   const c = CELL;
-  for (let layer = 0; layer < LAYERS; layer += 1) {
-    const z = LAYERS - 1 - layer; // the top layer is the highest
-    for (let y = 0; y < SIDE; y += 1) {
-      for (let x = 0; x < SIDE; x += 1) {
-        const place = y * SIDE + x;
-        const block = layer === 0 && BUDDING.includes(place) ? 'budding_amethyst' : LAYER_BLOCKS[layer];
-        if (layer === 0) slab.append(face(block, 'top', `translate3d(${x * c}px, ${y * c}px, ${(z + 1) * c}px)`));
-        if (y === SIDE - 1) slab.append(face(block, 'south', `translate3d(${x * c}px, ${(y + 1) * c}px, ${(z + 1) * c}px) rotateX(-90deg)`));
-        if (y === 0) slab.append(face(block, 'north', `translate3d(${(x + 1) * c}px, ${y * c}px, ${(z + 1) * c}px) rotateZ(180deg) rotateX(-90deg)`));
-        if (x === SIDE - 1) slab.append(face(block, 'east', `translate3d(${(x + 1) * c}px, ${(y + 1) * c}px, ${(z + 1) * c}px) rotateZ(-90deg) rotateX(-90deg)`));
-        if (x === 0) slab.append(face(block, 'west', `translate3d(${x * c}px, ${y * c}px, ${(z + 1) * c}px) rotateZ(90deg) rotateX(-90deg)`));
-      }
+  for (let y = 0; y < SIDE; y += 1) {
+    for (let x = 0; x < SIDE; x += 1) {
+      slab.append(face(TOP_BLOCK, 'top', `translate3d(${x * c}px, ${y * c}px, ${c}px)`));
+      if (y === SIDE - 1) slab.append(face(EDGE_BLOCK, 'south', `translate3d(${x * c}px, ${(y + 1) * c}px, ${c}px) rotateX(-90deg)`));
+      if (y === 0) slab.append(face(EDGE_BLOCK, 'north', `translate3d(${(x + 1) * c}px, ${y * c}px, ${c}px) rotateZ(180deg) rotateX(-90deg)`));
+      if (x === SIDE - 1) slab.append(face(EDGE_BLOCK, 'east', `translate3d(${(x + 1) * c}px, ${(y + 1) * c}px, ${c}px) rotateZ(-90deg) rotateX(-90deg)`));
+      if (x === 0) slab.append(face(EDGE_BLOCK, 'west', `translate3d(${x * c}px, ${y * c}px, ${c}px) rotateZ(90deg) rotateX(-90deg)`));
     }
   }
 }
 
-/** A crystal standing on a budding block: two crossed pictures, like plants and buds in the game. */
-function buildCrystal(slab, place) {
+/** A crystal standing on a block: two crossed pictures, like buds in the game; turned a little each. */
+function buildCrystal(slab, [x, y], turn) {
   const c = CELL;
   const holder = document.createElement('span');
   holder.className = 'geode__crystal';
-  holder.style.transform = `translate3d(${(place % SIDE) * c + c / 2}px, ${Math.floor(place / SIDE) * c + c / 2}px, ${LAYERS * c}px)`;
+  holder.style.transform = `translate3d(${x * c + c / 2}px, ${y * c + c / 2}px, ${c}px) rotateZ(${turn}deg)`;
   const grow = document.createElement('span');
-  grow.className = 'geode__grow';
+  grow.className = 'geode__grow geode__grow--gone';
   const sprites = [45, -45].map((angle) => {
     const sprite = document.createElement('span');
     sprite.className = 'geode__sprite';
@@ -171,31 +101,41 @@ function buildCrystal(slab, place) {
   return { grow, sprites };
 }
 
-/** Grows one crystal through its stages, again and again; `offset` staggers the crystals. */
-function growLoop(crystalParts, textureOf, offset, alive) {
-  let stage = -1;
+/** One crystal through its stages, with a little pop at each. */
+function growCrystal({ grow, sprites }, alive) {
+  let stage = 0;
   const step = () => {
     if (!alive()) return;
+    const url = mcUrl(`block/${STAGES[stage]}.png`);
+    for (const sprite of sprites) sprite.style.backgroundImage = `url("${url}")`;
+    grow.classList.remove('geode__grow--gone', 'geode__grow--pop');
+    void grow.offsetWidth; // restart the pop of a new stage
+    grow.classList.add('geode__grow--pop');
     stage += 1;
-    if (stage < STAGES.length) {
-      const url = textureOf(STAGES[stage]);
-      for (const sprite of crystalParts.sprites) sprite.style.backgroundImage = `url("${url}")`;
-      crystalParts.grow.classList.remove('geode__grow--gone');
-      crystalParts.grow.classList.remove('geode__grow--pop');
-      void crystalParts.grow.offsetWidth; // restart the little "pop" of a new stage
-      crystalParts.grow.classList.add('geode__grow--pop');
-      setTimeout(step, stage === STAGES.length - 1 ? CLUSTER_MS : STAGE_MS);
-    } else {
-      // The cluster breaks off, and a new bud starts.
-      crystalParts.grow.classList.add('geode__grow--gone');
-      stage = -1;
-      setTimeout(step, 520);
-    }
+    if (stage < STAGES.length) setTimeout(step, STAGE_MS);
   };
-  setTimeout(step, offset);
+  step();
 }
 
-/** Little four-pointed sparkles that blink here and there around the geode. */
+/** The snake: crystals grow block after block into the middle, fall away in the same order, again. */
+function snakeLoop(crystals, alive) {
+  const cycle = () => {
+    if (!alive()) return;
+    crystals.forEach((crystal, index) => setTimeout(() => growCrystal(crystal, alive), index * STEP_MS));
+    const grown = (crystals.length - 1) * STEP_MS + STAGES.length * STAGE_MS;
+    setTimeout(() => {
+      crystals.forEach((crystal, index) =>
+        setTimeout(() => {
+          if (alive()) crystal.grow.classList.add('geode__grow--gone');
+        }, index * FALL_STEP_MS),
+      );
+      setTimeout(cycle, crystals.length * FALL_STEP_MS + REST_MS);
+    }, grown + HOLD_MS);
+  };
+  cycle();
+}
+
+/** Little four-pointed sparkles that blink here and there around the plate. */
 function sparkleLoop(row, alive) {
   const spawn = () => {
     if (!alive()) return;
@@ -211,42 +151,37 @@ function sparkleLoop(row, alive) {
   spawn();
 }
 
-/** Builds the geode in `row` and starts it. Returns a function that stops it. */
+/** Builds the plate in `row` and starts it. Returns a function that stops it. */
 function startGeode(row) {
   let running = true;
   const alive = () => running;
-  const drawn = drawnTextures();
-  let real = false;
-  const textureOf = (name) => (real ? mcUrl(`block/${name}.png`) : drawn[name]);
-
   const float = document.createElement('div');
   float.className = 'geode__float';
   const shadow = document.createElement('div');
   shadow.className = 'geode__shadow';
   const slab = document.createElement('div');
-  slab.className = 'geode__slab';
+  slab.className = 'geode__slab geode__slab--blank';
   slab.style.setProperty('--cell', `${CELL}px`);
   slab.style.width = `${SIDE * CELL}px`;
   slab.style.height = `${SIDE * CELL}px`;
-  buildPiece(slab);
-  const crystals = BUDDING.map((place) => buildCrystal(slab, place));
+  buildPlate(slab);
+  const random = seeded(7);
+  const crystals = spiralOrder(SIDE).map((place) => buildCrystal(slab, place, Math.round((random() - 0.5) * 40)));
   float.append(slab);
   row.replaceChildren(shadow, float);
-
-  const paint = () => {
-    for (const element of slab.querySelectorAll('.geode__face')) element.style.backgroundImage = `url("${textureOf(element.dataset.texture)}")`;
-  };
-  const useReal = () => {
-    const names = [...new Set([...LAYER_BLOCKS, 'budding_amethyst', ...STAGES])];
-    if (!real && getMcManifest() && names.every((name) => hasBlock(name))) {
-      real = true;
-      paint();
-    }
-  };
-  paint();
-  const stopListening = onMcReady(useReal);
-  crystals.forEach((parts, index) => growLoop(parts, textureOf, index * 900, alive));
   sparkleLoop(row, alive);
+
+  // The game's textures: at once when they are on disk already, else as soon as they arrive.
+  let started = false;
+  const begin = () => {
+    if (started || !running || !getMcManifest() || !TEXTURES.every((name) => hasBlock(name))) return;
+    started = true;
+    for (const element of slab.querySelectorAll('.geode__face')) element.style.backgroundImage = `url("${mcUrl(`block/${element.dataset.texture}.png`)}")`;
+    slab.classList.remove('geode__slab--blank');
+    snakeLoop(crystals, alive);
+  };
+  const stopListening = onMcReady(begin);
+  begin();
   return () => {
     running = false;
     stopListening();
