@@ -60,23 +60,33 @@ function publicStatus() {
   return { ...status, currentVersion: app.getVersion(), installerPath: undefined, canInstall: status.state === 'ready' };
 }
 
-/** 1.10.0 > 1.9.3; pre-release tails ("-beta") count as older than the plain version. */
+/**
+ * 1.10 > 1.9.3; "1.7" is the same as "1.7.0"; a pre-release tail ("1.7-beta.28") is older than the
+ * plain version, and beta.29 is newer than beta.28.
+ */
 function compareVersions(a, b) {
-  const parse = (value) => String(value).replace(/^v/i, '').split(/[.+-]/);
+  const parse = (value) => {
+    const text = String(value).trim().replace(/^v/i, '').split('+')[0];
+    const dash = text.indexOf('-');
+    const numbers = (dash < 0 ? text : text.slice(0, dash)).split('.').map((part) => Number.parseInt(part, 10) || 0);
+    while (numbers.length < 3) numbers.push(0);
+    return { numbers, tail: dash < 0 ? [] : text.slice(dash + 1).split('.') };
+  };
   const left = parse(a);
   const right = parse(b);
-  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
-    const x = left[index];
-    const y = right[index];
-    if (x === undefined) return /^\d+$/.test(y) ? -1 : 1;
-    if (y === undefined) return /^\d+$/.test(x) ? 1 : -1;
-    const nx = Number(x);
-    const ny = Number(y);
-    if (Number.isFinite(nx) && Number.isFinite(ny)) {
-      if (nx !== ny) return nx > ny ? 1 : -1;
-    } else if (x !== y) {
-      return x > y ? 1 : -1;
-    }
+  for (let index = 0; index < Math.max(left.numbers.length, right.numbers.length); index += 1) {
+    const x = left.numbers[index] ?? 0;
+    const y = right.numbers[index] ?? 0;
+    if (x !== y) return x > y ? 1 : -1;
+  }
+  if (left.tail.length === 0 || right.tail.length === 0) return Math.sign(right.tail.length - left.tail.length);
+  for (let index = 0; index < Math.max(left.tail.length, right.tail.length); index += 1) {
+    const x = left.tail[index];
+    const y = right.tail[index];
+    if (x === undefined || y === undefined) return x === undefined ? -1 : 1;
+    const numeric = /^\d+$/.test(x) && /^\d+$/.test(y);
+    if (numeric && Number(x) !== Number(y)) return Number(x) > Number(y) ? 1 : -1;
+    if (!numeric && x !== y) return x > y ? 1 : -1;
   }
   return 0;
 }
