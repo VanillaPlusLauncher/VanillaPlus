@@ -11,7 +11,6 @@
     'hero.subtitle': 'A Minecraft launcher with mods, skins and friends — beautiful, fast and free.',
     'hero.download': 'Download for Windows',
     'hero.get': 'Download',
-    'versions.title': 'All versions',
     'hero.source': 'Source code on GitHub',
     'hero.free': 'free',
     'video.watch': 'Watch with sound',
@@ -41,12 +40,9 @@
     'shots.servers': 'Server for hosting',
     'shots.home': 'Home screen',
     'download.title': 'Download Amethyx',
-    'download.lead': 'An installer for Windows. After that the launcher updates itself.',
     'step1': 'Download and run the installer',
     'step2': 'Add an account: Microsoft, Ely.by or offline',
     'step3': 'Create an instance or install a modpack — and play',
-    'download.mac': 'Also for macOS (beta):',
-    'download.req':'Windows 10 (1803 or newer) or Windows 11, 64-bit. The launcher downloads Java by itself.',
     'download.all': 'All versions on GitHub',
     'download.changes': 'What’s new',
     'faq.title': 'FAQ',
@@ -107,57 +103,159 @@
       button.setAttribute('aria-label', english ? 'Close' : 'Закрыть');
     });
     document.getElementById('video-open').setAttribute('aria-label', english ? 'Watch the video with sound' : 'Смотреть видео со звуком');
-    renderVersions();
+    renderDownloads();
   }
 
-  // ---- Every version, from the admin panel --------------------------------------------------
-  var allVersions = [];
-  var PLATFORM_NAMES = {
-    windows: ['Windows', 'Windows'],
-    'mac-arm64': ['macOS · Apple Silicon', 'macOS · Apple Silicon'],
-    'mac-x64': ['macOS · Intel', 'macOS · Intel'],
-    linux: ['Linux', 'Linux']
+  // ---- Downloads: the visitor's system, its newest build, and every other version ----------
+  // The big button gives the newest build for the system the visitor is on; "Other versions"
+  // opens every build from the admin panel, grouped by system, to go back to a release or try a beta.
+  var site = null; // api.php?a=site: { latest: { platform: version }, versions: [newest first] }
+  var SYSTEMS = ['windows', 'mac-arm64', 'mac-x64', 'linux'];
+  var SYSTEM_NAMES = { windows: 'Windows', 'mac-arm64': 'macOS (Apple Silicon)', 'mac-x64': 'macOS (Intel)', linux: 'Linux' };
+  var SYSTEM_SHORT = { windows: 'Windows', 'mac-arm64': 'macOS', 'mac-x64': 'macOS', linux: 'Linux' };
+  var DL_TEXT = {
+    ru: {
+      downloadFor: 'Скачать для ', download: 'Скачать', release: 'релиз', beta: 'бета', latest: 'последняя',
+      more: 'Другие версии', less: 'Скрыть версии', mb: ' МБ', none: 'Для этой системы версий пока нет.',
+      lead: { windows: 'Установщик для Windows. Дальше лаунчер обновляется сам.', mac: 'Сборка для macOS — пока бета, новые версии ставятся вручную.', linux: 'Сборка для Linux.' },
+      mobile: 'Amethyx работает на компьютере с Windows или macOS — скачайте его там.',
+      noBuild: 'Для вашей системы сборки пока нет — вот версия для Windows.',
+      req: {
+        windows: 'Windows 10 (1803 и новее) или Windows 11, 64 бита. Java лаунчер скачает сам.',
+        mac: 'Сборка без подписи Apple: перенесите Amethyx в «Программы» и один раз выполните в Терминале xattr -cr /Applications/Amethyx.app. Java лаунчер скачает сам.',
+        linux: 'Java лаунчер скачает сам.'
+      }
+    },
+    en: {
+      downloadFor: 'Download for ', download: 'Download', release: 'release', beta: 'beta', latest: 'latest',
+      more: 'Other versions', less: 'Hide versions', mb: ' MB', none: 'No versions for this system yet.',
+      lead: { windows: 'An installer for Windows. After that the launcher updates itself.', mac: 'A build for macOS — still a beta, new versions are installed by hand.', linux: 'A build for Linux.' },
+      mobile: 'Amethyx runs on a Windows or macOS computer — download it there.',
+      noBuild: 'There is no build for your system yet — here is the Windows version.',
+      req: {
+        windows: 'Windows 10 (1803 or newer) or Windows 11, 64-bit. The launcher downloads Java by itself.',
+        mac: 'The build is not signed by Apple: move Amethyx to Applications and run once in Terminal: xattr -cr /Applications/Amethyx.app. The launcher downloads Java by itself.',
+        linux: 'The launcher downloads Java by itself.'
+      }
+    }
   };
-  function renderVersions() {
-    var box = document.getElementById('versions');
-    if (!box || !allVersions || !allVersions.length) return; // the first call runs before the list is set up
+
+  // Which computer the visitor is on. Phones and tablets get "mobile".
+  function detectSystem() {
+    var ua = navigator.userAgent || '';
+    var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+    if (/Android|iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(platform) && navigator.maxTouchPoints > 1)) return 'mobile';
+    if (/Win/i.test(platform) || /Windows/i.test(ua)) return 'windows';
+    if (/Mac/i.test(platform) || /Mac OS X/i.test(ua)) return macChip();
+    if (/Linux|X11/i.test(platform + ua)) return 'linux';
+    return 'windows';
+  }
+  // Apple Silicon or Intel: browsers don't say it outright, but the graphics chip's name does
+  // ("Apple M1…" / "Apple GPU" against Intel, AMD or NVIDIA). Unknown means Apple Silicon:
+  // every new Mac has it, and an Intel build would still run there.
+  function macChip() {
+    try {
+      var gl = document.createElement('canvas').getContext('webgl');
+      var info = gl && gl.getExtension('WEBGL_debug_renderer_info');
+      var renderer = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+      var lose = gl && gl.getExtension('WEBGL_lose_context');
+      if (lose) lose.loseContext();
+      if (/Intel|AMD|Radeon|NVIDIA/i.test(renderer)) return 'mac-x64';
+    } catch (error) { /* no WebGL: keep the default */ }
+    return 'mac-arm64';
+  }
+  var detected = detectSystem();
+  // ?os=mac-arm64 (or windows, mac-x64, linux, mobile) shows the page as on that system.
+  var osParam = /[?&]os=([a-z0-9-]+)/.exec(location.search);
+  if (osParam && (SYSTEMS.indexOf(osParam[1]) >= 0 || osParam[1] === 'mobile')) detected = osParam[1];
+  // Chrome and Edge on a Mac can name the processor too.
+  if (!osParam && /^mac/.test(detected) && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+    navigator.userAgentData.getHighEntropyValues(['architecture']).then(function (values) {
+      if (values.architecture === 'arm') detected = 'mac-arm64';
+      else if (values.architecture === 'x86') detected = 'mac-x64';
+      chosenSystem = null;
+      renderDownloads();
+    }).catch(function () {});
+  }
+  var chosenSystem = null; // the system open in "Other versions"
+
+  // The system the big button serves: the visitor's own when there is a build for it
+  // (an Intel build also runs on Apple Silicon), otherwise Windows.
+  function mainSystem() {
+    var latest = (site && site.latest) || {};
+    var order = detected === 'mac-arm64' ? ['mac-arm64', 'mac-x64'] : [detected];
+    for (var i = 0; i < order.length; i++) if (latest[order[i]]) return order[i];
+    return 'windows';
+  }
+
+  function makeEl(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+  function sizeText(bytes, T) { return Math.round(bytes / 1048576) + T.mb; }
+  function dateText(iso) { return iso.split('-').reverse().join('.'); }
+
+  function renderDownloads() {
+    var lead = document.getElementById('dl-lead');
+    if (!lead) return;
     var english = document.documentElement.lang === 'en';
+    var T = DL_TEXT[english ? 'en' : 'ru'];
+    var system = mainSystem();
+    var group = /^mac/.test(system) ? 'mac' : system;
+    var main = site && site.latest ? site.latest[system] : null;
+
+    lead.textContent = detected === 'mobile' ? T.mobile
+      : (site && system !== detected && !(detected === 'mac-arm64' && system === 'mac-x64')) ? T.noBuild
+      : T.lead[group];
+    document.getElementById('dl-req').textContent = T.req[group];
+    var button = document.getElementById('download-second');
+    button.href = main ? main.url : 'dl.php?platform=' + system;
+    document.getElementById('dl-label').textContent = T.downloadFor + SYSTEM_SHORT[system];
+    document.getElementById('dl-version').textContent = main
+      ? versionText(main.version) + ' · ' + (main.channel === 'beta' ? T.beta : T.release) + ' · ' + sizeText(main.size, T)
+      : '';
+
+    var versions = (site && site.versions) || [];
+    var more = document.getElementById('dl-more');
+    var picker = document.getElementById('dl-picker');
+    more.hidden = !versions.length;
+    document.getElementById('dl-more-text').textContent = picker.hidden ? T.more : T.less;
+    if (!versions.length) return;
+
+    // System tabs: only systems that have builds; the main system is open first.
+    var present = SYSTEMS.filter(function (s) { return versions.some(function (v) { return v.platform === s; }); });
+    if (!chosenSystem || present.indexOf(chosenSystem) < 0) chosenSystem = present.indexOf(system) >= 0 ? system : present[0];
+    var tabs = document.getElementById('dl-systems');
+    while (tabs.firstChild) tabs.removeChild(tabs.firstChild);
+    tabs.hidden = present.length < 2;
+    present.forEach(function (s) {
+      var tab = makeEl('button', 'picker__system', SYSTEM_NAMES[s]);
+      tab.type = 'button';
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-selected', String(s === chosenSystem));
+      tab.addEventListener('click', function () { chosenSystem = s; renderDownloads(); });
+      tabs.appendChild(tab);
+    });
+
     var list = document.getElementById('versions-list');
     while (list.firstChild) list.removeChild(list.firstChild);
-    allVersions.forEach(function (v) {
-      var item = document.createElement('li');
-      var head = document.createElement('div');
-      head.className = 'versions__head';
-      var name = document.createElement('b');
-      name.textContent = versionText(v.version);
-      head.appendChild(name);
-      if (v.channel === 'beta') {
-        var tag = document.createElement('span');
-        tag.className = 'versions__tag';
-        tag.textContent = english ? 'beta' : 'бета';
-        head.appendChild(tag);
-      }
-      var meta = document.createElement('span');
-      meta.className = 'versions__meta';
-      var platform = PLATFORM_NAMES[v.platform] ? PLATFORM_NAMES[v.platform][english ? 1 : 0] : v.platform;
-      meta.textContent = platform + ' · ' + v.date.split('-').reverse().join('.') + ' · ' + (v.size / 1048576).toFixed(0) + (english ? ' MB' : ' МБ');
-      head.appendChild(meta);
-      var link = document.createElement('a');
-      link.className = 'btn btn--ghost versions__get';
+    var latestId = site.latest[chosenSystem] ? site.latest[chosenSystem].id : null;
+    versions.filter(function (v) { return v.platform === chosenSystem; }).forEach(function (v) {
+      var item = makeEl('li');
+      var head = makeEl('div', 'versions__head');
+      head.appendChild(makeEl('b', '', versionText(v.version)));
+      head.appendChild(makeEl('span', 'versions__tag' + (v.channel === 'beta' ? ' is-beta' : ''), v.channel === 'beta' ? T.beta : T.release));
+      if (v.id === latestId) head.appendChild(makeEl('span', 'versions__tag is-latest', T.latest));
+      head.appendChild(makeEl('span', 'versions__meta', dateText(v.date) + ' · ' + sizeText(v.size, T)));
+      var link = makeEl('a', 'btn btn--ghost versions__get', T.download);
       link.href = v.url;
-      link.textContent = english ? 'Download' : 'Скачать';
       head.appendChild(link);
       item.appendChild(head);
-      if (v.notes) {
-        var notes = document.createElement('p');
-        notes.className = 'versions__notes';
-        notes.textContent = v.notes;
-        item.appendChild(notes);
-      }
+      if (v.notes) item.appendChild(makeEl('p', 'versions__notes', v.notes));
       list.appendChild(item);
     });
-    document.getElementById('versions-count').textContent = '(' + allVersions.length + ')';
-    box.hidden = false;
   }
 
   var language = savedLanguage();
@@ -264,21 +362,21 @@
     if (!sessionStorage.getItem('amethyx.viewed')) { sessionStorage.setItem('amethyx.viewed', '1'); hit('view'); }
   } catch (error) { hit('view'); }
 
-  // The version line and the macOS links follow what the admin panel marks as latest.
+  // The version line and the download section follow the admin panel.
   if (window.fetch) {
-    fetch('api.php?a=site').then(function (res) { return res.ok ? res.json() : null; }).then(function (site) {
-      if (!site || !site.latest) return;
-      allVersions = site.versions || [];
+    fetch('api.php?a=site').then(function (res) { return res.ok ? res.json() : null; }).then(function (data) {
+      if (!data || !data.latest) return;
+      site = data;
       if (site.latest.windows) version = site.latest.windows.version;
       applyLanguage(language);
-      var mac = false;
-      ['mac-arm64', 'mac-x64'].forEach(function (platform) {
-        var link = document.getElementById('dl-' + platform);
-        if (site.latest[platform]) { link.hidden = false; mac = true; }
-      });
-      document.getElementById('download-mac').hidden = !mac;
     }).catch(function () { /* no server: keep the defaults */ });
   }
+  document.getElementById('dl-more').addEventListener('click', function () {
+    var picker = document.getElementById('dl-picker');
+    picker.hidden = !picker.hidden;
+    this.setAttribute('aria-expanded', String(!picker.hidden));
+    renderDownloads();
+  });
 
   // The logo in the top bar takes you to the very top (the bar is sticky, so "#top" alone
   // would not move the page); the hero's Download button glides down to the download section.

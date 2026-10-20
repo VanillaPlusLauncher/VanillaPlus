@@ -132,28 +132,28 @@
         <div class="download__card reveal">
           <img src="assets/logo.png" alt="" width="84" height="84" class="download__logo" />
           <h2 class="section__title" data-i18n="download.title">Скачать Amethyx</h2>
-          <p class="section__lead" data-i18n="download.lead">Установщик для Windows. Дальше лаунчер обновляется сам.</p>
+          <!-- script.js picks the visitor's system: the big button gives its newest build,
+               "Other versions" lists every build of every system (release and beta). -->
+          <p class="section__lead" id="dl-lead">Установщик для Windows. Дальше лаунчер обновляется сам.</p>
           <a class="btn btn--primary btn--big" id="download-second" href="dl.php?platform=windows">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>
-            <span data-i18n="hero.download">Скачать для Windows</span>
+            <span id="dl-label">Скачать для Windows</span>
           </a>
-          <!-- Shown when the admin panel has a macOS build. -->
-          <p class="download__mac" id="download-mac" hidden>
-            <span data-i18n="download.mac">Есть и для macOS (бета):</span>
-            <a id="dl-mac-arm64" href="dl.php?platform=mac-arm64" hidden>Apple Silicon</a>
-            <a id="dl-mac-x64" href="dl.php?platform=mac-x64" hidden>Intel</a>
-          </p>
+          <p class="dl__version" id="dl-version"></p>
+          <button class="btn btn--ghost dl__more" id="dl-more" type="button" aria-expanded="false" aria-controls="dl-picker" hidden>
+            <span id="dl-more-text">Другие версии</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+          <div class="picker" id="dl-picker" hidden>
+            <div class="picker__systems" id="dl-systems" role="tablist"></div>
+            <ul class="versions__list" id="versions-list"></ul>
+          </div>
           <ol class="steps">
             <li><b>1</b><span data-i18n="step1">Скачайте и запустите установщик</span></li>
             <li><b>2</b><span data-i18n="step2">Добавьте аккаунт: Microsoft, Ely.by или офлайн</span></li>
             <li><b>3</b><span data-i18n="step3">Создайте сборку или поставьте модпак — и играйте</span></li>
           </ol>
-          <p class="download__req" data-i18n="download.req">Windows 10 (1803 и новее) или Windows 11, 64 бита. Java лаунчер скачает сам.</p>
-          <!-- Every version from the admin panel (script.js fills it in). -->
-          <details class="versions" id="versions" hidden>
-            <summary><span data-i18n="versions.title">Все версии</span> <span class="versions__count" id="versions-count"></span></summary>
-            <ul class="versions__list" id="versions-list"></ul>
-          </details>
+          <p class="download__req" id="dl-req">Windows 10 (1803 и новее) или Windows 11, 64 бита. Java лаунчер скачает сам.</p>
           <p class="download__links">
             <a href="https://github.com/VanillaPlusLauncher/VanillaPlus/releases" target="_blank" rel="noopener" data-i18n="download.all">Все версии на GitHub</a> ·
             <a href="https://github.com/VanillaPlusLauncher/VanillaPlus/blob/main/CHANGELOG.ru.md" target="_blank" rel="noopener" id="changelog-link" data-i18n="download.changes">Что нового</a>
