@@ -5,12 +5,16 @@
 # The token comes from the admin panel ("Токены", amx_…) and stays on this computer: the
 # AMETHYX_SITE_TOKEN variable or installer\site-token.txt (ignored by git). It is never printed.
 #
+# -Version overrides the version the site reads from the file name (for an old build whose name
+# says too little, say "1.7-alpha" for the first 1.7.0 test build).
+#
 # Usage: .\publish-site.ps1 -File <Amethyx-Setup-1.7-beta.28.exe> [-Channel beta|release]
-#          [-Latest] [-Notes "что нового"] [-Site https://launcher.x-world.plus]
+#          [-Latest] [-Version 1.7-alpha] [-Notes "что нового"] [-Site https://launcher.x-world.plus]
 param(
   [Parameter(Mandatory)] [string]$File,
   [ValidateSet('', 'beta', 'release')] [string]$Channel = '',
   [switch]$Latest,
+  [string]$Version = '',
   [string]$Notes = '',
   [string]$Site = 'https://launcher.x-world.plus'
 )
@@ -52,6 +56,7 @@ Write-Output "SHA-256 $name…"
 $sha256 = (Get-FileHash $path -Algorithm SHA256).Hash.ToLower()
 $start = @{ name = $name; size = $size; channel = $Channel; latest = [bool]$Latest }
 if ($Notes) { $start.notes = $Notes }
+if ($Version) { $start.version = $Version }
 $begun = Send 'upload-start' (Json $start)
 if ($begun.status -ne 200 -or -not $begun.body.id) { Fail 'Загрузка не начата' $begun }
 $id = $begun.body.id
