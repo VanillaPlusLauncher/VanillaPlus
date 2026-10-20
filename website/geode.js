@@ -1,9 +1,9 @@
 /* The launcher's start screen in miniature: a 3×3 plate of budding amethyst, one block thick,
    turning slowly in the air. Crystals grow on it like a snake — from the outer edge round and
    round into the middle, each through small, medium and large bud to a cluster — then shrink
-   back stage by stage in the same order and grow again; sparkles blink around it. Same build and timings as the
-   launcher's components/splash.js, but all textures are drawn here: the site carries no files
-   from the game. */
+   back stage by stage in the same order and grow again; sparkles blink around it. Same build and
+   timings as the launcher's components/splash.js, with the game's own textures from assets/mc/
+   (on the site's server only, never in git); without them the textures are drawn here. */
 (function () {
   'use strict';
 
@@ -173,13 +173,46 @@
     })();
   }
 
+  /* The game's own textures, put on the site's server by hand (assets/mc/, never in git). When any
+     of them is missing — a copy of the site without them — the drawn stand-ins are used. */
+  var GAME_TEXTURES = 'assets/mc/';
+  var BLOCKS = ['amethyst_block', 'budding_amethyst'];
+  var STAGE_NAMES = ['small_amethyst_bud', 'medium_amethyst_bud', 'large_amethyst_bud', 'amethyst_cluster'];
+
+  function loadGameTextures(done) {
+    var names = BLOCKS.concat(STAGE_NAMES);
+    var left = names.length;
+    var failed = false;
+    var finished = false;
+    function finish() {
+      if (finished) return;
+      finished = true;
+      if (failed) { done(null); return; }
+      var textures = {};
+      BLOCKS.forEach(function (name) { textures[name] = GAME_TEXTURES + name + '.png'; });
+      done({ textures: textures, pictures: STAGE_NAMES.map(function (name) { return GAME_TEXTURES + name + '.png'; }) });
+    }
+    names.forEach(function (name) {
+      var image = new Image();
+      image.onload = function () { left -= 1; if (!left) finish(); };
+      image.onerror = function () { failed = true; finish(); };
+      image.src = GAME_TEXTURES + name + '.png';
+    });
+    setTimeout(function () { failed = failed || left > 0; finish(); }, 3000);
+  }
+
   function start(row) {
     if (!row) return;
-    var textures = {
-      amethyst_block: mottled(AMETHYST, 11, AMETHYST_LIGHT),
-      budding_amethyst: mottled(AMETHYST, 23, AMETHYST_LIGHT, '#26144f')
-    };
-    var pictures = [0, 1, 2, 3].map(crystal);
+    loadGameTextures(function (game) {
+      if (game) { build(row, game.textures, game.pictures); return; }
+      build(row, {
+        amethyst_block: mottled(AMETHYST, 11, AMETHYST_LIGHT),
+        budding_amethyst: mottled(AMETHYST, 23, AMETHYST_LIGHT, '#26144f')
+      }, [0, 1, 2, 3].map(crystal));
+    });
+  }
+
+  function build(row, textures, pictures) {
     var c = CELL;
 
     var float = document.createElement('div');

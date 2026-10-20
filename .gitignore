@@ -35,5 +35,9 @@ website/loader-demo.html
 # The site's promo videos carry the music: they go to the server, never to git
 website/assets/video/
 
+# The game's own textures for the site's start animation: from Mojang, so they go to the
+# site's server only, never to git (the owner's decision; geode.js draws stand-ins without them)
+website/assets/mc/
+
 # The site's database and unfinished uploads (created by the server, holds the admin's password hash)
 website/data/
