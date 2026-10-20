@@ -4,8 +4,8 @@ import { getMcManifest, hasBlock, mcUrl, onMcReady } from '../core/mc.js';
  * The start screen (its markup is in index.html, so it is there from the very first frame): the
  * launcher's X, its name, a plate of budding amethyst turning slowly in the air, and what is
  * loading with a bar. On the plate crystals grow like a snake: from its outer edge round and round
- * into the middle, each one through the game's stages (small bud, medium, large, cluster); when the
- * middle is reached they fall away in the same order and grow again. Sparkles blink around it.
+ * into the middle, each one through the game's stages (small bud, medium, large, cluster); then they
+ * shrink back through the same stages, the same way round, and grow again. Sparkles blink around it.
  * Meanwhile everything the launcher needs is fetched (the game's textures, instances, accounts,
  * fonts, news); when all of it is in, the screen fades and the launcher is ready.
  *
@@ -24,9 +24,8 @@ const STAGES = ['small_amethyst_bud', 'medium_amethyst_bud', 'large_amethyst_bud
 /** Each growth stage, in ms; the snake's head moves on to the next block every STEP_MS. */
 const STAGE_MS = 210;
 const STEP_MS = 260;
-/** The full plate stays a moment, the crystals fall away one by one, a short rest, again. */
+/** The full plate stays a moment, the crystals shrink back the same way, a short rest, again. */
 const HOLD_MS = 1300;
-const FALL_STEP_MS = 70;
 const REST_MS = 450;
 /** Shading by the side a face looks to: a light from above and the front. */
 const SHADE = { top: 1.06, south: 0.8, east: 0.9, north: 0.64, west: 0.72 };
@@ -101,40 +100,47 @@ function buildCrystal(slab, [x, y], turn) {
   return { grow, sprites };
 }
 
-/** One crystal through its stages, with a little pop at each. */
-function growCrystal({ grow, sprites }, alive) {
-  let stage = 0;
-  const step = () => {
-    if (!alive()) return;
-    const url = mcUrl(`block/${STAGES[stage]}.png`);
-    for (const sprite of sprites) sprite.style.backgroundImage = `url("${url}")`;
-    grow.classList.remove('geode__grow--gone', 'geode__grow--pop');
-    void grow.offsetWidth; // restart the pop of a new stage
-    grow.classList.add('geode__grow--pop');
-    stage += 1;
-    if (stage < STAGES.length) setTimeout(step, STAGE_MS);
-  };
-  step();
+/** Shows one stage of a crystal (-1: none) with a little pop. */
+function showStage({ grow, sprites }, stage) {
+  if (stage < 0) {
+    grow.classList.add('geode__grow--gone');
+    return;
+  }
+  const url = mcUrl(`block/${STAGES[stage]}.png`);
+  for (const sprite of sprites) sprite.style.backgroundImage = `url("${url}")`;
+  grow.classList.remove('geode__grow--gone', 'geode__grow--pop');
+  void grow.offsetWidth; // restart the pop of a new stage
+  grow.classList.add('geode__grow--pop');
 }
 
-/** The snake: crystals grow block after block into the middle, fall away in the same order, again. */
+/** One crystal through its stages: up to a cluster, or (shrink) back down to nothing. */
+function stepCrystal(crystal, shrink, alive) {
+  const stages = shrink ? [2, 1, 0, -1] : [0, 1, 2, 3];
+  stages.forEach((stage, index) =>
+    setTimeout(() => {
+      if (alive()) showStage(crystal, stage);
+    }, index * STAGE_MS),
+  );
+}
+
+/**
+ * The snake: crystals grow block after block into the middle; after a moment they shrink back
+ * through the same stages, block after block the same way round, and it starts again.
+ */
 function snakeLoop(crystals, alive) {
+  const run = (shrink) => crystals.forEach((crystal, index) => setTimeout(() => stepCrystal(crystal, shrink, alive), index * STEP_MS));
+  const snake = (crystals.length - 1) * STEP_MS + STAGES.length * STAGE_MS;
   const cycle = () => {
     if (!alive()) return;
-    crystals.forEach((crystal, index) => setTimeout(() => growCrystal(crystal, alive), index * STEP_MS));
-    const grown = (crystals.length - 1) * STEP_MS + STAGES.length * STAGE_MS;
+    run(false);
     setTimeout(() => {
-      crystals.forEach((crystal, index) =>
-        setTimeout(() => {
-          if (alive()) crystal.grow.classList.add('geode__grow--gone');
-        }, index * FALL_STEP_MS),
-      );
-      setTimeout(cycle, crystals.length * FALL_STEP_MS + REST_MS);
-    }, grown + HOLD_MS);
+      if (!alive()) return;
+      run(true);
+      setTimeout(cycle, snake + REST_MS);
+    }, snake + HOLD_MS);
   };
   cycle();
 }
-
 /** Little four-pointed sparkles that blink here and there around the plate. */
 function sparkleLoop(row, alive) {
   const spawn = () => {

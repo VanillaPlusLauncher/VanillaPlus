@@ -57,7 +57,7 @@
 - Fixed: after opening the Wardrobe several times the player on the home screen turned into a white box (the 3D views were not released)
 - Fixed: NameMC sometimes reported an error before the skin came in (its Cloudflare check reloads the page); its 3D picture is no longer taken for a skin
 - The Wardrobe has five places: your main skin (never written over) and four slots; a new skin goes into the slot you are looking at
-- A start screen: the X, the name and a 3×3 plate of budding amethyst turning in the air, on which crystals grow like a snake, from the edge round into the middle, from a small bud to a cluster, then fall away and grow again (only the game's own textures; on the very first start, before they are downloaded, the plate is a plain glow), sparkles blink, while everything is loaded at once (the game's textures, instances, accounts, fonts, news); the launcher opens ready
+- A start screen: the X, the name and a 3×3 plate of budding amethyst turning in the air, on which crystals grow like a snake, from the edge round into the middle, from a small bud to a cluster, then shrink back through the same stages and grow again (only the game's own textures; on the very first start, before they are downloaded, the plate is a plain glow), sparkles blink, while everything is loaded at once (the game's textures, instances, accounts, fonts, news); the launcher opens ready
 - "Loading" everywhere is the launcher's X; mods without a picture get one from CurseForge or Modrinth by their name (BadOptimizations, for example)
 - Installing several mods sounds once at the start and once when all are done
 - Home: "All instances" and "minecraft.net" readable over any panorama; a recent instance opens with a click (the one Home plays is chosen in the play bar)
