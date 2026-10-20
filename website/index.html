@@ -44,7 +44,7 @@
           <h1 class="hero__title">Amethy<span class="x">x</span> Launcher</h1>
           <p class="hero__subtitle" data-i18n="hero.subtitle">Лаунчер Minecraft с модами, скинами и друзьями — красивый, быстрый и бесплатный.</p>
           <div class="hero__actions">
-            <a class="btn btn--primary" id="download-main" href="downloads/Amethyx-Setup.exe" download>
+            <a class="btn btn--primary" id="download-main" href="dl.php?platform=windows">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>
               <span data-i18n="hero.download">Скачать для Windows</span>
             </a>
@@ -132,10 +132,16 @@
           <img src="assets/logo.png" alt="" width="84" height="84" class="download__logo" />
           <h2 class="section__title" data-i18n="download.title">Скачать Amethyx</h2>
           <p class="section__lead" data-i18n="download.lead">Установщик для Windows. Дальше лаунчер обновляется сам.</p>
-          <a class="btn btn--primary btn--big" id="download-second" href="downloads/Amethyx-Setup.exe" download>
+          <a class="btn btn--primary btn--big" id="download-second" href="dl.php?platform=windows">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>
             <span data-i18n="hero.download">Скачать для Windows</span>
           </a>
+          <!-- Shown when the admin panel has a macOS build. -->
+          <p class="download__mac" id="download-mac" hidden>
+            <span data-i18n="download.mac">Есть и для macOS (бета):</span>
+            <a id="dl-mac-arm64" href="dl.php?platform=mac-arm64" hidden>Apple Silicon</a>
+            <a id="dl-mac-x64" href="dl.php?platform=mac-x64" hidden>Intel</a>
+          </p>
           <ol class="steps">
             <li><b>1</b><span data-i18n="step1">Скачайте и запустите установщик</span></li>
             <li><b>2</b><span data-i18n="step2">Добавьте аккаунт: Microsoft, Ely.by или офлайн</span></li>
@@ -179,6 +185,18 @@
     <div class="player" id="player" hidden>
       <button class="lightbox__close" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
       <video controls playsinline preload="none" poster="assets/video/promo-poster.webp"></video>
+    </div>
+
+    <!-- The owner's entrance: five quick clicks on the X logo open it. The login is checked on the server. -->
+    <div class="owner" id="owner" hidden>
+      <form class="owner__card" id="owner-form" autocomplete="on">
+        <button class="lightbox__close" type="button" id="owner-close" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
+        <h2 class="owner__title">Вход</h2>
+        <label>Логин<input name="login" autocomplete="username" required /></label>
+        <label>Пароль<input name="password" type="password" autocomplete="current-password" required /></label>
+        <p class="owner__error" id="owner-error" role="alert"></p>
+        <button class="btn btn--primary" type="submit">Войти</button>
+      </form>
     </div>
 
     <script src="geode.js"></script>

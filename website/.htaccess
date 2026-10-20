@@ -1,0 +1,20 @@
+# Amethyx site (Apache). The page is index.html; the server code lives in lib/ and the
+# database in data/ — neither may be opened from the browser.
+DirectoryIndex index.html
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(lib|data)(/|$) - [F,L]
+  # Pass the API token through to PHP on hostings that drop the Authorization header.
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  <FilesMatch "\.(exe|zip|dmg)$">
+    Header set Content-Disposition "attachment"
+  </FilesMatch>
+</IfModule>

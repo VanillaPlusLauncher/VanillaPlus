@@ -32,3 +32,6 @@ website/loader-demo.html
 
 # The site's promo videos carry the music: they go to the server, never to git
 website/assets/video/
+
+# The site's database and unfinished uploads (created by the server, holds the admin's password hash)
+website/data/

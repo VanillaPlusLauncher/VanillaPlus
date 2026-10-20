@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Amethyx — админка</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tiny5&display=swap" />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body class="adm">
+    <header class="topbar adm__top">
+      <a class="brand" href="../" aria-label="На сайт">
+        <img src="../assets/logo.png" alt="" width="34" height="34" />
+        <span class="brand__name">Amethy<span class="x">x</span></span>
+      </a>
+      <span class="adm__badge">админка</span>
+      <div class="topbar__end">
+        <span class="adm__who" id="who" hidden></span>
+        <button class="btn btn--ghost adm__small" id="logout" type="button" hidden>Выйти</button>
+      </div>
+    </header>
+
+    <main class="adm__main">
+      <!-- Logging in, or creating the admin on the very first visit -->
+      <section class="adm__card adm__auth" id="auth" hidden>
+        <h1 class="adm__title" id="auth-title">Вход</h1>
+        <p class="adm__lead" id="auth-lead">Только для владельца сайта.</p>
+        <form id="auth-form" autocomplete="on">
+          <label class="adm__field">Логин<input name="login" autocomplete="username" required minlength="3" maxlength="32" /></label>
+          <label class="adm__field">Пароль<input name="password" type="password" autocomplete="current-password" required /></label>
+          <label class="adm__field" id="auth-repeat" hidden>Пароль ещё раз<input name="repeat" type="password" autocomplete="new-password" /></label>
+          <p class="adm__error" id="auth-error" role="alert"></p>
+          <button class="btn btn--primary" type="submit" id="auth-submit">Войти</button>
+        </form>
+      </section>
+
+      <div id="panel" hidden>
+        <nav class="adm__tabs" role="tablist">
+          <button type="button" role="tab" data-tab="stats" aria-selected="true">Статистика</button>
+          <button type="button" role="tab" data-tab="versions" aria-selected="false">Версии</button>
+          <button type="button" role="tab" data-tab="tokens" aria-selected="false">Токены</button>
+          <button type="button" role="tab" data-tab="account" aria-selected="false">Пароль</button>
+        </nav>
+
+        <!-- Statistics -->
+        <section class="adm__tab" id="tab-stats">
+          <div class="adm__row">
+            <h2 class="adm__h">Статистика</h2>
+            <label class="adm__inline">Период
+              <select id="days"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option><option value="365">год</option></select>
+            </label>
+          </div>
+          <div class="adm__tiles" id="tiles"></div>
+          <div class="adm__charts" id="charts"></div>
+          <details class="adm__table-wrap">
+            <summary>Таблица по дням</summary>
+            <div class="adm__scroll"><table class="adm__table" id="stats-table"></table></div>
+          </details>
+          <p class="adm__note">Считаются только числа: без адресов, cookies и сторонних счётчиков. Просмотр страницы засчитывается один раз за визит.</p>
+        </section>
+
+        <!-- Versions -->
+        <section class="adm__tab" id="tab-versions" hidden>
+          <h2 class="adm__h">Загрузить сборку</h2>
+          <form class="adm__card adm__upload" id="upload-form">
+            <label class="adm__drop" id="drop">
+              <input type="file" id="upload-file" accept=".exe,.zip,.dmg,.msi,.msix,.appimage,.deb,.rpm" />
+              <span id="drop-text">Перетащите файл сюда или нажмите, чтобы выбрать</span>
+            </label>
+            <div class="adm__grid">
+              <label class="adm__field">Версия<input id="upload-version" placeholder="1.7.0" maxlength="40" /></label>
+              <label class="adm__field">Платформа
+                <select id="upload-platform">
+                  <option value="">определить по файлу</option>
+                  <option value="windows">Windows</option>
+                  <option value="mac-arm64">macOS (Apple Silicon)</option>
+                  <option value="mac-x64">macOS (Intel)</option>
+                  <option value="linux">Linux</option>
+                </select>
+              </label>
+            </div>
+            <label class="adm__field">Что нового<textarea id="upload-notes" rows="3" maxlength="5000"></textarea></label>
+            <div class="adm__checks">
+              <label><input type="checkbox" id="upload-beta" /> Бета</label>
+              <label><input type="checkbox" id="upload-latest" checked /> Сделать последней (её дают кнопки «Скачать»)</label>
+            </div>
+            <div class="adm__progress" id="upload-progress" hidden><span></span></div>
+            <p class="adm__error" id="upload-error" role="alert"></p>
+            <div class="adm__row">
+              <button class="btn btn--primary" type="submit" id="upload-submit">Загрузить</button>
+              <button class="btn btn--ghost" type="button" id="upload-cancel" hidden>Отменить</button>
+            </div>
+          </form>
+
+          <div class="adm__row">
+            <h2 class="adm__h">Все версии</h2>
+            <button class="btn btn--ghost adm__small" type="button" id="import">Найти файлы в downloads</button>
+          </div>
+          <div class="adm__versions" id="versions"></div>
+        </section>
+
+        <!-- Tokens -->
+        <section class="adm__tab" id="tab-tokens" hidden>
+          <h2 class="adm__h">Токены для загрузки</h2>
+          <p class="adm__lead">Токен позволяет загружать сборки скриптом, без входа: например, из <code>build.ps1</code>. Он виден только один раз — сохраните его у себя и никому не показывайте. Если токен утёк, удалите его.</p>
+          <form class="adm__row adm__card" id="token-form">
+            <label class="adm__field adm__grow">Название<input id="token-name" placeholder="Мой компьютер" maxlength="60" /></label>
+            <button class="btn btn--primary" type="submit">Создать токен</button>
+          </form>
+          <div class="adm__card adm__secret" id="token-new" hidden>
+            <p>Новый токен (больше он не покажется):</p>
+            <code id="token-value"></code>
+            <button class="btn btn--ghost adm__small" type="button" id="token-copy">Скопировать</button>
+          </div>
+          <div id="tokens"></div>
+        </section>
+
+        <!-- Account -->
+        <section class="adm__tab" id="tab-account" hidden>
+          <h2 class="adm__h">Сменить пароль</h2>
+          <form class="adm__card adm__narrow" id="password-form">
+            <label class="adm__field">Текущий пароль<input name="old" type="password" autocomplete="current-password" required /></label>
+            <label class="adm__field">Новый пароль<input name="new" type="password" autocomplete="new-password" required minlength="10" /></label>
+            <label class="adm__field">Новый пароль ещё раз<input name="repeat" type="password" autocomplete="new-password" required /></label>
+            <p class="adm__error" id="password-error" role="alert"></p>
+            <button class="btn btn--primary" type="submit">Сменить</button>
+          </form>
+          <p class="adm__note" id="limits"></p>
+        </section>
+      </div>
+    </main>
+
+    <div class="adm__tip" id="tip" role="tooltip" hidden></div>
+    <div class="adm__toast" id="toast" role="status" hidden></div>
+    <script src="admin.js"></script>
+  </body>
+</html>

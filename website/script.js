@@ -43,7 +43,8 @@
     'step1': 'Download and run the installer',
     'step2': 'Add an account: Microsoft, Ely.by or offline',
     'step3': 'Create an instance or install a modpack — and play',
-    'download.req': 'Windows 10 (1803 or newer) or Windows 11, 64-bit. The launcher downloads Java by itself.',
+    'download.mac': 'Also for macOS (beta):',
+    'download.req':'Windows 10 (1803 or newer) or Windows 11, 64-bit. The launcher downloads Java by itself.',
     'download.all': 'All versions on GitHub',
     'download.changes': 'What’s new',
     'faq.title': 'FAQ',
@@ -61,7 +62,7 @@
   };
 
   var STORE_KEY = 'amethyx.site.lang';
-  var VERSION = '1.7.0';
+  var version = '1.7.0'; // replaced by the latest Windows build from the admin panel (api.php)
   var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-i18n]'));
   var russian = {};
   nodes.forEach(function (node) { russian[node.getAttribute('data-i18n')] = node.textContent; });
@@ -91,7 +92,7 @@
         ? 'A free Minecraft: Java Edition launcher for Windows. Modded instances, Modrinth and CurseForge, a skin wardrobe, friends and chat, your own server, one-click optimization.'
         : descriptionRu;
     }
-    document.getElementById('version-line').textContent = (english ? 'Version ' : 'Версия ') + VERSION;
+    document.getElementById('version-line').textContent = (english ? 'Version ' : 'Версия ') + version;
     document.getElementById('changelog-link').href =
       'https://github.com/VanillaPlusLauncher/VanillaPlus/blob/main/' + (english ? 'CHANGELOG.md' : 'CHANGELOG.ru.md');
     var lang = document.getElementById('lang');
@@ -181,6 +182,7 @@
     playerVideo.volume = 0.6;
     var started = playerVideo.play();
     if (started && started.catch) started.catch(function () { /* the controls are there to start it */ });
+    hit('video');
   });
   player.addEventListener('click', function (event) { if (event.target !== playerVideo) closePlayer(); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape') closePlayer(); });
@@ -191,6 +193,72 @@
       video.pause();
     });
   }
+
+  // ---- The site's server (api.php): latest builds, visit counters, the owner's entrance ----
+  // Without PHP (a plain preview) all of this quietly does nothing and the page still works.
+
+  // Counters keep only numbers per day; a page view is counted once per visit.
+  function hit(kind) {
+    var body = JSON.stringify({ kind: kind });
+    try {
+      if (navigator.sendBeacon && navigator.sendBeacon('api.php?a=hit', body)) return;
+      fetch('api.php?a=hit', { method: 'POST', body: body, keepalive: true }).catch(function () {});
+    } catch (error) { /* counting is optional */ }
+  }
+  try {
+    if (!sessionStorage.getItem('amethyx.viewed')) { sessionStorage.setItem('amethyx.viewed', '1'); hit('view'); }
+  } catch (error) { hit('view'); }
+
+  // The version line and the macOS links follow what the admin panel marks as latest.
+  if (window.fetch) {
+    fetch('api.php?a=site').then(function (res) { return res.ok ? res.json() : null; }).then(function (site) {
+      if (!site || !site.latest) return;
+      if (site.latest.windows) { version = site.latest.windows.version; applyLanguage(language); }
+      var mac = false;
+      ['mac-arm64', 'mac-x64'].forEach(function (platform) {
+        var link = document.getElementById('dl-' + platform);
+        if (site.latest[platform]) { link.hidden = false; mac = true; }
+      });
+      document.getElementById('download-mac').hidden = !mac;
+    }).catch(function () { /* no server: keep the defaults */ });
+  }
+
+  // Five quick clicks on the X logo open the owner's login; the server checks it.
+  var owner = document.getElementById('owner');
+  var ownerForm = document.getElementById('owner-form');
+  var ownerError = document.getElementById('owner-error');
+  var logoClicks = [];
+  function closeOwner() { owner.hidden = true; ownerForm.reset(); ownerError.textContent = ''; }
+  function openOwner() {
+    fetch('api.php?a=me', { credentials: 'same-origin' }).then(function (res) { return res.json(); }).then(function (me) {
+      if (me.admin || me.setup) { location.href = 'admin/'; return; }
+      owner.hidden = false;
+      ownerForm.login.focus();
+    }).catch(function () { /* no server, no entrance */ });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.brand img, .hero__mark img'), function (logo) {
+    logo.addEventListener('click', function () {
+      var now = Date.now();
+      logoClicks = logoClicks.filter(function (t) { return now - t < 3000; });
+      logoClicks.push(now);
+      if (logoClicks.length >= 5) { logoClicks = []; openOwner(); }
+    });
+  });
+  document.getElementById('owner-close').addEventListener('click', closeOwner);
+  owner.addEventListener('click', function (event) { if (event.target === owner) closeOwner(); });
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && !owner.hidden) closeOwner(); });
+  ownerForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    ownerError.textContent = '';
+    fetch('api.php?a=login', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-Amethyx': '1' },
+      body: JSON.stringify({ login: ownerForm.login.value.trim(), password: ownerForm.password.value })
+    }).then(function (res) {
+      if (res.ok) { location.href = 'admin/'; return; }
+      ownerError.textContent = res.status === 429 ? 'Слишком много попыток. Подождите 15 минут.' : 'Неверный логин или пароль.';
+    }).catch(function () { ownerError.textContent = 'Сервер не отвечает.'; });
+  });
 
   // The launcher's start screen in miniature: the turning amethyst geode (geode.js).
   if (window.AmethyxGeode) window.AmethyxGeode.start(document.getElementById('puzzle'));
