@@ -71,6 +71,7 @@
 - Switching the loader from Vanilla to Fabric did nothing; affected instances repair themselves
 - Settings sometimes were not saved (EPERM) while an antivirus held the file
 - In other languages the start screen's steps ("3D models…") and the dates of Minecraft news stayed in Russian
+- Friends: a stray "null" under your name when your account has no code
 
 ## 1.3.1 — 2026-10-19
 

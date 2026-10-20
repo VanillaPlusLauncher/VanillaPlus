@@ -175,7 +175,7 @@ export function createFriendsPage() {
     meHost.replaceChildren(
       h('p', { class: 'text-soft' }, h('span', null, 'Вы:'), ' ', h('b', { 'data-i18n': 'off' }, nameOf(data.me)), ' · ', h('span', null, KIND_LABELS[data.me.ns])),
       // A popular offline name (Steve, Alex…) was taken before: friends need the code too.
-      data.me.tag ? h('p', { class: 'text-muted friends-tag-note' }, `Ник ${data.me.name} уже был занят, поэтому у вас есть код. Друзья добавляют вас так: ${nameOf(data.me)}`) : null,
+      ...(data.me.tag ? [h('p', { class: 'text-muted friends-tag-note' }, `Ник ${data.me.name} уже был занят, поэтому у вас есть код. Друзья добавляют вас так: ${nameOf(data.me)}`)] : []),
     );
     const order = (user) => (user.online ? (user.presence?.status === 'playing' ? 0 : 1) : 2);
     const friends = [...data.friends].sort((a, b) => order(a) - order(b) || a.name.localeCompare(b.name));
