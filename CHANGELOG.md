@@ -41,6 +41,7 @@
 ### Launcher
 - A short tutorial on the first start (after the language question): the account, Play, Instances, Library, Friends, the Wardrobe and Settings are lit up one by one with a few plain words about each. Nothing to choose; "Skip" ends it. It can be shown again in Settings → "Launcher"
 - The installer is dark like the launcher, with screenshots of the current look
+- Updates come from the launcher's site (launcher.x-world.plus/updates/latest.json) and from GitHub: both are checked, the newest version wins, either one being down does not stop updates. A launcher on a test build also gets new test builds from the site (updates/beta.json)
 - Test builds have their own number, 1.7.0-beta.N (shown as "v1.7.0 β26" under the logo), so every build can be told apart; the released 1.7.0 counts as newer than all of them
 - A first macOS build (Apple Silicon and Intel, `installer/build-mac.ps1`, made on Windows): Java for macOS from the same vendors (Mojang's runtimes included), the system's Java found in /Library/Java, world backups with the system tar. Not signed by Apple yet; updates on macOS are by hand for now
 - A new pixel-cut look: buttons, panels, fields, switches and cards have corners cut by one pixel step instead of rounded ones; buttons are solid raised blocks (a light strip on top, a darker one at the bottom) that press down when clicked, the main one in the theme colour with light specks. The Friends panel is wider so the account switch fits

@@ -27,6 +27,13 @@ const { getSettings } = require('../settings/settingsService');
 
 /** The built-in address of latest.json: the asset of the newest release on GitHub. */
 const DEFAULT_FEED_URL = 'https://github.com/VanillaPlusLauncher/VanillaPlus/releases/latest/download/latest.json';
+/**
+ * The site's own feeds (its admin panel publishes them, same format): the released version, and
+ * the newest test build for those who already run a beta. Both sources are asked, the newest
+ * version wins, and one being down does not stop updates from the other.
+ */
+const SITE_FEED_URL = 'https://launcher.x-world.plus/updates/latest.json';
+const SITE_BETA_FEED_URL = 'https://launcher.x-world.plus/updates/beta.json';
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const FIRST_CHECK_DELAY_MS = 8000;
 const log = createLogger('updates');
@@ -74,8 +81,23 @@ function compareVersions(a, b) {
   return 0;
 }
 
-function feedUrl(settings) {
-  return settings.updates?.feedUrl || process.env.AMETHYX_UPDATE_FEED || DEFAULT_FEED_URL;
+/** Where to look: one address set by hand (settings or AMETHYX_UPDATE_FEED), else the site and GitHub. */
+function feedUrls(settings) {
+  const custom = settings.updates?.feedUrl || process.env.AMETHYX_UPDATE_FEED;
+  if (custom) return [custom];
+  const beta = /-beta\b/i.test(app.getVersion());
+  return [SITE_FEED_URL, ...(beta ? [SITE_BETA_FEED_URL] : []), DEFAULT_FEED_URL];
+}
+
+/** The newest version any feed offers; fails only when every feed failed. */
+async function readNewestFeed(urls) {
+  const results = await Promise.allSettled(urls.map((url) => readFeed(url).then((feed) => ({ ...feed, source: url }))));
+  const found = results.filter((result) => result.status === 'fulfilled').map((result) => result.value);
+  for (const result of results) {
+    if (result.status === 'rejected') log.info(`Источник обновлений не ответил: ${result.reason?.message ?? result.reason}`);
+  }
+  if (found.length === 0) throw results.find((result) => result.status === 'rejected')?.reason ?? new Error('Нет источников обновлений.');
+  return found.reduce((best, feed) => (compareVersions(feed.version, best.version) > 0 ? feed : best));
 }
 
 function updatesDirectory() {
@@ -120,9 +142,9 @@ function sha256File(filePath) {
  */
 async function checkForUpdates({ manual = false } = {}) {
   const settings = await getSettings();
-  const url = feedUrl(settings);
+  const urls = feedUrls(settings);
   // Updates come as a Windows installer: other systems update by hand for now.
-  if (!url || process.platform !== 'win32') {
+  if (urls.length === 0 || process.platform !== 'win32') {
     setStatus({ state: 'disabled', error: null });
     return publicStatus();
   }
@@ -131,7 +153,7 @@ async function checkForUpdates({ manual = false } = {}) {
   }
   setStatus({ state: 'checking', error: null });
   try {
-    const latest = await readFeed(url);
+    const latest = await readNewestFeed(urls);
     const checkedAt = new Date().toISOString();
     if (compareVersions(latest.version, app.getVersion()) <= 0) {
       setStatus({ state: 'latest', latest, checkedAt });
