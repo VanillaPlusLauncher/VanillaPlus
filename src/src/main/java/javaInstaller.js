@@ -10,6 +10,7 @@ const { createLogger } = require('../core/logger');
 const { getAppPaths } = require('../core/paths');
 const { probeJavaExecutable } = require('./javaDetector');
 const { VENDORS, mojangComponent } = require('./javaVendors');
+const { IS_WINDOWS, IS_MAC, JAVA_BINARY, javaIn, PLATFORM } = require('./javaPlatform');
 
 const DEFAULT_VENDOR = 'temurin';
 const { parallelDownloads } = require('../core/downloadConfig');
@@ -17,26 +18,26 @@ const log = createLogger('java-installer');
 
 /** Adoptium (Eclipse Temurin) redirects to the latest GA JDK archive for the given major version. */
 function adoptiumDownloadUrl(majorVersion) {
-  return `https://api.adoptium.net/v3/binary/latest/${majorVersion}/ga/windows/x64/jdk/hotspot/normal/eclipse?project=jdk`;
+  return `https://api.adoptium.net/v3/binary/latest/${majorVersion}/ga/${PLATFORM.os}/${PLATFORM.arch}/jdk/hotspot/normal/eclipse?project=jdk`;
 }
 
 /**
- * Absolute path to the bsdtar that ships with Windows 10+. A bare "tar.exe" could
- * resolve to GNU tar from Git for Windows, which cannot read zip archives.
+ * Absolute path to the bsdtar that ships with the system (Windows 10+, macOS). A bare "tar.exe"
+ * could resolve to GNU tar from Git for Windows, which cannot read zip archives.
  */
-function windowsTarPath() {
-  return path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
+function systemTarPath() {
+  return IS_WINDOWS ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : '/usr/bin/tar';
 }
 
 /**
- * Unpacks a zip with the bsdtar that ships with Windows 10+.
+ * Unpacks the JDK archive (zip or tar.gz: bsdtar tells them apart itself).
  * Runs inside the archive's folder with relative names: bsdtar reads "C:" in a
  * path as a remote host, so absolute Windows paths must not be passed to it.
  */
 function runTarExtract(archivePath, targetDirectory) {
   return new Promise((resolve, reject) => {
     const child = spawn(
-      windowsTarPath(),
+      systemTarPath(),
       ['-xf', path.basename(archivePath), '-C', path.basename(targetDirectory)],
       { cwd: path.dirname(archivePath), windowsHide: true },
     );
@@ -49,21 +50,25 @@ function runTarExtract(archivePath, targetDirectory) {
   });
 }
 
-/** Finds the JDK root inside an extracted archive (the folder that contains bin\java.exe). */
+/**
+ * Finds the Java home inside an extracted archive: the folder with bin/java(.exe). On macOS the
+ * JDKs are bundles (jdk-21.jdk/Contents/Home), and their Home is what is kept.
+ */
 async function findJdkRoot(extractedDirectory) {
   const entries = await fsp.readdir(extractedDirectory, { withFileTypes: true });
   for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
     const candidate = path.join(extractedDirectory, entry.name);
-    if (entry.isDirectory()) {
+    for (const home of [candidate, path.join(candidate, 'Contents', 'Home')]) {
       try {
-        await fsp.access(path.join(candidate, 'bin', 'java.exe'));
-        return candidate;
+        await fsp.access(javaIn(home));
+        return home;
       } catch {
         // Keep looking.
       }
     }
   }
-  throw new Error('В архиве Java не найден bin\\java.exe.');
+  throw new Error(`В архиве Java не найден bin/${JAVA_BINARY}.`);
 }
 
 /** Folder of a managed runtime. Temurin keeps the historical name "java-<major>". */
@@ -83,7 +88,7 @@ const pendingInstalls = new Map();
 function installJava(majorVersion, options = {}) {
   const vendor = VENDORS[options.vendor] ? options.vendor : DEFAULT_VENDOR;
   if (!VENDORS[vendor].majors.includes(majorVersion)) {
-    return Promise.reject(new Error(`${VENDORS[vendor].label} не выпускает Java ${majorVersion} для Windows.`));
+    return Promise.reject(new Error(`${VENDORS[vendor].label} не выпускает Java ${majorVersion} для ${PLATFORM.label}.`));
   }
   const key = `${vendor}:${majorVersion}`;
   const pending = pendingInstalls.get(key);
@@ -98,7 +103,7 @@ function installJava(majorVersion, options = {}) {
 }
 
 async function probeInstalled(targetDirectory, label) {
-  const runtime = await probeJavaExecutable(path.join(targetDirectory, 'bin', 'java.exe'));
+  const runtime = await probeJavaExecutable(javaIn(targetDirectory));
   if (!runtime) {
     throw new Error(`Установленная ${label} не запускается.`);
   }
@@ -108,7 +113,7 @@ async function probeInstalled(targetDirectory, label) {
 
 async function downloadAndUnpack(vendor, majorVersion, { onProgress } = {}) {
   const { runtimesDirectory, tempDirectory } = getAppPaths();
-  const archivePath = path.join(tempDirectory, `${vendor}-${majorVersion}.zip`);
+  const archivePath = path.join(tempDirectory, `${vendor}-${majorVersion}.${PLATFORM.archive}`);
   const extractDirectory = path.join(tempDirectory, `${vendor}-${majorVersion}-extract`);
   const targetDirectory = runtimeDirectory(vendor, majorVersion);
   const label = `${VENDORS[vendor].label} ${majorVersion}`;
@@ -151,7 +156,12 @@ async function installMojang(majorVersion, { onProgress } = {}) {
   await fsp.rm(staging, { recursive: true, force: true });
   log.info(`Загрузка Java ${component.version} от Mojang (${component.name})`);
 
-  const entries = Object.entries(manifest.files ?? {});
+  // On macOS the runtime is a bundle (jre.bundle/Contents/Home/…): only its Home is kept, so every
+  // runtime folder looks the same (bin/java inside).
+  const MAC_HOME = 'jre.bundle/Contents/Home/';
+  const entries = Object.entries(manifest.files ?? {})
+    .map(([relative, entry]) => [IS_MAC ? (relative.startsWith(MAC_HOME) ? relative.slice(MAC_HOME.length) : null) : relative, entry])
+    .filter(([relative]) => relative);
   for (const [relative, entry] of entries) {
     if (entry.type === 'directory') {
       await fsp.mkdir(path.join(staging, ...relative.split('/')), { recursive: true });
@@ -161,10 +171,20 @@ async function installMojang(majorVersion, { onProgress } = {}) {
   let done = 0;
   await runWithConcurrency(files, parallelDownloads(), async ([relative, entry]) => {
     const raw = entry.downloads.raw;
-    await downloadFile(raw.url, path.join(staging, ...relative.split('/')), { sha1: raw.sha1, size: raw.size });
+    const target = path.join(staging, ...relative.split('/'));
+    await downloadFile(raw.url, target, { sha1: raw.sha1, size: raw.size });
+    // Downloads come without the "executable" bit macOS needs for bin/java and friends.
+    if (entry.executable && !IS_WINDOWS) await fsp.chmod(target, 0o755);
     done += 1;
     onProgress?.(done / files.length);
   });
+  for (const [relative, entry] of entries) {
+    if (entry.type === 'link' && entry.target && !IS_WINDOWS) {
+      const target = path.join(staging, ...relative.split('/'));
+      await fsp.mkdir(path.dirname(target), { recursive: true });
+      await fsp.symlink(entry.target, target).catch(() => {});
+    }
+  }
 
   await fsp.rm(targetDirectory, { recursive: true, force: true });
   await fsp.rename(staging, targetDirectory);
@@ -183,7 +203,7 @@ async function removeManagedJava(javaPath) {
   log.info(`Java удалена: ${runtimeRoot}`);
 }
 
-/** True for a java.exe inside the launcher's runtimes folder. */
+/** True for a java(.exe) inside the launcher's runtimes folder. */
 function isManagedJava(javaPath) {
   const root = path.resolve(getAppPaths().runtimesDirectory);
   return path.dirname(path.resolve(path.dirname(path.dirname(javaPath)))) === root;

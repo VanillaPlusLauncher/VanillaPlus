@@ -10,8 +10,8 @@ const { SerialQueue } = require('../core/serialQueue');
  * World backups of an instance: zip archives in <instance>/.amethyx/backups with an index.
  * Made by hand or automatically before risky changes (mod updates, another Minecraft version);
  * restoring keeps a copy of the current world first, so a restore can itself be undone.
- * Archives are written by the bsdtar that ships with Windows, in its own process: big worlds do
- * not freeze the launcher.
+ * Archives are written by the bsdtar that ships with the system (Windows, macOS), in its own
+ * process: big worlds do not freeze the launcher.
  */
 
 const AUTO_KEEP = 5;
@@ -24,7 +24,7 @@ function backupsDirectory(instanceDirectory) {
 }
 
 function tarPath() {
-  return path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
+  return process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : '/usr/bin/tar';
 }
 
 /** bsdtar reads "C:" in a path as a remote host: it only ever gets paths relative to `cwd`. */

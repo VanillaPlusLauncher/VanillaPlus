@@ -26,7 +26,8 @@ const instanceService = require('../minecraft/instanceService');
  */
 
 const log = createLogger('launcher-import');
-const APPDATA = process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming');
+// macOS keeps the launchers' folders (PrismLauncher, ModrinthApp…) in Application Support.
+const APPDATA = process.env.APPDATA || (process.platform === 'darwin' ? path.join(os.homedir(), 'Library', 'Application Support') : path.join(os.homedir(), 'AppData', 'Roaming'));
 const LOCALAPPDATA = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
 const HOME = os.homedir();
 

@@ -103,9 +103,10 @@ function registerAppHandlers(handle) {
 
   handle(CHANNELS.app.pickJavaExecutable, async (event) => {
     const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
-      title: 'Выберите java.exe',
+      title: process.platform === 'win32' ? 'Выберите java.exe' : 'Выберите java (папка bin внутри JDK)',
       properties: ['openFile'],
-      filters: [{ name: 'Java', extensions: ['exe'] }],
+      // macOS: the executable has no extension, so there is nothing to filter by.
+      filters: process.platform === 'win32' ? [{ name: 'Java', extensions: ['exe'] }] : [],
     });
     return result.canceled ? null : result.filePaths[0];
   });

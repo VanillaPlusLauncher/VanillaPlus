@@ -121,7 +121,8 @@ function sha256File(filePath) {
 async function checkForUpdates({ manual = false } = {}) {
   const settings = await getSettings();
   const url = feedUrl(settings);
-  if (!url) {
+  // Updates come as a Windows installer: other systems update by hand for now.
+  if (!url || process.platform !== 'win32') {
     setStatus({ state: 'disabled', error: null });
     return publicStatus();
   }

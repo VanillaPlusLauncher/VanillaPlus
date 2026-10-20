@@ -147,9 +147,13 @@ async function startGameProcess({
 
   const userJvmArgs = splitUserArguments(settings.extraJvmArgs);
   await makeJvmLogFolders(userJvmArgs, gameDirectory);
+  // macOS: the game's window must run on the first thread. New versions ask for it in their own
+  // arguments; older ones (and some loaders) do not.
+  const macArguments = process.platform === 'darwin' && !jvm.includes('-XstartOnFirstThread') ? ['-XstartOnFirstThread'] : [];
 
   const args = [
     ...memoryArguments,
+    ...macArguments,
     ...agentArguments,
     ...legacyHome.jvmArgs,
     ...userJvmArgs,

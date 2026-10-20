@@ -3,10 +3,14 @@
 const { spawn } = require('node:child_process');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
+const os = require('node:os');
 const { createLogger } = require('../core/logger');
+const { IS_WINDOWS, IS_MAC, JAVA_BINARY, javaIn } = require('./javaPlatform');
 
 const PROBE_TIMEOUT_MS = 8000;
 const PROGRAM_FILES_VENDOR_FOLDERS = ['Java', 'Eclipse Adoptium', 'Microsoft', 'Zulu', 'BellSoft', 'Amazon Corretto', 'Semeru', 'Temurin'];
+/** Where JDK installers put Java on macOS (each JDK is a bundle with Contents/Home inside). */
+const MAC_JVM_FOLDERS = ['/Library/Java/JavaVirtualMachines', path.join(os.homedir(), 'Library', 'Java', 'JavaVirtualMachines')];
 const log = createLogger('java');
 
 /**
@@ -92,22 +96,28 @@ async function pathExists(filePath) {
   }
 }
 
-/** Lists `java.exe` candidates from JAVA_HOME, PATH, common vendor folders and managed runtimes. */
+/** Lists java executables from JAVA_HOME, PATH, common vendor folders and managed runtimes. */
 async function collectJavaCandidates(managedRuntimesDirectory) {
   const candidates = new Set();
 
   if (process.env.JAVA_HOME) {
-    candidates.add(path.join(process.env.JAVA_HOME, 'bin', 'java.exe'));
+    candidates.add(javaIn(process.env.JAVA_HOME));
   }
 
-  const onPath = await runWhere('java.exe');
-  onPath.forEach((entry) => candidates.add(entry));
+  const onPath = await runWhere(JAVA_BINARY);
+  // macOS's /usr/bin/java is only a stub: with no Java installed it pops up "install Java?".
+  onPath.filter((entry) => !(IS_MAC && entry === '/usr/bin/java')).forEach((entry) => candidates.add(entry));
 
-  const programFiles = [process.env.ProgramFiles, process.env['ProgramFiles(x86)']].filter(Boolean);
-  for (const root of programFiles) {
-    for (const vendor of PROGRAM_FILES_VENDOR_FOLDERS) {
-      await addRuntimesFromFolder(path.join(root, vendor), candidates);
+  if (IS_WINDOWS) {
+    const programFiles = [process.env.ProgramFiles, process.env['ProgramFiles(x86)']].filter(Boolean);
+    for (const root of programFiles) {
+      for (const vendor of PROGRAM_FILES_VENDOR_FOLDERS) {
+        await addRuntimesFromFolder(path.join(root, vendor), candidates);
+      }
     }
+  }
+  if (IS_MAC) {
+    for (const folder of MAC_JVM_FOLDERS) await addRuntimesFromFolder(folder, candidates);
   }
 
   await addRuntimesFromFolder(managedRuntimesDirectory, candidates);
@@ -125,16 +135,21 @@ async function addRuntimesFromFolder(folder, candidates) {
     if (!entry.isDirectory()) {
       continue;
     }
-    const javaExe = path.join(folder, entry.name, 'bin', 'java.exe');
-    if (await pathExists(javaExe)) {
-      candidates.add(javaExe);
+    // A plain JDK folder (bin/java) or a macOS JDK bundle (Contents/Home/bin/java).
+    for (const home of [path.join(folder, entry.name), path.join(folder, entry.name, 'Contents', 'Home')]) {
+      const executable = javaIn(home);
+      if (await pathExists(executable)) {
+        candidates.add(executable);
+        break;
+      }
     }
   }
 }
 
+/** Every `name` on PATH: where.exe on Windows, `which -a` elsewhere. */
 function runWhere(name) {
   return new Promise((resolve) => {
-    const child = spawn('where.exe', [name], { windowsHide: true });
+    const child = IS_WINDOWS ? spawn('where.exe', [name], { windowsHide: true }) : spawn('/usr/bin/which', ['-a', name]);
     let output = '';
     child.stdout.on('data', (chunk) => {
       output += chunk;
