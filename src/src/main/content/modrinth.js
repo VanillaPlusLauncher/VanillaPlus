@@ -138,12 +138,8 @@ async function getProjectsBrief(ids) {
   if (ids.length === 0) {
     return [];
   }
-  // Long lists go in parts: the ids travel in the URL.
-  const projects = [];
-  for (let start = 0; start < ids.length; start += 100) {
-    const part = ids.slice(start, start + 100);
-    projects.push(...(await fetchJson(`${API}/projects?ids=${encodeURIComponent(JSON.stringify(part))}`)));
-  }
+  // Long lists go in parts (the ids travel in the URL), all parts at once.
+  const projects = (await Promise.all(chunks(ids, 100).map((part) => fetchJson(`${API}/projects?ids=${encodeURIComponent(JSON.stringify(part))}`)))).flat();
   return projects.map((project) => ({
     id: project.id,
     title: project.title,
@@ -198,12 +194,14 @@ async function listGameVersions() {
 
 /** Several versions at once (installed mods' versions for the compatibility check). */
 async function getVersionsByIds(ids) {
-  const versions = [];
-  for (let start = 0; start < ids.length; start += 100) {
-    const part = ids.slice(start, start + 100);
-    versions.push(...(await fetchJson(`${API}/versions?ids=${encodeURIComponent(JSON.stringify(part))}`)));
-  }
+  const versions = (await Promise.all(chunks(ids, 100).map((part) => fetchJson(`${API}/versions?ids=${encodeURIComponent(JSON.stringify(part))}`)))).flat();
   return versions.map(toVersion);
+}
+
+function chunks(list, size) {
+  const parts = [];
+  for (let start = 0; start < list.length; start += size) parts.push(list.slice(start, start + size));
+  return parts;
 }
 
 module.exports = { search, getProject, getVersions, getVersion, getVersionsByIds, getProjectsBrief, latestForHashes, versionsForHashes, listGameVersions };

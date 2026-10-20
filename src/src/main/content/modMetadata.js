@@ -1,29 +1,63 @@
 'use strict';
 
+const fs = require('node:fs');
+const fsp = require('node:fs/promises');
+const path = require('node:path');
 const AdmZip = require('adm-zip');
+const { openZip } = require('../core/zipPeek');
 
 /*
  * Reads what a mod jar says about itself (name, version, authors, icon), for every common loader:
  * fabric.mod.json, quilt.mod.json, META-INF/mods.toml / neoforge.mods.toml and old mcmod.info.
- * Results are cached by file size and modification time.
+ * Only those few files are read from the jar (core/zipPeek.js), asynchronously, so a pack of 200
+ * mods does not hold up the launcher. Results are cached by path, size and modification time, in
+ * memory and on disk (<userData>/cache/content-meta.json), so the next start reads nothing at all.
  */
 const MAX_ICON_BYTES = 96 * 1024;
+const MAX_CACHED = 6000;
+const SAVE_DELAY_MS = 2000;
 const cache = new Map();
+let diskCacheFile = null;
+let diskLoaded = null;
+let saveTimer = null;
 
-function readText(zip, name) {
-  const entry = zip.getEntry(name);
-  return entry ? zip.readAsText(entry) : null;
+/** What the readers below need from a zip: async text, bytes and sizes of entries. */
+function peekSource(zip) {
+  return {
+    size: (name) => zip.size(name),
+    readText: async (name) => (zip.has(name) ? (await zip.read(name))?.toString('utf8') ?? null : null),
+    readBuffer: (name) => zip.read(name),
+  };
 }
 
-function iconDataUrl(zip, iconPath) {
+/** The same over adm-zip, for archives zipPeek does not read (ZIP64 and other oddities). */
+function admSource(filePath) {
+  const zip = new AdmZip(filePath);
+  return {
+    size: (name) => zip.getEntry(name)?.header.size ?? null,
+    readText: async (name) => {
+      const entry = zip.getEntry(name);
+      return entry ? zip.readAsText(entry) : null;
+    },
+    readBuffer: async (name) => zip.getEntry(name)?.getData() ?? null,
+  };
+}
+
+function readText(zip, name) {
+  return zip.readText(name);
+}
+
+async function iconDataUrl(zip, iconPath) {
   if (typeof iconPath !== 'string' || !iconPath) {
     return null;
   }
-  const entry = zip.getEntry(iconPath.replace(/^\/+/, ''));
-  if (!entry || entry.header.size > MAX_ICON_BYTES) {
+  const name = iconPath.replace(/^\/+/, '');
+  const size = zip.size(name);
+  if (size === null || size > MAX_ICON_BYTES) {
     return null;
   }
-  return `data:image/png;base64,${entry.getData().toString('base64')}`;
+  const data = await zip.readBuffer(name);
+  return data ? `data:image/png;base64,${data.toString('base64')}` : null;
 }
 
 /** Where a mod runs, from its own file: 'client', 'server', 'both' or null. */
@@ -80,35 +114,35 @@ function jsonBreaks(breaks) {
   return Object.entries(breaks ?? {}).map(([modId, range]) => ({ modId, versionRange: typeof range === 'string' ? range : Array.isArray(range) ? range.join(' || ') : null, reason: null }));
 }
 
-function readFabric(zip) {
-  const text = readText(zip, 'fabric.mod.json');
+async function readFabric(zip) {
+  const text = await readText(zip, 'fabric.mod.json');
   if (!text) {
     return null;
   }
   const json = JSON.parse(text.replace(/^﻿/, ''));
   const icon = typeof json.icon === 'string' ? json.icon : Object.values(json.icon ?? {}).pop();
-  return { loader: 'fabric', modId: json.id, name: json.name, version: json.version, description: json.description, authors: personNames(json.authors), icon: iconDataUrl(zip, icon), environment: environmentOf(json.environment), incompatible: jsonBreaks(json.breaks) };
+  return { loader: 'fabric', modId: json.id, name: json.name, version: json.version, description: json.description, authors: personNames(json.authors), icon: await iconDataUrl(zip, icon), environment: environmentOf(json.environment), incompatible: jsonBreaks(json.breaks) };
 }
 
-function readQuilt(zip) {
-  const text = readText(zip, 'quilt.mod.json');
+async function readQuilt(zip) {
+  const text = await readText(zip, 'quilt.mod.json');
   if (!text) {
     return null;
   }
   const loader = JSON.parse(text).quilt_loader ?? {};
   const meta = loader.metadata ?? {};
   const icon = typeof meta.icon === 'string' ? meta.icon : Object.values(meta.icon ?? {}).pop();
-  return { loader: 'quilt', modId: loader.id, name: meta.name, version: loader.version, description: meta.description, authors: Object.keys(meta.contributors ?? {}), icon: iconDataUrl(zip, icon), environment: environmentOf(JSON.parse(text).minecraft?.environment), incompatible: jsonBreaks(loader.breaks) };
+  return { loader: 'quilt', modId: loader.id, name: meta.name, version: loader.version, description: meta.description, authors: Object.keys(meta.contributors ?? {}), icon: await iconDataUrl(zip, icon), environment: environmentOf(JSON.parse(text).minecraft?.environment), incompatible: jsonBreaks(loader.breaks) };
 }
 
-function readForge(zip) {
+async function readForge(zip) {
   for (const [file, loader] of [['META-INF/neoforge.mods.toml', 'neoforge'], ['META-INF/mods.toml', 'forge']]) {
-    const text = readText(zip, file);
+    const text = await readText(zip, file);
     if (text) {
       const toml = parseModsToml(text);
       let version = toml.version;
       if (version === '${file.jarVersion}') {
-        const manifest = readText(zip, 'META-INF/MANIFEST.MF') ?? '';
+        const manifest = (await readText(zip, 'META-INF/MANIFEST.MF')) ?? '';
         version = /^Implementation-Version:\s*(.+)$/m.exec(manifest)?.[1]?.trim() ?? null;
       }
       // A client-only mod says so: "clientSideOnly = true" (Forge 1.19+, NeoForge), or displayTest
@@ -116,23 +150,23 @@ function readForge(zip) {
       // are optional on both sides (server-only tools too), so it says nothing about the side.
       const clientOnly = /^\s*clientSideOnly\s*=\s*true\b/m.test(text) || toml.displayTest === 'IGNORE_SERVER_VERSION';
       const environment = clientOnly ? 'client' : null;
-      return { loader, modId: toml.modId, name: toml.displayName, version, description: toml.description, authors: toml.authors ? [toml.authors] : [], icon: iconDataUrl(zip, toml.logoFile), environment, incompatible: tomlIncompatible(text) };
+      return { loader, modId: toml.modId, name: toml.displayName, version, description: toml.description, authors: toml.authors ? [toml.authors] : [], icon: await iconDataUrl(zip, toml.logoFile), environment, incompatible: tomlIncompatible(text) };
     }
   }
-  const legacy = readText(zip, 'mcmod.info');
+  const legacy = await readText(zip, 'mcmod.info');
   if (legacy) {
     const json = JSON.parse(legacy.replace(/^﻿/, ''));
     const mod = Array.isArray(json) ? json[0] : json.modList?.[0];
     if (mod) {
-      return { loader: 'forge', modId: mod.modid, name: mod.name, version: mod.version, description: mod.description, authors: mod.authorList ?? mod.authors ?? [], icon: iconDataUrl(zip, mod.logoFile) };
+      return { loader: 'forge', modId: mod.modid, name: mod.name, version: mod.version, description: mod.description, authors: mod.authorList ?? mod.authors ?? [], icon: await iconDataUrl(zip, mod.logoFile) };
     }
   }
   return null;
 }
 
 /** pack.mcmeta of resource packs and shader packs: description and pack.png. */
-function readPack(zip) {
-  const text = readText(zip, 'pack.mcmeta');
+async function readPack(zip) {
+  const text = await readText(zip, 'pack.mcmeta');
   let description = null;
   if (text) {
     try {
@@ -142,23 +176,63 @@ function readPack(zip) {
       // Broken pack.mcmeta: no description.
     }
   }
-  return { description: description?.replace(/§./g, ''), icon: iconDataUrl(zip, 'pack.png') };
+  return { description: description?.replace(/§./g, ''), icon: await iconDataUrl(zip, 'pack.png') };
+}
+
+async function readFrom(zip, type) {
+  return type === 'mod' ? ((await readFabric(zip)) ?? (await readQuilt(zip)) ?? (await readForge(zip)) ?? {}) : readPack(zip);
+}
+
+/** The disk cache, read once (a missing or broken file is just an empty cache). */
+function loadDiskCache() {
+  if (!diskLoaded) {
+    diskLoaded = (async () => {
+      try {
+        const { app } = require('electron');
+        diskCacheFile = path.join(app.getPath('userData'), 'cache', 'content-meta.json');
+        const saved = JSON.parse(await fsp.readFile(diskCacheFile, 'utf8'));
+        if (saved?.version === 1) {
+          for (const [key, value] of Object.entries(saved.entries ?? {})) if (!cache.has(key)) cache.set(key, value);
+        }
+      } catch {
+        // First start or no electron (tests): nothing cached yet.
+      }
+    })();
+  }
+  return diskLoaded;
+}
+
+function scheduleSave() {
+  if (!diskCacheFile || saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    // The oldest entries go first when the cache is full.
+    while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value);
+    const text = JSON.stringify({ version: 1, entries: Object.fromEntries(cache) });
+    fs.mkdirSync(path.dirname(diskCacheFile), { recursive: true });
+    fsp.writeFile(`${diskCacheFile}.tmp`, text).then(() => fsp.rename(`${diskCacheFile}.tmp`, diskCacheFile)).catch(() => {});
+  }, SAVE_DELAY_MS);
+  saveTimer.unref?.();
 }
 
 /** Metadata for a content file, or {} when nothing can be read (not a zip, damaged). */
-function readContentMetadata(filePath, stat, type) {
+async function readContentMetadata(filePath, stat, type) {
+  await loadDiskCache();
   const key = `${filePath}|${stat.size}|${stat.mtimeMs}`;
   if (cache.has(key)) {
     return cache.get(key);
   }
   let result = {};
+  const peek = await openZip(filePath).catch(() => null);
   try {
-    const zip = new AdmZip(filePath);
-    result = type === 'mod' ? (readFabric(zip) ?? readQuilt(zip) ?? readForge(zip) ?? {}) : readPack(zip);
+    result = await readFrom(peek ? peekSource(peek) : admSource(filePath), type);
   } catch {
     result = {};
+  } finally {
+    await peek?.close().catch(() => {});
   }
   cache.set(key, result);
+  scheduleSave();
   return result;
 }
 

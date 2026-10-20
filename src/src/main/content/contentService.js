@@ -369,14 +369,14 @@ async function listContent(settings, instanceId, type) {
   }
   const index = await readIndex(instance.directory);
   const result = [];
-  for (const entry of entries) {
+  const wanted = entries.filter((entry) => (entry.isDirectory() && type !== 'mod') || (entry.isFile() && FILE_PATTERNS[type].test(entry.name)));
+  // Several files at once: reading them is asynchronous (modMetadata.js), and mostly cached.
+  await runWithConcurrency(wanted, 8, async (entry) => {
     const isFolderPack = entry.isDirectory() && type !== 'mod';
-    if (!isFolderPack && !(entry.isFile() && FILE_PATTERNS[type].test(entry.name))) {
-      continue;
-    }
     const filePath = path.join(folder, entry.name);
-    const stat = await fsp.stat(filePath);
-    const meta = isFolderPack ? {} : readContentMetadata(filePath, stat, type);
+    const stat = await fsp.stat(filePath).catch(() => null);
+    if (!stat) return;
+    const meta = isFolderPack ? {} : await readContentMetadata(filePath, stat, type);
     const indexed = index.entries[entryKey(type, entry.name)] ?? null;
     result.push({
       file: entry.name,
@@ -396,7 +396,7 @@ async function listContent(settings, instanceId, type) {
       modId: meta.modId ?? null,
       incompatible: meta.incompatible ?? [],
     });
-  }
+  });
   return result.sort((a, b) => a.title.localeCompare(b.title, 'ru'));
 }
 
@@ -506,6 +506,21 @@ const KNOWN_CONFLICTS = [
  * Possible problems with a mod before it is installed: [{ key, title, detail }]. Never blocks the
  * install by itself: the window asks, and warnings the user dismissed (settings.compat) are left out.
  */
+/** Answers about the mods already in an instance, kept for a few minutes (key -> { at, promise }). */
+const REMEMBER_MS = 10 * 60 * 1000;
+const rememberedAnswers = new Map();
+
+function remembered(key, load) {
+  const known = rememberedAnswers.get(key);
+  if (known && Date.now() - known.at < REMEMBER_MS) return known.promise;
+  const promise = load();
+  rememberedAnswers.set(key, { at: Date.now(), promise });
+  promise.catch(() => rememberedAnswers.delete(key));
+  // Old answers are dropped so the map does not grow without end.
+  for (const [oldKey, value] of rememberedAnswers) if (Date.now() - value.at >= REMEMBER_MS) rememberedAnswers.delete(oldKey);
+  return promise;
+}
+
 async function checkCompatibility(settings, instanceId, { platform, projectId, versionId, type = 'mod', title }) {
   if (type !== 'mod' || settings.compat?.warn === false) {
     return [];
@@ -541,7 +556,15 @@ async function checkCompatibility(settings, instanceId, { platform, projectId, v
   }
   if (platform === 'modrinth') {
     const versionIds = installed.filter(([, entry]) => entry.platform === 'modrinth' && entry.versionId).map(([, entry]) => entry.versionId);
-    const installedVersions = versionIds.length ? await modrinth.getVersionsByIds(versionIds).catch(() => []) : [];
+    const installedIds = [...new Set(installed.filter(([, entry]) => entry.platform === 'modrinth').map(([, entry]) => entry.projectId))].sort();
+    // All at once; what the instance has is remembered for a while (several mods are usually
+    // added one after another), only the new mod is asked about each time.
+    const [installedVersions, installedProjects, newProject] = await Promise.all([
+      versionIds.length ? remembered(`versions:${[...versionIds].sort().join(',')}`, () => modrinth.getVersionsByIds(versionIds)).catch(() => []) : [],
+      installedIds.length ? remembered(`projects:${installedIds.join(',')}`, () => modrinth.getProjectsBrief(installedIds)).catch(() => []) : [],
+      modrinth.getProjectsBrief([projectId]).catch(() => []),
+    ]);
+    const projects = [...newProject, ...installedProjects];
     for (const other of installedVersions) {
       if (other.dependencies.some((dependency) => dependency.type === 'incompatible' && dependency.projectId === projectId)) {
         const key = `pair:${[projectId, other.projectId].sort().join('|')}`;
@@ -550,8 +573,6 @@ async function checkCompatibility(settings, instanceId, { platform, projectId, v
         }
       }
     }
-    const ids = [projectId, ...installed.filter(([, entry]) => entry.platform === 'modrinth').map(([, entry]) => entry.projectId)];
-    const projects = await modrinth.getProjectsBrief([...new Set(ids)]).catch(() => []);
     const slugOf = new Map(projects.map((project) => [project.id, project.slug]));
     const mySlug = slugOf.get(projectId);
     for (const [a, b, why] of KNOWN_CONFLICTS) {

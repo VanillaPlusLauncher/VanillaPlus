@@ -71,6 +71,7 @@
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")
 - Switching the loader from Vanilla to Fabric did nothing; affected instances repair themselves
 - Settings sometimes were not saved (EPERM) while an antivirus held the file
+- Big instances opened slowly and froze the launcher: every mod jar was read whole to learn its name and icon (a 159-mod pack: 15.7 s with the window stuck). Now only the few small files needed are read, in the background, and remembered on disk: 0.25 s the first time, 0.1 s after a restart. Adding a mod checks compatibility faster too
 - In other languages the start screen's steps ("3D models…") and the dates of Minecraft news stayed in Russian
 - Friends: a stray "null" under your name when your account has no code
 
