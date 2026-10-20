@@ -157,7 +157,10 @@ export function createShell({ onNavigate, onOpenAccounts }) {
   api.app
     .info()
     .then((info) => {
-      document.getElementById('brand-version').textContent = `v${info.version}`;
+      // Test builds are "1.7.0-beta.26": shown short, "v1.7.0 β26", the full one in the tooltip.
+      const label = document.getElementById('brand-version');
+      label.textContent = `v${info.version.replace(/-beta\.(\d+)$/, ' β$1')}`;
+      label.title = `Amethyx ${info.version}`;
     })
     .catch(() => {});
 

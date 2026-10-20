@@ -7,16 +7,21 @@
 # The Minecraft files in src\assets\mc-ui (a local cache) are never packed: the launcher downloads
 # them from Mojang on its first start.
 #
-# Usage: .\build.ps1 [-Iscc <path to ISCC.exe>] [-Version 1.3.1] [-Output <folder>]
+# Without -Version a test build is numbered: the version of src\package.json plus "-beta.N", N being
+# the number of commits, so every build shows a new version (and the released version without the
+# tail still counts as newer for updates). -Release builds the plain version.
+#
+# Usage: .\build.ps1 [-Iscc <path to ISCC.exe>] [-Version 1.3.1 | -Release] [-Output <folder>]
 param(
   [string]$Iscc = '',
   [string]$Version = '',
-  [string]$Output = ''
+  [string]$Output = '',
+  [switch]$Release
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $runtime = Join-Path $root 'build\Amethyx'
-if (-not $Version) { $Version = (Get-Content (Join-Path $root 'src\package.json') -Raw | ConvertFrom-Json).version }
+if (-not $Version) { $Version = & (Join-Path $PSScriptRoot 'version.ps1') -Release:$Release }
 if (-not $Output) { $Output = Join-Path $root 'build' }
 if (-not $Iscc) {
   $Iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1

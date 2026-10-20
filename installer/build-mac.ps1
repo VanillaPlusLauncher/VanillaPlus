@@ -6,15 +6,18 @@
 # The app is not signed by Apple: on the first start macOS needs one command in Terminal (see
 # the CHANGELOG / the message with the build).
 #
-# Usage: .\build-mac.ps1 [-Version 1.7.0] [-Output <folder>] [-Arch arm64,x64]
+# Without -Version the build is numbered like build.ps1's (version.ps1: "-beta.N"; -Release: plain).
+#
+# Usage: .\build-mac.ps1 [-Version 1.7.0 | -Release] [-Output <folder>] [-Arch arm64,x64]
 param(
   [string]$Version = '',
   [string]$Output = '',
-  [string[]]$Arch = @('arm64', 'x64')
+  [string[]]$Arch = @('arm64', 'x64'),
+  [switch]$Release
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-if (-not $Version) { $Version = (Get-Content (Join-Path $root 'src\package.json') -Raw | ConvertFrom-Json).version }
+if (-not $Version) { $Version = & (Join-Path $PSScriptRoot 'version.ps1') -Release:$Release }
 if (-not $Output) { $Output = Join-Path $root 'build' }
 if (-not (Test-Path (Join-Path $root 'src\node_modules\adm-zip'))) { throw 'Нет зависимостей: выполните `npm install --omit=dev` в папке src.' }
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw 'Нужен Python 3.' }
