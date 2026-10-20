@@ -238,7 +238,17 @@ switch ($action) {
     }
     @chmod($target, 0644);
     amx_db()->prepare('DELETE FROM uploads WHERE id = ?')->execute([$id]);
-    $versionId = amx_add_version($meta['name'], $meta['version'], $meta['platform'], $meta['channel'], $meta['notes'], $meta['latest']);
+    // A version whose file went missing (the site folder was wiped) gets its file back and keeps
+    // its number, downloads and text; anything else is a new version.
+    $q = amx_db()->prepare('SELECT id FROM versions WHERE file = ?');
+    $q->execute([$meta['name']]);
+    $versionId = (int) $q->fetchColumn();
+    if ($versionId) {
+      amx_db()->prepare('UPDATE versions SET size = ?, sha256 = ? WHERE id = ?')->execute([filesize($target), hash_file('sha256', $target), $versionId]);
+      if ($meta['latest']) amx_mark_latest($versionId);
+    } else {
+      $versionId = amx_add_version($meta['name'], $meta['version'], $meta['platform'], $meta['channel'], $meta['notes'], $meta['latest']);
+    }
     amx_write_feeds();
     $q = amx_db()->prepare('SELECT * FROM versions WHERE id = ?');
     $q->execute([$versionId]);
