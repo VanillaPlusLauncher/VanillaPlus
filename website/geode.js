@@ -1,7 +1,7 @@
 /* The launcher's start screen in miniature: a 3×3 plate of budding amethyst, one block thick,
    turning slowly in the air. Crystals grow on it like a snake — from the outer edge round and
-   round into the middle, each through small, medium and large bud to a cluster — then fall away
-   in the same order and grow again; sparkles blink around it. Same build and timings as the
+   round into the middle, each through small, medium and large bud to a cluster — then shrink
+   back stage by stage in the same order and grow again; sparkles blink around it. Same build and timings as the
    launcher's components/splash.js, but all textures are drawn here: the site carries no files
    from the game. */
 (function () {
@@ -12,8 +12,7 @@
   var STAGES = 4;
   var STAGE_MS = 210; // each growth stage
   var STEP_MS = 260; // the snake's head moves on to the next block
-  var HOLD_MS = 1300; // the full plate stays a moment…
-  var FALL_STEP_MS = 70; // …the crystals fall away one by one…
+  var HOLD_MS = 1300; // the full plate stays a moment, the crystals shrink back the same way…
   var REST_MS = 450; // …a short rest, and again
   var SHADE = { top: 1.06, south: 0.8, east: 0.9, north: 0.64, west: 0.72 };
   var AMETHYST = ['#3b2470', '#4a2d8a', '#5b39a3', '#6f48bb', '#8459d0', '#9a70de'];
@@ -135,31 +134,41 @@
     parts.sprites.forEach(function (sprite) { sprite.style.backgroundImage = 'url("' + picture + '")'; });
   }
 
-  /* One crystal through its stages, with a little pop at each. */
-  function growCrystal(parts, pictures) {
-    var stage = 0;
+  /* One crystal through its stages — small bud to cluster, or (shrinking) cluster back to small
+     bud and gone — with a little pop at each. */
+  function stepCrystal(parts, pictures, shrinking) {
+    var stages = shrinking ? [3, 2, 1, 0, -1] : [0, 1, 2, 3];
+    var index = 0;
     (function step() {
+      var stage = stages[index];
+      parts.grow.classList.remove('geode__grow--pop');
+      if (stage < 0) {
+        parts.grow.classList.add('geode__grow--gone');
+        return;
+      }
       showStage(parts, pictures[stage]);
-      parts.grow.classList.remove('geode__grow--gone', 'geode__grow--pop');
+      parts.grow.classList.remove('geode__grow--gone');
       void parts.grow.offsetWidth; // restart the pop of a new stage
       parts.grow.classList.add('geode__grow--pop');
-      stage += 1;
-      if (stage < STAGES) setTimeout(step, STAGE_MS);
+      index += 1;
+      if (index < stages.length) setTimeout(step, STAGE_MS);
     })();
   }
 
-  /* The snake: crystals grow block after block into the middle, fall away in the same order, again. */
+  /* The snake: crystals grow block after block into the middle, then shrink back stage by stage
+     in the same order (the edge first, the middle last), a short rest, again. */
   function snakeLoop(crystals, pictures) {
+    var lastStarts = (crystals.length - 1) * STEP_MS;
     (function cycle() {
       crystals.forEach(function (parts, index) {
-        setTimeout(function () { growCrystal(parts, pictures); }, index * STEP_MS);
+        setTimeout(function () { stepCrystal(parts, pictures, false); }, index * STEP_MS);
       });
-      var grown = (crystals.length - 1) * STEP_MS + STAGES * STAGE_MS;
+      var grown = lastStarts + STAGES * STAGE_MS;
       setTimeout(function () {
         crystals.forEach(function (parts, index) {
-          setTimeout(function () { parts.grow.classList.add('geode__grow--gone'); }, index * FALL_STEP_MS);
+          setTimeout(function () { stepCrystal(parts, pictures, true); }, index * STEP_MS);
         });
-        setTimeout(cycle, crystals.length * FALL_STEP_MS + REST_MS);
+        setTimeout(cycle, lastStarts + STAGES * STAGE_MS + REST_MS);
       }, grown + HOLD_MS);
     })();
   }
