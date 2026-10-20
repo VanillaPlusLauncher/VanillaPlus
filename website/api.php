@@ -22,7 +22,7 @@ switch ($action) {
       $row = amx_latest($platform);
       if ($row) $latest[$platform] = amx_version_row($row);
     }
-    $all = array_filter(amx_db()->query('SELECT * FROM versions WHERE hidden = 0 ORDER BY created_at DESC, id DESC')->fetchAll(), 'amx_file_present');
+    $all = amx_sort_versions(array_filter(amx_db()->query('SELECT * FROM versions WHERE hidden = 0')->fetchAll(), 'amx_file_present'));
     amx_heal_feeds();
     amx_json(['latest' => $latest, 'versions' => array_values(array_map('amx_version_row', $all))]);
 
@@ -101,9 +101,9 @@ switch ($action) {
 
   case 'versions':
     amx_require_admin(true);
-    $rows = amx_db()->query("
+    $rows = amx_sort_versions(amx_db()->query("
       SELECT v.*, COALESCE((SELECT SUM(n) FROM stats s WHERE s.kind = 'download' AND s.ref = CAST(v.id AS TEXT)), 0) AS downloads
-      FROM versions v ORDER BY v.created_at DESC, v.id DESC")->fetchAll();
+      FROM versions v")->fetchAll());
     amx_json(['versions' => array_map(function ($row) { return amx_version_row($row, true); }, $rows)]);
 
   case 'version-update':

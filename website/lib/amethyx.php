@@ -234,15 +234,64 @@ function amx_version_row(array $row, bool $admin = false): array {
   return $out;
 }
 
-// The version a "Download" button gives: the one marked latest, otherwise the newest
-// visible one of that platform.
-function amx_latest(string $platform): ?array {
-  $q = amx_db()->prepare('SELECT * FROM versions WHERE platform = ? AND hidden = 0 ORDER BY latest DESC, created_at DESC, id DESC');
-  $q->execute([$platform]);
-  foreach ($q->fetchAll() as $row) {
-    if (is_file(AMX_DOWNLOADS . '/' . $row['file'])) return $row; // a build whose file is gone is skipped
+// Versions compare like the launcher's compareVersions (main/updates/updateService.js): numbers
+// padded with zeros (1.7 = 1.7.0), a version without a tail is newer than any of its betas, tails
+// compare part by part — numbers as numbers (beta.39 > beta.35), words alphabetically (alpha < beta).
+function amx_compare_versions(string $a, string $b): int {
+  $parse = function (string $value): array {
+    $text = explode('+', preg_replace('/^v/i', '', trim($value)))[0];
+    $dash = strpos($text, '-');
+    $numbers = array_map('intval', explode('.', $dash === false ? $text : substr($text, 0, $dash)));
+    while (count($numbers) < 3) $numbers[] = 0;
+    return [$numbers, $dash === false ? [] : explode('.', substr($text, $dash + 1))];
+  };
+  [$leftNumbers, $leftTail] = $parse($a);
+  [$rightNumbers, $rightTail] = $parse($b);
+  for ($i = 0; $i < max(count($leftNumbers), count($rightNumbers)); $i++) {
+    $x = $leftNumbers[$i] ?? 0;
+    $y = $rightNumbers[$i] ?? 0;
+    if ($x !== $y) return $x > $y ? 1 : -1;
+  }
+  if (!$leftTail || !$rightTail) return count($rightTail) <=> count($leftTail);
+  for ($i = 0; $i < max(count($leftTail), count($rightTail)); $i++) {
+    if (!isset($leftTail[$i]) || !isset($rightTail[$i])) return isset($leftTail[$i]) ? 1 : -1;
+    $x = $leftTail[$i];
+    $y = $rightTail[$i];
+    $numeric = preg_match('/^\d+$/', $x) && preg_match('/^\d+$/', $y); // no ctype: not every hosting has it
+    if ($numeric && (int) $x !== (int) $y) return (int) $x > (int) $y ? 1 : -1;
+    if (!$numeric && $x !== $y) return strcmp($x, $y) > 0 ? 1 : -1;
+  }
+  return 0;
+}
+
+// Newest version first; the same version by platform (Windows, then Mac), then the newer upload.
+// With $latestFirst the build marked latest comes before everything.
+function amx_sort_versions(array $rows, bool $latestFirst = false): array {
+  $platformOrder = array_flip(AMX_PLATFORMS);
+  usort($rows, function ($a, $b) use ($platformOrder, $latestFirst) {
+    return ($latestFirst ? ((int) $b['latest'] <=> (int) $a['latest']) : 0)
+      ?: amx_compare_versions($b['version'], $a['version'])
+      ?: (($platformOrder[$a['platform']] ?? 99) <=> ($platformOrder[$b['platform']] ?? 99))
+      ?: ((int) $b['created_at'] <=> (int) $a['created_at'])
+      ?: ((int) $b['id'] <=> (int) $a['id']);
+  });
+  return $rows;
+}
+
+// The first of these builds that the site can give: the one marked latest, otherwise the newest
+// version, skipping builds whose file is gone.
+function amx_pick(array $rows): ?array {
+  foreach (amx_sort_versions($rows, true) as $row) {
+    if (is_file(AMX_DOWNLOADS . '/' . $row['file'])) return $row;
   }
   return null;
+}
+
+// The version a "Download" button gives for a platform.
+function amx_latest(string $platform): ?array {
+  $q = amx_db()->prepare('SELECT * FROM versions WHERE platform = ? AND hidden = 0');
+  $q->execute([$platform]);
+  return amx_pick($q->fetchAll());
 }
 
 function amx_mark_latest(int $id): void {
@@ -298,13 +347,9 @@ function amx_import_downloads(): array {
 // An update the launcher downloads goes through dl.php and counts as a download.
 
 function amx_feed_row(string $channel): ?array {
-  $q = amx_db()->prepare("SELECT * FROM versions WHERE platform = 'windows' AND hidden = 0 AND channel = ?
-    ORDER BY latest DESC, created_at DESC, id DESC");
+  $q = amx_db()->prepare("SELECT * FROM versions WHERE platform = 'windows' AND hidden = 0 AND channel = ?");
   $q->execute([$channel]);
-  foreach ($q->fetchAll() as $row) {
-    if (amx_file_present($row)) return $row; // a build whose file is gone is skipped
-  }
-  return null;
+  return amx_pick($q->fetchAll());
 }
 
 function amx_file_present(array $row): bool {
