@@ -24,6 +24,12 @@ if (!$row || !is_file(AMX_DOWNLOADS . '/' . $row['file'])) {
   exit;
 }
 
-amx_count('download', (string) $row['id']);
+// The launcher fetches a big file in 4–16 parts at once, each through this link with its own
+// Range; a resumed download starts mid-file too. Only the start of a file counts, so one
+// download is one, and a HEAD request (just asking about the file) is none.
+$range = $_SERVER['HTTP_RANGE'] ?? '';
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($range === '' || preg_match('/^bytes=0-/i', $range))) {
+  amx_count('download', (string) $row['id']);
+}
 header('Cache-Control: no-store');
 header('Location: downloads/' . rawurlencode($row['file']), true, 302);
