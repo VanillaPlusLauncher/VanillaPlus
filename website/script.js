@@ -122,9 +122,16 @@
       noBuild: 'Для вашей системы сборки пока нет — вот версия для Windows.',
       req: {
         windows: 'Windows 10 (1803 и новее) или Windows 11, 64 бита. Java лаунчер скачает сам.',
-        mac: 'Сборка без подписи Apple: перенесите Amethyx в «Программы» и один раз выполните в Терминале xattr -cr /Applications/Amethyx.app. Java лаунчер скачает сам.',
+        mac: 'Java лаунчер скачает сам.',
         linux: 'Java лаунчер скачает сам.'
-      }
+      },
+      macTitle: 'Как установить на Mac',
+      macSteps: [
+        'Распакуйте zip двойным кликом и перетащите Amethyx.app в «Программы».',
+        'Сборка не подписана у Apple (это платно), поэтому при первом запуске macOS скажет «не удаётся проверить» или «повреждено». Один раз откройте «Терминал» и выполните:',
+        'Если после этого всё равно не открывается, выполните ещё одну команду и снова запустите Amethyx:'
+      ],
+      copy: 'Скопировать', copied: 'Скопировано'
     },
     en: {
       downloadFor: 'Download for ', download: 'Download', release: 'release', beta: 'beta', latest: 'latest',
@@ -134,11 +141,50 @@
       noBuild: 'There is no build for your system yet — here is the Windows version.',
       req: {
         windows: 'Windows 10 (1803 or newer) or Windows 11, 64-bit. The launcher downloads Java by itself.',
-        mac: 'The build is not signed by Apple: move Amethyx to Applications and run once in Terminal: xattr -cr /Applications/Amethyx.app. The launcher downloads Java by itself.',
+        mac: 'The launcher downloads Java by itself.',
         linux: 'The launcher downloads Java by itself.'
-      }
+      },
+      macTitle: 'How to install on a Mac',
+      macSteps: [
+        'Unpack the zip with a double click and drag Amethyx.app into Applications.',
+        'The build is not signed by Apple (that costs money), so on the first start macOS says it “cannot be verified” or is “damaged”. Open Terminal once and run:',
+        'If it still does not open, run one more command and start Amethyx again:'
+      ],
+      copy: 'Copy', copied: 'Copied'
     }
   };
+  // The commands of the Mac guide (the same in every language).
+  var MAC_COMMANDS = [null, 'xattr -cr /Applications/Amethyx.app', 'codesign --force --deep --sign - /Applications/Amethyx.app'];
+
+  // The Mac guide: shown when the big button gives a Mac build, or the macOS tab of
+  // "Other versions" is open.
+  function renderMacHelp(T, show) {
+    var box = document.getElementById('mac-help');
+    box.hidden = !show;
+    if (!show) return;
+    while (box.firstChild) box.removeChild(box.firstChild);
+    box.appendChild(makeEl('h3', 'mac-help__title', T.macTitle));
+    var steps = makeEl('ol', 'mac-help__steps');
+    T.macSteps.forEach(function (text, index) {
+      var step = makeEl('li');
+      step.appendChild(makeEl('p', '', text));
+      var command = MAC_COMMANDS[index];
+      if (command) {
+        var line = makeEl('div', 'mac-help__command');
+        line.appendChild(makeEl('code', '', command));
+        var copy = makeEl('button', 'btn btn--ghost mac-help__copy', T.copy);
+        copy.type = 'button';
+        copy.addEventListener('click', function () {
+          var done = function () { copy.textContent = T.copied; setTimeout(function () { copy.textContent = T.copy; }, 1600); };
+          if (navigator.clipboard) navigator.clipboard.writeText(command).then(done, function () {});
+        });
+        line.appendChild(copy);
+        step.appendChild(line);
+      }
+      steps.appendChild(step);
+    });
+    box.appendChild(steps);
+  }
 
   // Which computer the visitor is on. Phones and tablets get "mobile".
   function detectSystem() {
@@ -222,11 +268,13 @@
     var picker = document.getElementById('dl-picker');
     more.hidden = !versions.length;
     document.getElementById('dl-more-text').textContent = picker.hidden ? T.more : T.less;
+    renderMacHelp(T, group === 'mac');
     if (!versions.length) return;
 
     // System tabs: only systems that have builds; the main system is open first.
     var present = SYSTEMS.filter(function (s) { return versions.some(function (v) { return v.platform === s; }); });
     if (!chosenSystem || present.indexOf(chosenSystem) < 0) chosenSystem = present.indexOf(system) >= 0 ? system : present[0];
+    if (group !== 'mac' && !picker.hidden && /^mac/.test(chosenSystem)) renderMacHelp(T, true);
     var tabs = document.getElementById('dl-systems');
     while (tabs.firstChild) tabs.removeChild(tabs.firstChild);
     tabs.hidden = present.length < 2;

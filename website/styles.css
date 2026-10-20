@@ -151,9 +151,9 @@ img { max-width: 100%; height: auto; display: block; }
 .hero__actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .hero__meta { margin: 16px 0 0; color: var(--text-muted); font-size: 14px; }
 
-/* A piece of an amethyst geode turning slowly in the air (geode.js builds its faces; the launcher's start screen is the same):
-   amethyst and budding amethyst on top, calcite and smooth basalt below; crystals grow on the
-   budding blocks with a little pop at every stage, sparkles blink around it. */
+/* A 3×3 plate of budding amethyst turning slowly in the air (geode.js builds its faces; the
+   launcher's start screen is the same): crystals grow on it like a snake, from the edge round
+   into the middle, with a little pop at every stage; sparkles blink around it. */
 .puzzle {
   position: relative;
   width: 240px;
@@ -248,10 +248,10 @@ img { max-width: 100%; height: auto; display: block; }
 
 .geode__sprite {
   position: absolute;
-  left: calc(var(--cell) * -0.7);
-  top: calc(var(--cell) * -1.4);
-  width: calc(var(--cell) * 1.4);
-  height: calc(var(--cell) * 1.4);
+  left: calc(var(--cell) * -0.65);
+  top: calc(var(--cell) * -1.3);
+  width: calc(var(--cell) * 1.3);
+  height: calc(var(--cell) * 1.3);
   transform-origin: 50% 100%;
   background-size: 100% 100%;
   image-rendering: pixelated;
@@ -611,6 +611,16 @@ img { max-width: 100%; height: auto; display: block; }
 .picker__system:hover { background: var(--btn-face-hover); color: var(--text); }
 .picker__system[aria-selected="true"] { color: #1c0e3a; background: var(--btn-specks) 0 0 / 46px 22px, var(--accent-strong); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.34), inset 0 -3px 0 rgba(0, 0, 0, 0.28); }
 .versions__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+/* How to install on a Mac: three short steps with the Terminal commands, each with a Copy button. */
+.mac-help { width: 100%; max-width: 660px; margin: 18px auto 0; padding: 16px 18px; text-align: left; background: rgba(var(--accent-rgb), 0.07); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.3); }
+.mac-help[hidden] { display: none; }
+.mac-help__title { margin: 0 0 10px; font-size: 16px; color: var(--text); }
+.mac-help__steps { margin: 0; padding-left: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; color: var(--text-soft); font-size: 14px; line-height: 1.5; }
+.mac-help__steps p { margin: 0; }
+.mac-help__command { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.mac-help__command code { flex: 1; min-width: 0; padding: 8px 10px; font-family: ui-monospace, Consolas, Menlo, monospace; font-size: 13px; color: var(--accent); background: #15111d; overflow-x: auto; white-space: nowrap; }
+.mac-help__copy { padding: 6px 12px 8px; font-size: 13px; flex: none; }
 .versions__list li {
   --cut: 3px;
   padding: 10px 12px;

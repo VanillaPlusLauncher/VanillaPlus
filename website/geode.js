@@ -1,19 +1,21 @@
-/* The launcher's start screen in miniature: a piece of an amethyst geode turning slowly in the air —
-   amethyst and budding amethyst on top, calcite and smooth basalt below — with crystals growing on
-   the budding blocks stage by stage and sparkles around it. All textures are drawn here (the site
-   carries no files from the game). Same build as the launcher's components/splash.js. */
+/* The launcher's start screen in miniature: a 3×3 plate of budding amethyst, one block thick,
+   turning slowly in the air. Crystals grow on it like a snake — from the outer edge round and
+   round into the middle, each through small, medium and large bud to a cluster — then fall away
+   in the same order and grow again; sparkles blink around it. Same build and timings as the
+   launcher's components/splash.js, but all textures are drawn here: the site carries no files
+   from the game. */
 (function () {
   'use strict';
 
   var SIDE = 3;
-  var LAYERS = 3;
-  var CELL = 26;
-  var LAYER_BLOCKS = ['amethyst_block', 'calcite', 'smooth_basalt'];
-  var BUDDING = [0, 4, 8];
+  var CELL = 28;
   var STAGES = 4;
-  var STAGE_MS = 650;
-  var CLUSTER_MS = 1500;
-  var SHADE = { top: 1.08, south: 0.82, east: 0.92, north: 0.66, west: 0.74 };
+  var STAGE_MS = 210; // each growth stage
+  var STEP_MS = 260; // the snake's head moves on to the next block
+  var HOLD_MS = 1300; // the full plate stays a moment…
+  var FALL_STEP_MS = 70; // …the crystals fall away one by one…
+  var REST_MS = 450; // …a short rest, and again
+  var SHADE = { top: 1.06, south: 0.8, east: 0.9, north: 0.64, west: 0.72 };
   var AMETHYST = ['#3b2470', '#4a2d8a', '#5b39a3', '#6f48bb', '#8459d0', '#9a70de'];
   var AMETHYST_LIGHT = ['#c99cf0', '#e9c6f7', '#ffe3fb'];
 
@@ -86,6 +88,20 @@
     return canvas.toDataURL();
   }
 
+  /* The blocks of an n × n plate from its outer edge round and round into the middle (clockwise). */
+  function spiralOrder(n) {
+    var order = [];
+    var left = 0, top = 0, right = n - 1, bottom = n - 1, x, y;
+    while (left <= right && top <= bottom) {
+      for (x = left; x <= right; x += 1) order.push([x, top]);
+      for (y = top + 1; y <= bottom; y += 1) order.push([right, y]);
+      if (top < bottom) for (x = right - 1; x >= left; x -= 1) order.push([x, bottom]);
+      if (left < right) for (y = bottom - 1; y > top; y -= 1) order.push([left, y]);
+      left += 1; top += 1; right -= 1; bottom -= 1;
+    }
+    return order;
+  }
+
   function face(texture, side, transform) {
     var element = document.createElement('span');
     element.className = 'geode__face';
@@ -95,15 +111,66 @@
     return element;
   }
 
+  /* A crystal standing on a block: two crossed pictures, like buds in the game; turned a little each. */
+  function buildCrystal(slab, place, turn) {
+    var c = CELL;
+    var holder = document.createElement('span');
+    holder.className = 'geode__crystal';
+    holder.style.transform = 'translate3d(' + (place[0] * c + c / 2) + 'px,' + (place[1] * c + c / 2) + 'px,' + c + 'px) rotateZ(' + turn + 'deg)';
+    var grow = document.createElement('span');
+    grow.className = 'geode__grow geode__grow--gone';
+    var sprites = [45, -45].map(function (angle) {
+      var sprite = document.createElement('span');
+      sprite.className = 'geode__sprite';
+      sprite.style.transform = 'rotateZ(' + angle + 'deg) rotateX(-90deg)';
+      grow.appendChild(sprite);
+      return sprite;
+    });
+    holder.appendChild(grow);
+    slab.appendChild(holder);
+    return { grow: grow, sprites: sprites };
+  }
+
+  function showStage(parts, picture) {
+    parts.sprites.forEach(function (sprite) { sprite.style.backgroundImage = 'url("' + picture + '")'; });
+  }
+
+  /* One crystal through its stages, with a little pop at each. */
+  function growCrystal(parts, pictures) {
+    var stage = 0;
+    (function step() {
+      showStage(parts, pictures[stage]);
+      parts.grow.classList.remove('geode__grow--gone', 'geode__grow--pop');
+      void parts.grow.offsetWidth; // restart the pop of a new stage
+      parts.grow.classList.add('geode__grow--pop');
+      stage += 1;
+      if (stage < STAGES) setTimeout(step, STAGE_MS);
+    })();
+  }
+
+  /* The snake: crystals grow block after block into the middle, fall away in the same order, again. */
+  function snakeLoop(crystals, pictures) {
+    (function cycle() {
+      crystals.forEach(function (parts, index) {
+        setTimeout(function () { growCrystal(parts, pictures); }, index * STEP_MS);
+      });
+      var grown = (crystals.length - 1) * STEP_MS + STAGES * STAGE_MS;
+      setTimeout(function () {
+        crystals.forEach(function (parts, index) {
+          setTimeout(function () { parts.grow.classList.add('geode__grow--gone'); }, index * FALL_STEP_MS);
+        });
+        setTimeout(cycle, crystals.length * FALL_STEP_MS + REST_MS);
+      }, grown + HOLD_MS);
+    })();
+  }
+
   function start(row) {
     if (!row) return;
     var textures = {
       amethyst_block: mottled(AMETHYST, 11, AMETHYST_LIGHT),
-      budding_amethyst: mottled(AMETHYST, 23, AMETHYST_LIGHT, '#26144f'),
-      calcite: mottled(['#bdbeb9', '#cacbc6', '#d6d7d2', '#e2e3de', '#eeeeea'], 5),
-      smooth_basalt: mottled(['#2f2f35', '#38383f', '#424249', '#4c4c54', '#56565e'], 7),
+      budding_amethyst: mottled(AMETHYST, 23, AMETHYST_LIGHT, '#26144f')
     };
-    var crystals = [0, 1, 2, 3].map(crystal);
+    var pictures = [0, 1, 2, 3].map(crystal);
     var c = CELL;
 
     var float = document.createElement('div');
@@ -116,66 +183,37 @@
     slab.style.width = SIDE * c + 'px';
     slab.style.height = SIDE * c + 'px';
 
-    for (var layer = 0; layer < LAYERS; layer += 1) {
-      var z = LAYERS - 1 - layer;
-      for (var y = 0; y < SIDE; y += 1) {
-        for (var x = 0; x < SIDE; x += 1) {
-          var block = textures[layer === 0 && BUDDING.indexOf(y * SIDE + x) >= 0 ? 'budding_amethyst' : LAYER_BLOCKS[layer]];
-          if (layer === 0) slab.appendChild(face(block, 'top', 'translate3d(' + x * c + 'px,' + y * c + 'px,' + (z + 1) * c + 'px)'));
-          if (y === SIDE - 1) slab.appendChild(face(block, 'south', 'translate3d(' + x * c + 'px,' + (y + 1) * c + 'px,' + (z + 1) * c + 'px) rotateX(-90deg)'));
-          if (y === 0) slab.appendChild(face(block, 'north', 'translate3d(' + (x + 1) * c + 'px,' + y * c + 'px,' + (z + 1) * c + 'px) rotateZ(180deg) rotateX(-90deg)'));
-          if (x === SIDE - 1) slab.appendChild(face(block, 'east', 'translate3d(' + (x + 1) * c + 'px,' + (y + 1) * c + 'px,' + (z + 1) * c + 'px) rotateZ(-90deg) rotateX(-90deg)'));
-          if (x === 0) slab.appendChild(face(block, 'west', 'translate3d(' + x * c + 'px,' + y * c + 'px,' + (z + 1) * c + 'px) rotateZ(90deg) rotateX(-90deg)'));
-        }
+    // The faces that can be seen: the tops (budding amethyst) and the sides along the edge (amethyst
+    // block), in a plane where x goes right, y towards the viewer and z up.
+    var top = textures.budding_amethyst, edge = textures.amethyst_block;
+    for (var y = 0; y < SIDE; y += 1) {
+      for (var x = 0; x < SIDE; x += 1) {
+        slab.appendChild(face(top, 'top', 'translate3d(' + x * c + 'px,' + y * c + 'px,' + c + 'px)'));
+        if (y === SIDE - 1) slab.appendChild(face(edge, 'south', 'translate3d(' + x * c + 'px,' + (y + 1) * c + 'px,' + c + 'px) rotateX(-90deg)'));
+        if (y === 0) slab.appendChild(face(edge, 'north', 'translate3d(' + (x + 1) * c + 'px,' + y * c + 'px,' + c + 'px) rotateZ(180deg) rotateX(-90deg)'));
+        if (x === SIDE - 1) slab.appendChild(face(edge, 'east', 'translate3d(' + (x + 1) * c + 'px,' + (y + 1) * c + 'px,' + c + 'px) rotateZ(-90deg) rotateX(-90deg)'));
+        if (x === 0) slab.appendChild(face(edge, 'west', 'translate3d(' + x * c + 'px,' + y * c + 'px,' + c + 'px) rotateZ(90deg) rotateX(-90deg)'));
       }
     }
 
-    var growers = BUDDING.map(function (place) {
-      var holder = document.createElement('span');
-      holder.className = 'geode__crystal';
-      holder.style.transform = 'translate3d(' + ((place % SIDE) * c + c / 2) + 'px,' + (Math.floor(place / SIDE) * c + c / 2) + 'px,' + LAYERS * c + 'px)';
-      var grow = document.createElement('span');
-      grow.className = 'geode__grow';
-      var sprites = [45, -45].map(function (angle) {
-        var sprite = document.createElement('span');
-        sprite.className = 'geode__sprite';
-        sprite.style.transform = 'rotateZ(' + angle + 'deg) rotateX(-90deg)';
-        grow.appendChild(sprite);
-        return sprite;
-      });
-      holder.appendChild(grow);
-      slab.appendChild(holder);
-      return { grow: grow, sprites: sprites };
+    var random = seeded(7);
+    var crystals = spiralOrder(SIDE).map(function (place) {
+      return buildCrystal(slab, place, Math.round((random() - 0.5) * 40));
     });
 
     float.appendChild(slab);
     row.appendChild(shadow);
     row.appendChild(float);
 
-    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    growers.forEach(function (parts, index) {
-      if (calm) {
-        parts.sprites.forEach(function (sprite) { sprite.style.backgroundImage = 'url("' + crystals[3] + '")'; });
-        return;
-      }
-      var stage = -1;
-      function step() {
-        stage += 1;
-        if (stage < STAGES) {
-          parts.sprites.forEach(function (sprite) { sprite.style.backgroundImage = 'url("' + crystals[stage] + '")'; });
-          parts.grow.classList.remove('geode__grow--gone', 'geode__grow--pop');
-          void parts.grow.offsetWidth;
-          parts.grow.classList.add('geode__grow--pop');
-          setTimeout(step, stage === STAGES - 1 ? CLUSTER_MS : STAGE_MS);
-        } else {
-          parts.grow.classList.add('geode__grow--gone');
-          stage = -1;
-          setTimeout(step, 520);
-        }
-      }
-      setTimeout(step, index * 900);
-    });
-    if (calm) return;
+    // Calm mode: the plate stands full-grown, without the snake and the sparkles.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      crystals.forEach(function (parts) {
+        showStage(parts, pictures[STAGES - 1]);
+        parts.grow.classList.remove('geode__grow--gone');
+      });
+      return;
+    }
+    snakeLoop(crystals, pictures);
 
     (function spark() {
       var element = document.createElement('span');
