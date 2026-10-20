@@ -111,10 +111,30 @@ function createBackup(instanceDirectory, world, { reason = 'Вручную', aut
   });
 }
 
-/** Backs up every world of an instance before a risky change. Returns how many were saved. */
+/** When any file of a folder was last changed (ms), walking it; 0 for an empty or missing folder. */
+async function lastChange(folder) {
+  let newest = 0;
+  const entries = await fsp.readdir(folder, { withFileTypes: true }).catch(() => []);
+  for (const entry of entries) {
+    const full = path.join(folder, entry.name);
+    if (entry.isDirectory()) newest = Math.max(newest, await lastChange(full));
+    else newest = Math.max(newest, (await fsp.stat(full).catch(() => null))?.mtimeMs ?? 0);
+  }
+  return newest;
+}
+
+/**
+ * Backs up every world of an instance before a risky change. A world not played since its last
+ * copy is skipped: that copy already is the world as it is. Returns how many were saved.
+ */
 async function backupAllWorlds(instanceDirectory, reason) {
   let count = 0;
+  const backups = await readIndex(instanceDirectory);
   for (const world of await worldNames(instanceDirectory)) {
+    const last = backups.filter((backup) => backup.world === world).map((backup) => Date.parse(backup.createdAt)).sort((a, b) => b - a)[0];
+    if (last && (await lastChange(path.join(instanceDirectory, 'saves', world))) <= last) {
+      continue;
+    }
     try {
       await createBackup(instanceDirectory, world, { reason, auto: true });
       count += 1;

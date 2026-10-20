@@ -74,6 +74,7 @@
 - Switching the loader from Vanilla to Fabric did nothing; affected instances repair themselves
 - Settings sometimes were not saved (EPERM) while an antivirus held the file
 - Big instances opened slowly and froze the launcher: every mod jar was read whole to learn its name and icon (a 159-mod pack: 15.7 s with the window stuck). Now only the few small files needed are read, in the background, and remembered on disk: 0.25 s the first time, 0.1 s after a restart. Adding a mod checks compatibility faster too
+- Before mod updates and version changes every world was copied again, even ones not played for weeks (a 14-world pack: about 1.1 GB each time). Now only worlds played since their last copy are copied
 - In other languages the start screen's steps ("3D models…") and the dates of Minecraft news stayed in Russian
 - Friends: a stray "null" under your name when your account has no code
 
