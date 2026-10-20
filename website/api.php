@@ -144,7 +144,8 @@ switch ($action) {
 
   case 'import':
     need_post();
-    amx_require_admin();
+    amx_require_admin(true); // a script with a token may pick up files too
+    @set_time_limit(300); // every new file is hashed
     $added = count(amx_import_downloads());
     amx_write_feeds();
     amx_json(['added' => $added]);
@@ -161,7 +162,9 @@ switch ($action) {
     $size = (int) ($body['size'] ?? 0);
     if ($name === '') amx_fail(400, 'name', 'The file must be an installer or archive (.exe, .zip, .dmg…).');
     if ($size <= 0 || $size > 2 * 1024 * 1024 * 1024) amx_fail(400, 'size', 'Bad file size.');
-    if (is_file(AMX_DOWNLOADS . '/' . $name)) amx_fail(409, 'exists', 'A file with this name is already on the site. Delete that version first or rename the file.');
+    // A file left in downloads by a failed finish (no version for it) may be uploaded again;
+    // upload-finish then checks that it is the same file.
+    if (is_file(AMX_DOWNLOADS . '/' . $name) && !amx_orphan($name)) amx_fail(409, 'exists', 'A file with this name is already on the site. Delete that version first or rename the file.');
     if (!is_dir(AMX_DOWNLOADS) && !@mkdir(AMX_DOWNLOADS, 0755, true)) amx_fail(500, 'storage', 'Cannot create the downloads folder.');
     $free = @disk_free_space(AMX_DOWNLOADS);
     if ($free !== false && $free < $size * 1.1) amx_fail(507, 'space', 'Not enough disk space on the hosting.');
@@ -214,6 +217,10 @@ switch ($action) {
   case 'upload-finish':
     need_post();
     amx_require_admin(true);
+    // Checking a 150 MB file takes a while on a slow disk: don't let the hosting's time limit or
+    // a closed connection stop it halfway (a file moved without its version, as once happened).
+    @set_time_limit(300);
+    ignore_user_abort(true);
     $body = amx_body();
     $id = (string) ($body['id'] ?? '');
     $q = amx_db()->prepare('SELECT meta, size FROM uploads WHERE id = ?');
@@ -224,15 +231,21 @@ switch ($action) {
     $part = amx_data_dir() . "/tmp/$id.part";
     clearstatcache(true, $part);
     if (filesize($part) !== (int) $row['size']) amx_fail(400, 'incomplete', 'The file has not arrived completely.');
+    $sha256 = hash_file('sha256', $part); // once: it goes into the version too
     $expected = strtolower((string) ($body['sha256'] ?? ''));
-    if ($expected !== '' && hash_file('sha256', $part) !== $expected) {
+    if ($expected !== '' && $sha256 !== $expected) {
       @unlink($part);
       amx_db()->prepare('DELETE FROM uploads WHERE id = ?')->execute([$id]);
       amx_fail(400, 'checksum', 'The file was damaged on the way. Upload it again.');
     }
     $target = AMX_DOWNLOADS . '/' . $meta['name'];
-    if (is_file($target)) amx_fail(409, 'exists', 'A file with this name is already on the site.');
-    if (!@rename($part, $target)) {
+    if (is_file($target)) {
+      // Only a file without a version may be there, and only the very same one: then it is kept.
+      if (!amx_orphan($meta['name']) || hash_file('sha256', $target) !== $sha256) {
+        amx_fail(409, 'exists', 'A different file with this name is already on the site.');
+      }
+      @unlink($part);
+    } elseif (!@rename($part, $target)) {
       if (!@copy($part, $target)) amx_fail(500, 'storage', 'Cannot move the file into downloads.');
       @unlink($part);
     }
@@ -244,10 +257,10 @@ switch ($action) {
     $q->execute([$meta['name']]);
     $versionId = (int) $q->fetchColumn();
     if ($versionId) {
-      amx_db()->prepare('UPDATE versions SET size = ?, sha256 = ? WHERE id = ?')->execute([filesize($target), hash_file('sha256', $target), $versionId]);
+      amx_db()->prepare('UPDATE versions SET size = ?, sha256 = ? WHERE id = ?')->execute([filesize($target), $sha256, $versionId]);
       if ($meta['latest']) amx_mark_latest($versionId);
     } else {
-      $versionId = amx_add_version($meta['name'], $meta['version'], $meta['platform'], $meta['channel'], $meta['notes'], $meta['latest']);
+      $versionId = amx_add_version($meta['name'], $meta['version'], $meta['platform'], $meta['channel'], $meta['notes'], $meta['latest'], null, $sha256);
     }
     amx_write_feeds();
     $q = amx_db()->prepare('SELECT * FROM versions WHERE id = ?');

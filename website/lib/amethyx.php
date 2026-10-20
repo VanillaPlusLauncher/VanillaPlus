@@ -304,11 +304,12 @@ function amx_mark_latest(int $id): void {
   $db->prepare('UPDATE versions SET latest = 1, hidden = 0 WHERE id = ?')->execute([$id]);
 }
 
-function amx_add_version(string $file, string $version, string $platform, string $channel, string $notes, bool $latest, ?int $createdAt = null): int {
+// $sha256 when the caller has just counted it (an upload), so a big file is read only once.
+function amx_add_version(string $file, string $version, string $platform, string $channel, string $notes, bool $latest, ?int $createdAt = null, ?string $sha256 = null): int {
   $path = AMX_DOWNLOADS . '/' . $file;
   $db = amx_db();
   $db->prepare('INSERT INTO versions (version, platform, channel, file, size, sha256, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    ->execute([$version, $platform, $channel, $file, filesize($path), hash_file('sha256', $path), $notes, $createdAt ?? time()]);
+    ->execute([$version, $platform, $channel, $file, filesize($path), $sha256 ?? hash_file('sha256', $path), $notes, $createdAt ?? time()]);
   $id = (int) $db->lastInsertId();
   if ($latest) amx_mark_latest($id);
   return $id;
@@ -350,6 +351,14 @@ function amx_feed_row(string $channel): ?array {
   $q = amx_db()->prepare("SELECT * FROM versions WHERE platform = 'windows' AND hidden = 0 AND channel = ?");
   $q->execute([$channel]);
   return amx_pick($q->fetchAll());
+}
+
+// A file in downloads that no version knows (left by an upload that broke off before it was
+// recorded).
+function amx_orphan(string $file): bool {
+  $q = amx_db()->prepare('SELECT COUNT(*) FROM versions WHERE file = ?');
+  $q->execute([$file]);
+  return is_file(AMX_DOWNLOADS . '/' . $file) && (int) $q->fetchColumn() === 0;
 }
 
 function amx_file_present(array $row): bool {
