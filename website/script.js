@@ -62,7 +62,9 @@
   };
 
   var STORE_KEY = 'amethyx.site.lang';
-  var version = '1.7.0'; // replaced by the latest Windows build from the admin panel (api.php)
+  var version = '1.7'; // replaced by the latest Windows build from the admin panel (api.php)
+  // "1.7-beta.28" reads as "1.7 beta 28".
+  function versionText(raw) { return String(raw).replace(/-beta\.(\d+)$/, ' beta $1'); }
   var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-i18n]'));
   var russian = {};
   nodes.forEach(function (node) { russian[node.getAttribute('data-i18n')] = node.textContent; });
@@ -92,7 +94,7 @@
         ? 'A free Minecraft: Java Edition launcher for Windows. Modded instances, Modrinth and CurseForge, a skin wardrobe, friends and chat, your own server, one-click optimization.'
         : descriptionRu;
     }
-    document.getElementById('version-line').textContent = (english ? 'Version ' : 'Версия ') + version;
+    document.getElementById('version-line').textContent = (english ? 'Version ' : 'Версия ') + versionText(version);
     document.getElementById('changelog-link').href =
       'https://github.com/VanillaPlusLauncher/VanillaPlus/blob/main/' + (english ? 'CHANGELOG.md' : 'CHANGELOG.ru.md');
     var lang = document.getElementById('lang');

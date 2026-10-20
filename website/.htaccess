@@ -17,4 +17,8 @@ Options -Indexes
   <FilesMatch "\.(exe|zip|dmg)$">
     Header set Content-Disposition "attachment"
   </FilesMatch>
+  # The launcher's update feeds (updates/latest.json, beta.json) must always be fresh.
+  <FilesMatch "^(latest|beta)\.json$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
 </IfModule>

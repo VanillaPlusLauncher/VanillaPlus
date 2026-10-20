@@ -289,15 +289,17 @@ function amx_import_downloads(): array {
 }
 
 // ---- Update feeds for the launcher ---------------------------------------
-// The launcher reads updates/latest.json (released versions) and updates/beta.json (the newest
-// build, betas too) — plain files, so they work on any hosting. They are rewritten after every
-// change of the versions list. An update the launcher downloads goes through dl.php and counts.
+// The launcher reads updates/latest.json (the released version) and updates/beta.json (the newest
+// test build; only launchers already on a beta read it, and they take whichever of the two is
+// newer). Plain files, so they work on any hosting; rewritten after every change of the versions
+// list. Each takes the Windows build of its channel marked latest, otherwise the newest one.
+// An update the launcher downloads goes through dl.php and counts as a download.
 
-function amx_feed_row(bool $betas): ?array {
-  $sql = 'SELECT * FROM versions WHERE platform = \'windows\' AND hidden = 0'
-    . ($betas ? '' : ' AND channel = \'release\'')
-    . ' ORDER BY latest DESC, created_at DESC, id DESC LIMIT 1';
-  $row = amx_db()->query($sql)->fetch();
+function amx_feed_row(string $channel): ?array {
+  $q = amx_db()->prepare("SELECT * FROM versions WHERE platform = 'windows' AND hidden = 0 AND channel = ?
+    ORDER BY latest DESC, created_at DESC, id DESC LIMIT 1");
+  $q->execute([$channel]);
+  $row = $q->fetch();
   return $row ?: null;
 }
 
@@ -307,14 +309,16 @@ function amx_write_feeds(): void {
   $dir = AMX_ROOT . '/updates';
   if (!is_dir($dir) && !@mkdir($dir, 0755, true)) return;
   $host = preg_replace('/[^A-Za-z0-9.:-]/', '', $_SERVER['HTTP_HOST'] ?? '');
-  $base = ($host !== '' ? (amx_https() ? 'https://' : 'http://') . $host : '')
+  // The launcher only takes https links; plain http stays only for a test on this computer.
+  $local = preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/', $host);
+  $base = ($host !== '' ? ($local && !amx_https() ? 'http://' : 'https://') . $host : '')
     . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/') . '/';
-  foreach (['latest' => false, 'beta' => true] as $name => $betas) {
-    $row = amx_feed_row($betas);
+  foreach (['latest' => 'release', 'beta' => 'beta'] as $name => $channel) {
+    $row = amx_feed_row($channel);
     $file = "$dir/$name.json";
     if (!$row) { @unlink($file); continue; }
     $feed = [
-      'version' => $row['version'], 'date' => date('Y-m-d', (int) $row['created_at']), 'notes' => $row['notes'],
+      'version' => $row['version'], 'date' => date('Y-m-d', (int) $row['created_at']), 'notes' => mb_substr($row['notes'], 0, 4000),
       'installer' => ['url' => $base . 'dl.php?id=' . (int) $row['id'], 'sha256' => $row['sha256'], 'size' => (int) $row['size']],
     ];
     @file_put_contents($file, json_encode($feed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);

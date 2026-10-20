@@ -116,7 +116,7 @@ switch ($action) {
     if (!$row) amx_fail(404, 'missing', 'No such version.');
     $set = [];
     if (isset($body['version'])) $set['version'] = mb_substr(trim((string) $body['version']), 0, 40);
-    if (isset($body['notes'])) $set['notes'] = mb_substr((string) $body['notes'], 0, 5000);
+    if (isset($body['notes'])) $set['notes'] = mb_substr((string) $body['notes'], 0, 4000);
     if (isset($body['channel'])) $set['channel'] = $body['channel'] === 'beta' ? 'beta' : 'release';
     if (isset($body['platform']) && in_array($body['platform'], AMX_PLATFORMS, true)) $set['platform'] = $body['platform'];
     if (isset($body['hidden'])) $set['hidden'] = $body['hidden'] ? 1 : 0;
@@ -171,7 +171,7 @@ switch ($action) {
     $meta = [
       'name' => $name, 'version' => mb_substr($version, 0, 40), 'platform' => $platform,
       'channel' => ($body['channel'] ?? '') === 'beta' || stripos($version, 'beta') !== false ? 'beta' : 'release',
-      'notes' => mb_substr((string) ($body['notes'] ?? ''), 0, 5000), 'latest' => !empty($body['latest']),
+      'notes' => mb_substr((string) ($body['notes'] ?? ''), 0, 4000), 'latest' => !empty($body['latest']),
     ];
     $tmp = amx_data_dir() . '/tmp';
     if (!is_dir($tmp)) @mkdir($tmp, 0750, true);
