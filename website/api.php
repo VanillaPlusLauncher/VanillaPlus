@@ -22,8 +22,9 @@ switch ($action) {
       $row = amx_latest($platform);
       if ($row) $latest[$platform] = amx_version_row($row);
     }
-    $all = amx_db()->query('SELECT * FROM versions WHERE hidden = 0 ORDER BY created_at DESC, id DESC')->fetchAll();
-    amx_json(['latest' => $latest, 'versions' => array_map('amx_version_row', $all)]);
+    $all = array_filter(amx_db()->query('SELECT * FROM versions WHERE hidden = 0 ORDER BY created_at DESC, id DESC')->fetchAll(), 'amx_file_present');
+    amx_heal_feeds();
+    amx_json(['latest' => $latest, 'versions' => array_values(array_map('amx_version_row', $all))]);
 
   case 'hit':
     need_post();

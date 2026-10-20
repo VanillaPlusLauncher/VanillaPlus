@@ -237,10 +237,12 @@ function amx_version_row(array $row, bool $admin = false): array {
 // The version a "Download" button gives: the one marked latest, otherwise the newest
 // visible one of that platform.
 function amx_latest(string $platform): ?array {
-  $q = amx_db()->prepare('SELECT * FROM versions WHERE platform = ? AND hidden = 0 ORDER BY latest DESC, created_at DESC, id DESC LIMIT 1');
+  $q = amx_db()->prepare('SELECT * FROM versions WHERE platform = ? AND hidden = 0 ORDER BY latest DESC, created_at DESC, id DESC');
   $q->execute([$platform]);
-  $row = $q->fetch();
-  return $row ?: null;
+  foreach ($q->fetchAll() as $row) {
+    if (is_file(AMX_DOWNLOADS . '/' . $row['file'])) return $row; // a build whose file is gone is skipped
+  }
+  return null;
 }
 
 function amx_mark_latest(int $id): void {
@@ -297,22 +299,32 @@ function amx_import_downloads(): array {
 
 function amx_feed_row(string $channel): ?array {
   $q = amx_db()->prepare("SELECT * FROM versions WHERE platform = 'windows' AND hidden = 0 AND channel = ?
-    ORDER BY latest DESC, created_at DESC, id DESC LIMIT 1");
+    ORDER BY latest DESC, created_at DESC, id DESC");
   $q->execute([$channel]);
-  $row = $q->fetch();
-  return $row ?: null;
+  foreach ($q->fetchAll() as $row) {
+    if (amx_file_present($row)) return $row; // a build whose file is gone is skipped
+  }
+  return null;
 }
 
-// Only called on requests of the admin (session or token): the site's address is taken from
-// such a request, never from a visitor's, whose Host header could point anywhere.
-function amx_write_feeds(): void {
+function amx_file_present(array $row): bool {
+  return is_file(AMX_DOWNLOADS . '/' . $row['file']);
+}
+
+// Without $base it is called on requests of the admin (session or token): the site's address is
+// taken from such a request, never from a visitor's, whose Host header could point anywhere,
+// and remembered so that amx_heal_feeds() can bring the files back later.
+function amx_write_feeds(?string $base = null): void {
   $dir = AMX_ROOT . '/updates';
   if (!is_dir($dir) && !@mkdir($dir, 0755, true)) return;
-  $host = preg_replace('/[^A-Za-z0-9.:-]/', '', $_SERVER['HTTP_HOST'] ?? '');
-  // The launcher only takes https links; plain http stays only for a test on this computer.
-  $local = preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/', $host);
-  $base = ($host !== '' ? ($local && !amx_https() ? 'http://' : 'https://') . $host : '')
-    . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/') . '/';
+  if ($base === null) {
+    $host = preg_replace('/[^A-Za-z0-9.:-]/', '', $_SERVER['HTTP_HOST'] ?? '');
+    // The launcher only takes https links; plain http stays only for a test on this computer.
+    $local = preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/', $host);
+    $base = ($host !== '' ? ($local && !amx_https() ? 'http://' : 'https://') . $host : '')
+      . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/') . '/';
+    amx_set_setting('site_base', $base);
+  }
   foreach (['latest' => 'release', 'beta' => 'beta'] as $name => $channel) {
     $row = amx_feed_row($channel);
     $file = "$dir/$name.json";
@@ -322,6 +334,18 @@ function amx_write_feeds(): void {
       'installer' => ['url' => $base . 'dl.php?id=' . (int) $row['id'], 'sha256' => $row['sha256'], 'size' => (int) $row['size']],
     ];
     @file_put_contents($file, json_encode($feed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+  }
+}
+
+// The site's files can be replaced or wiped while the database (outside the site folder) stays:
+// then the feeds are written again with the address the admin's requests left behind.
+function amx_heal_feeds(): void {
+  $dir = AMX_ROOT . '/updates';
+  if (is_file("$dir/beta.json") && is_file("$dir/latest.json")) return;
+  $base = amx_setting('site_base');
+  if (!$base) return;
+  foreach (['latest' => 'release', 'beta' => 'beta'] as $name => $channel) {
+    if (!is_file("$dir/$name.json") && amx_feed_row($channel)) { amx_write_feeds($base); return; }
   }
 }
 
