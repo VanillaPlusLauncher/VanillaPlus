@@ -48,6 +48,7 @@ switch ($action) {
     amx_db()->prepare('INSERT INTO admin (login, pass_hash, created_at) VALUES (?, ?, ?)')
       ->execute([$login, amx_hash_password($password), time()]);
     amx_import_downloads();
+    amx_write_feeds();
     amx_session_start();
     session_regenerate_id(true);
     $_SESSION['admin'] = $login;
@@ -124,6 +125,7 @@ switch ($action) {
     }
     if (!empty($set['hidden'])) amx_db()->prepare('UPDATE versions SET latest = 0 WHERE id = ?')->execute([$id]);
     if (!empty($body['latest'])) amx_mark_latest($id);
+    amx_write_feeds();
     amx_json(['ok' => true]);
 
   case 'version-delete':
@@ -136,12 +138,15 @@ switch ($action) {
     if ($file === false) amx_fail(404, 'missing', 'No such version.');
     amx_db()->prepare('DELETE FROM versions WHERE id = ?')->execute([$id]);
     @unlink(AMX_DOWNLOADS . '/' . $file);
+    amx_write_feeds();
     amx_json(['ok' => true]);
 
   case 'import':
     need_post();
     amx_require_admin();
-    amx_json(['added' => count(amx_import_downloads())]);
+    $added = count(amx_import_downloads());
+    amx_write_feeds();
+    amx_json(['added' => $added]);
 
   // ---- Uploading a build in pieces ----------------------------------------
   // start -> chunk (as many as needed, raw bytes) -> finish. A piece is always small
@@ -233,6 +238,7 @@ switch ($action) {
     @chmod($target, 0644);
     amx_db()->prepare('DELETE FROM uploads WHERE id = ?')->execute([$id]);
     $versionId = amx_add_version($meta['name'], $meta['version'], $meta['platform'], $meta['channel'], $meta['notes'], $meta['latest']);
+    amx_write_feeds();
     $q = amx_db()->prepare('SELECT * FROM versions WHERE id = ?');
     $q->execute([$versionId]);
     amx_json(['version' => amx_version_row($q->fetch(), true)]);

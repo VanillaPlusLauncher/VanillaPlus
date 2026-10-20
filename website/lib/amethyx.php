@@ -288,6 +288,39 @@ function amx_import_downloads(): array {
   return $added;
 }
 
+// ---- Update feeds for the launcher ---------------------------------------
+// The launcher reads updates/latest.json (released versions) and updates/beta.json (the newest
+// build, betas too) — plain files, so they work on any hosting. They are rewritten after every
+// change of the versions list. An update the launcher downloads goes through dl.php and counts.
+
+function amx_feed_row(bool $betas): ?array {
+  $sql = 'SELECT * FROM versions WHERE platform = \'windows\' AND hidden = 0'
+    . ($betas ? '' : ' AND channel = \'release\'')
+    . ' ORDER BY latest DESC, created_at DESC, id DESC LIMIT 1';
+  $row = amx_db()->query($sql)->fetch();
+  return $row ?: null;
+}
+
+// Only called on requests of the admin (session or token): the site's address is taken from
+// such a request, never from a visitor's, whose Host header could point anywhere.
+function amx_write_feeds(): void {
+  $dir = AMX_ROOT . '/updates';
+  if (!is_dir($dir) && !@mkdir($dir, 0755, true)) return;
+  $host = preg_replace('/[^A-Za-z0-9.:-]/', '', $_SERVER['HTTP_HOST'] ?? '');
+  $base = ($host !== '' ? (amx_https() ? 'https://' : 'http://') . $host : '')
+    . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/') . '/';
+  foreach (['latest' => false, 'beta' => true] as $name => $betas) {
+    $row = amx_feed_row($betas);
+    $file = "$dir/$name.json";
+    if (!$row) { @unlink($file); continue; }
+    $feed = [
+      'version' => $row['version'], 'date' => date('Y-m-d', (int) $row['created_at']), 'notes' => $row['notes'],
+      'installer' => ['url' => $base . 'dl.php?id=' . (int) $row['id'], 'sha256' => $row['sha256'], 'size' => (int) $row['size']],
+    ];
+    @file_put_contents($file, json_encode($feed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+  }
+}
+
 // ---- Counters ------------------------------------------------------------
 // Only numbers per day are kept: no addresses, no cookies, nothing about the visitor.
 
