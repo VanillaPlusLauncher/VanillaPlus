@@ -70,6 +70,7 @@
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")
 - Switching the loader from Vanilla to Fabric did nothing; affected instances repair themselves
 - Settings sometimes were not saved (EPERM) while an antivirus held the file
+- In other languages the start screen's steps ("3D models…") and the dates of Minecraft news stayed in Russian
 
 ## 1.3.1 — 2026-10-19
 

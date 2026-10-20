@@ -21,6 +21,8 @@ export const LANGUAGES = [
 const ATTRIBUTES = ['title', 'placeholder', 'aria-label'];
 const CYRILLIC = /[А-Яа-яЁё]/;
 const SKIP = 'input, textarea, select option[data-raw], code, pre, .mono, [data-i18n="off"], .log-view, .console-view';
+const RUSSIAN_MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const RUSSIAN_DATE = new RegExp(`^(\\d{1,2}) (${RUSSIAN_MONTHS.join('|')}) (\\d{4}) г\\.$`);
 
 let language = 'ru';
 let dictionary = null;
@@ -55,6 +57,14 @@ export function translate(text) {
   const trimmed = text.trim();
   const exact = dictionary[trimmed];
   if (exact !== undefined) return text.replace(trimmed, exact);
+  // "Шрифты…": a known text with an ellipsis after it (the start screen's steps).
+  if (trimmed.endsWith('…') && dictionary[trimmed.slice(0, -1)] !== undefined) return text.replace(trimmed, `${dictionary[trimmed.slice(0, -1)]}…`);
+  // "28 сентября 2026 г.": a date written before the language was loaded, in this language's way.
+  const date = RUSSIAN_DATE.exec(trimmed);
+  if (date) {
+    const value = new Date(Number(date[3]), RUSSIAN_MONTHS.indexOf(date[2]), Number(date[1]));
+    return text.replace(trimmed, new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'long', year: 'numeric' }).format(value));
+  }
   for (const pattern of patterns) {
     const match = pattern.re.exec(trimmed);
     if (match) {
