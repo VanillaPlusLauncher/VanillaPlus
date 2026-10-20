@@ -297,7 +297,9 @@
       head.appendChild(makeEl('span', 'versions__tag' + (v.channel === 'beta' ? ' is-beta' : ''), v.channel === 'beta' ? T.beta : T.release));
       if (v.id === latestId) head.appendChild(makeEl('span', 'versions__tag is-latest', T.latest));
       head.appendChild(makeEl('span', 'versions__meta', dateText(v.date) + ' · ' + sizeText(v.size, T)));
-      var link = makeEl('a', 'btn btn--ghost versions__get', T.download);
+      var link = makeEl('a', 'btn btn--ghost versions__get');
+      link.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>';
+      link.appendChild(document.createTextNode(T.download));
       link.href = v.url;
       head.appendChild(link);
       item.appendChild(head);
