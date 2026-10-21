@@ -7,6 +7,9 @@ node_modules/
 
 # Minecraft files from Mojang: never committed, the launcher downloads them
 src/assets/mc-ui/
+# The installer's backgrounds are Minecraft panoramas: made by installer/make-setup-art.ps1 from
+# the launcher's cache when a build needs them
+installer/art/setup-pano-*.png
 
 # API keys of builds: only ever in the built app
 installer/curseforge.key

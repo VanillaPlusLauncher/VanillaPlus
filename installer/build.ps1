@@ -118,6 +118,10 @@ $numericVersion = ($Version -replace '[^\d.].*$', '')
   --set-version-string CompanyName 'Amethyx' --set-version-string LegalCopyright 'GPL-3.0' `
   --set-version-string OriginalFilename 'Amethyx.exe' --set-version-string InternalName 'Amethyx'
 if ($LASTEXITCODE -ne 0) { throw "rcedit завершился с кодом $LASTEXITCODE" }
+# The installer's backgrounds (Minecraft panoramas, not in git) come from the launcher's cache.
+if (-not (Test-Path (Join-Path $PSScriptRoot 'art\setup-pano-1.png'))) {
+  & (Join-Path $PSScriptRoot 'make-setup-art.ps1') -PanoramasOnly
+}
 $isccArgs = @('/Q', "/DSourceDir=$stage", "/DAppVersion=$Version", "/O$Output")
 if ($Legacy) { $isccArgs += '/DLegacy' }
 & $Iscc @isccArgs (Join-Path $PSScriptRoot 'Amethyx.iss')

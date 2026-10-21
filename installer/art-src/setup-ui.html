@@ -1,0 +1,103 @@
+<!doctype html>
+<!--
+  The installer's screens in the launcher's pixel look. make-setup-art.ps1 renders every [data-part]
+  on its own, with a transparent background, at 1x, 2x and 3x into installer/art/setup-*.png, and
+  writes where each one stands into installer/art/setup-layout.iss for Amethyx.iss. The panorama
+  behind them is chosen by the installer itself; [data-rect] marks places the installer fills in
+  (the folder path, the percentage, the bar).
+-->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "Tiny5"; src: url("Tiny5.ttf"); }
+:root {
+  --text: #f1ecfb; --soft: #c4bbd8; --muted: #8b83a2;
+  --accent: rgb(190, 160, 255); --accent-strong: rgb(150, 112, 245); --on-accent: #1c0e3a;
+  --panel: rgb(22, 18, 31); --field: #0b0911;
+  --face: #2a2533; --face-hover: #353042; --light: rgba(255, 255, 255, 0.1); --dark: rgba(0, 0, 0, 0.38);
+  --specks: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='22' shape-rendering='crispEdges'%3E%3Cg fill='%23fff' fill-opacity='.16'%3E%3Crect x='5' y='6' width='2' height='2'/%3E%3Crect x='27' y='13' width='2' height='2'/%3E%3Crect x='39' y='5' width='2' height='2'/%3E%3C/g%3E%3Cg fill='%23000' fill-opacity='.09'%3E%3Crect x='16' y='15' width='2' height='2'/%3E%3Crect x='33' y='8' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E");
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; }
+body { width: 760px; height: 460px; position: relative; overflow: hidden; font-family: "Tiny5", sans-serif; font-size-adjust: 0.62; letter-spacing: 0.03em; color: var(--text); }
+body.preview { background: #0a080f url("preview-pano.png") center 62% / 100% auto; }
+[data-part] { position: absolute; }
+.cut { clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c))); }
+
+/* Darkens the panorama: a little at the top for the name, more at the bottom for the panel. */
+[data-part="shade"] { left: 0; top: 0; width: 760px; height: 460px; background: linear-gradient(180deg, rgba(10,8,15,.6) 0%, rgba(10,8,15,.08) 30%, rgba(10,8,15,.3) 55%, rgba(10,8,15,.9) 100%); }
+
+[data-part="brand"] { left: 28px; top: 24px; display: flex; align-items: center; gap: 14px; padding: 0 6px 6px 0; }
+.brand img { width: 56px; height: 56px; filter: drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
+.brand b { display: block; font-weight: normal; font-size: 26px; text-shadow: 2px 2px 0 rgba(0,0,0,.5); }
+.brand small { display: block; margin-top: 4px; font-size: 13px; color: var(--soft); text-shadow: 1px 1px 0 rgba(0,0,0,.6); }
+
+.panel { --c: 5px; left: 24px; width: 712px; background: var(--panel); box-shadow: inset 0 0 0 2px rgba(255,255,255,.05), inset 0 -3px 0 rgba(0,0,0,.4); }
+[data-part="panel-install"] { top: 270px; height: 166px; }
+[data-part="panel-progress"], [data-part="panel-done"] { top: 322px; height: 114px; }
+.label { position: absolute; font-size: 12px; color: var(--muted); letter-spacing: .08em; }
+.field { --c: 3px; position: absolute; background: var(--field); box-shadow: inset 0 3px 0 rgba(0,0,0,.4), inset 0 -2px 0 rgba(255,255,255,.06); }
+.text { position: absolute; font-size: 15px; color: var(--soft); white-space: nowrap; }
+.title { position: absolute; font-size: 20px; white-space: nowrap; }
+.hint { position: absolute; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.track { --c: 2px; position: absolute; background: #07050b; box-shadow: inset 0 0 0 2px #2b2140; }
+
+.btn { --c: 3px; display: flex; align-items: center; justify-content: center; border: 0; font-size: 15px; color: var(--text); background: var(--face); box-shadow: inset 0 3px 0 var(--light), inset 0 -4px 0 var(--dark); padding-bottom: 2px; }
+.btn.hover { background: var(--face-hover); }
+.btn--primary { font-size: 20px; color: var(--on-accent); background: var(--specks) 0 0 / 46px 22px, var(--accent-strong); box-shadow: inset 0 3px 0 rgba(255,255,255,.34), inset 0 -4px 0 rgba(0,0,0,.28); padding-bottom: 3px; }
+.btn--primary.hover { background: var(--specks) 0 0 / 46px 22px, var(--accent); }
+.box { --c: 2px; width: 20px; height: 20px; display: grid; place-items: center; background: var(--accent-strong); box-shadow: inset 0 2px 0 rgba(255,255,255,.3), inset 0 -2px 0 rgba(0,0,0,.25); }
+.box.off { background: var(--field); box-shadow: inset 0 2px 0 rgba(0,0,0,.4), inset 0 -2px 0 rgba(255,255,255,.08), inset 0 0 0 2px #2b2140; }
+[data-part="fill"] { display: flex; gap: 2px; }
+[data-part="fill"] i { width: 14px; height: 14px; flex: none; background: var(--accent-strong); box-shadow: inset 0 2px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.25); }
+</style>
+</head>
+<body>
+<div data-part="shade"></div>
+
+<div data-part="brand" class="brand"><img src="logo.png" alt=""><div><b>Amethyx Launcher</b><small>Лаунчер Minecraft: Java Edition</small></div></div>
+
+<!-- 1. Install: the folder (filled in by Setup), the desktop shortcut and "Установить". -->
+<div data-part="panel-install" class="panel cut">
+  <div class="label" style="left: 22px; top: 20px">ПАПКА</div>
+  <div class="field cut" style="left: 22px; top: 40px; width: 532px; height: 40px"></div>
+  <div class="text" style="left: 52px; top: 107px">Ярлык на рабочем столе</div>
+</div>
+<div data-rect="path" style="position:absolute; left: 58px; top: 318px; width: 516px; height: 24px"></div>
+<div data-part="btn-change" class="btn cut" style="left: 590px; top: 310px; width: 124px; height: 40px">Изменить</div>
+<div data-part="btn-change-hover" class="btn cut hover" style="left: 590px; top: 310px; width: 124px; height: 40px">Изменить</div>
+<div data-part="check-on" class="box cut" style="left: 46px; top: 376px"><svg width="12" height="12" viewBox="0 0 6 6" shape-rendering="crispEdges"><path d="M0 3h1v1h1v1h1V4h1V3h1V2h1V1H5v1H4v1H3v1H2V3H1V2H0z" fill="#1c0e3a"/></svg></div>
+<div data-part="check-off" class="box off cut" style="left: 46px; top: 376px"></div>
+<div data-rect="check-hit" style="position:absolute; left: 40px; top: 368px; width: 270px; height: 36px"></div>
+<div data-part="btn-install" class="btn btn--primary cut" style="left: 514px; top: 364px; width: 200px; height: 56px">Установить</div>
+<div data-part="btn-install-hover" class="btn btn--primary cut hover" style="left: 514px; top: 364px; width: 200px; height: 56px">Установить</div>
+
+<!-- 2. Installing: the percentage (filled in by Setup) and the block bar. -->
+<div data-part="panel-progress" class="panel cut">
+  <div class="title" style="left: 22px; top: 18px">Устанавливаем…</div>
+  <div class="hint" style="left: 22px; top: 48px">Сборки, миры и настройки не трогаются.</div>
+  <div class="track cut" style="left: 22px; top: 72px; width: 668px; height: 24px"></div>
+</div>
+<div data-rect="percent" style="position:absolute; left: 610px; top: 340px; width: 80px; height: 24px"></div>
+<div data-part="fill" style="left: 51px; top: 399px; width: 660px; height: 14px"></div>
+
+<!-- 3. Done: "Закрыть" and "Запустить"; the window's × closes too. -->
+<div data-part="panel-done" class="panel cut">
+  <div class="title" style="left: 22px; top: 22px">Готово!</div>
+  <div class="hint" style="left: 22px; top: 54px">Amethyx Launcher установлен.</div>
+  <div class="hint" style="left: 22px; top: 74px">Ярлык — в меню Пуск.</div>
+</div>
+<div data-part="btn-close" class="btn cut" style="left: 404px; top: 358px; width: 120px; height: 56px">Закрыть</div>
+<div data-part="btn-close-hover" class="btn cut hover" style="left: 404px; top: 358px; width: 120px; height: 56px">Закрыть</div>
+<div data-part="btn-run" class="btn btn--primary cut" style="left: 534px; top: 358px; width: 180px; height: 56px">Запустить</div>
+<div data-part="btn-run-hover" class="btn btn--primary cut hover" style="left: 534px; top: 358px; width: 180px; height: 56px">Запустить</div>
+
+<script>
+  // The bar is as many blocks as fit; Setup shows as much of it as is installed.
+  const fill = document.querySelector('[data-part="fill"]');
+  for (let x = 0; x + 14 <= 660; x += 16) fill.append(document.createElement('i'));
+  if (location.hash === '#preview') document.body.classList.add('preview');
+</script>
+</body>
+</html>
