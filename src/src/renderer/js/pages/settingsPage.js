@@ -6,7 +6,7 @@ import { configureSound, presetFor, previewSound, SOUND_ACTIONS, SOUND_PRESETS }
 import { store } from '../state/appStore.js';
 import { saveSettings } from '../state/actions.js';
 import { toast } from '../components/toast.js';
-import { createSegmented, createToggle } from '../components/controls.js';
+import { createSegmented, createToggle, loadingMark } from '../components/controls.js';
 import { confirmDialog } from '../components/modal.js';
 import { startTour } from '../components/tour.js';
 import { createJavaPage } from './javaPage.js';
@@ -355,7 +355,11 @@ export function createSettingsPage() {
       disabled: ['Обновления выключены', 'Это сборка для разработки: она не обновляет себя.'],
     };
     const [title, hint] = lines[status.state] ?? lines.idle;
-    const badge = ['ready', 'restarting', 'available'].includes(status.state) ? 'update-status__dot--new' : status.state === 'error' ? 'update-status__dot--error' : status.state === 'latest' ? 'update-status__dot--ok' : '';
+    // The Amethyx X: bobbing while something happens, blinking when a version waits, grey after an error.
+    const busy = ['checking', 'downloading', 'restarting'].includes(status.state);
+    const mark = loadingMark(busy ? 'loading-mark update-status__mark' : 'update-status__mark');
+    if (['ready', 'available'].includes(status.state)) mark.classList.add('update-status__mark--new');
+    if (status.state === 'error') mark.classList.add('update-status__mark--error');
 
     const actions = [];
     if (status.state === 'restarting') {
@@ -373,7 +377,7 @@ export function createSettingsPage() {
     statusBox.append(
       ...[
         h('div', { class: 'update-status__main' },
-          h('span', { class: `update-status__dot ${badge}` }),
+          mark,
           h('div', null, h('div', { class: 'update-status__title' }, title), hint ? h('div', { class: 'settings-card__desc' }, hint) : null),
         ),
         status.state === 'downloading' ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: { width: `${status.progress ?? 0}%` } })) : null,

@@ -1,7 +1,7 @@
 'use strict';
 
 const path = require('node:path');
-const { app, Tray, nativeImage } = require('electron');
+const { app, Menu, Tray, nativeImage } = require('electron');
 const { getSettings } = require('./settings/settingsService');
 const { showNotice } = require('./notice');
 const { openTrayMenu, closeTrayMenu } = require('./trayMenu');
@@ -48,17 +48,14 @@ async function ensureTray(window) {
   const text = await texts();
   tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 }));
   tray.setToolTip('Amethyx Launcher');
-  // The menu in the launcher's own style (trayMenu.js), not Windows' grey one.
-  tray.on('right-click', (_event, bounds) => {
-    openTrayMenu(
-      [
-        { label: text.open, icon: 'open', click: () => showWindow(window) },
-        { separator: true },
-        { label: text.quit, icon: 'quit', danger: true, click: () => app.quit() },
-      ],
-      bounds,
-    );
-  });
+  // The menu in the launcher's own style (trayMenu.js); Windows' grey one only if that cannot appear.
+  const items = [
+    { label: text.open, icon: 'open', click: () => showWindow(window) },
+    { separator: true },
+    { label: text.quit, icon: 'quit', danger: true, click: () => app.quit() },
+  ];
+  const plainMenu = () => tray?.popUpContextMenu(Menu.buildFromTemplate(items.map((item) => (item.separator ? { type: 'separator' } : { label: item.label, click: item.click }))));
+  tray.on('right-click', (_event, bounds) => openTrayMenu(items, bounds, plainMenu));
   tray.on('click', () => {
     closeTrayMenu();
     showWindow(window);

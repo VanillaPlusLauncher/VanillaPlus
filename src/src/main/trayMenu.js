@@ -8,14 +8,17 @@ const { brandIconDataUrl } = require('./brandIcon');
  * panel with corners cut by one pixel step and an even frame (like the launcher's panels), the
  * mark, the name and the version on top, items as pixel buttons with little pixel icons, all in
  * the pixel font. It opens next to the tray icon and goes away when it loses the focus or on Esc.
- * The menu is a plain page without Node or the launcher's preload; a chosen item reaches the main
- * process only as a navigation to MENU_URL, which is stopped.
+ * The menu is a plain page without Node or the launcher's preload; what it has to say ("ready" with
+ * its height, the chosen item, "close") reaches the main process as a change of the page's title
+ * (Chromium lets a data: page navigate nowhere, not even to its own #hash).
  */
 
 const WIDTH = 236;
-const MENU_URL = 'amethyx-menu://';
 /** Shown even if the pixel font did not arrive (no network). */
 const FONT_WAIT_MS = 400;
+/** Not on screen by then: Windows' own menu instead, so quitting always works. */
+const FAIL_MS = 1500;
+const BLUR_GRACE_MS = 400;
 
 /** 16 × 16 pixel icons (one SVG unit is one pixel), by name. */
 const ICONS = {
@@ -68,11 +71,12 @@ function page(items, version) {
   <div class="head">${iconUrl ? `<img src="${iconUrl}" alt="" onerror="this.remove()">` : ''}<span>Amethyx</span>${version ? `<small>${escape(version)}</small>` : ''}</div>${rows}</div>
   <script>
     let ready = false;
-    const show = () => { if (!ready) { ready = true; location.href = '${MENU_URL}ready/' + document.getElementById('menu').offsetHeight; } };
+    const say = (message) => { document.title = message + '/' + Date.now(); };
+    const show = () => { if (!ready) { ready = true; say('ready/' + document.getElementById('menu').offsetHeight); } };
     document.fonts.load('16px Tiny5').then(show, show);
     setTimeout(show, ${FONT_WAIT_MS});
-    document.querySelectorAll('.item').forEach((item) => item.addEventListener('click', () => { location.href = '${MENU_URL}pick/' + item.dataset.index; }));
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') location.href = '${MENU_URL}close'; });
+    document.querySelectorAll('.item').forEach((item) => item.addEventListener('click', () => say('pick/' + item.dataset.index)));
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') say('close'); });
   </script></body></html>`;
 }
 
@@ -85,8 +89,9 @@ function closeMenu() {
  * Opens the menu by the tray icon. `items`: [{ label, click, icon?, danger? } | { separator: true }]
  * (icon: a name from ICONS).
  * `anchor`: the tray icon's bounds (from the tray's click event), else the mouse position is used.
+ * `onFail`: called when the menu could not appear (tray.js then shows Windows' own menu).
  */
-function openTrayMenu(items, anchor = null) {
+function openTrayMenu(items, anchor = null, onFail = null) {
   closeMenu();
   const point = anchor && anchor.width ? { x: anchor.x + anchor.width / 2, y: anchor.y } : screen.getCursorScreenPoint();
   const { workArea } = screen.getDisplayNearestPoint(point);
@@ -107,30 +112,53 @@ function openTrayMenu(items, anchor = null) {
   });
   menuWindow = window;
   window.setAlwaysOnTop(true, 'pop-up-menu');
+  // Right after it appears Windows may hand the focus back to the taskbar for a moment: a blur
+  // that early does not close the menu (a click elsewhere later does).
+  let shownAt = 0;
   window.on('blur', () => {
-    if (menuWindow === window) closeMenu();
+    if (menuWindow !== window) return;
+    if (Date.now() - shownAt < BLUR_GRACE_MS) {
+      setTimeout(() => window.isDestroyed() || window.focus(), 0);
+      return;
+    }
+    closeMenu();
   });
-  window.webContents.on('will-navigate', (event, url) => {
+  let shown = false;
+  const fail = () => {
+    if (shown) return;
+    shown = true;
+    if (menuWindow === window) closeMenu();
+    onFail?.();
+  };
+  const failTimer = setTimeout(fail, FAIL_MS);
+  window.webContents.on('will-navigate', (event) => event.preventDefault());
+  window.webContents.on('render-process-gone', fail);
+  window.webContents.on('page-title-updated', (event, title) => {
     event.preventDefault();
-    if (url.startsWith(`${MENU_URL}ready/`)) {
+    const message = String(title).replace(/\/\d+$/, '');
+    if (message.startsWith('ready/')) {
+      if (shown) return;
+      shown = true;
+      clearTimeout(failTimer);
       // The menu's real height is known now: it stands above the tray icon, inside the screen.
-      const height = Math.max(60, Math.min(400, Number(url.slice(`${MENU_URL}ready/`.length)) || 120));
+      const height = Math.max(60, Math.min(400, Number(message.slice('ready/'.length)) || 120));
       const x = Math.round(Math.min(workArea.x + workArea.width - WIDTH - 6, Math.max(workArea.x + 6, point.x - WIDTH / 2)));
       const below = point.y < workArea.y + workArea.height / 2;
       const y = Math.round(below ? Math.max(workArea.y + 6, point.y + 12) : Math.min(point.y, workArea.y + workArea.height) - height - 8);
       window.setBounds({ x, y, width: WIDTH, height });
+      shownAt = Date.now();
       window.show();
       window.focus();
-    } else if (url.startsWith(`${MENU_URL}pick/`)) {
-      const item = items[Number(url.slice(`${MENU_URL}pick/`.length))];
+    } else if (message.startsWith('pick/')) {
+      const item = items[Number(message.slice('pick/'.length))];
       closeMenu();
       item?.click?.();
-    } else {
+    } else if (message === 'close') {
       closeMenu();
     }
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page(items, shortVersion(app.getVersion())))}`).catch(() => closeMenu());
+  window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page(items, shortVersion(app.getVersion())))}`).catch(fail);
 }
 
 module.exports = { openTrayMenu, closeTrayMenu: closeMenu };

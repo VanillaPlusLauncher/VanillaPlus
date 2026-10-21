@@ -3331,26 +3331,21 @@
   font-weight: 700;
 }
 
-.update-status__dot {
+.update-status__mark {
   flex: none;
-  width: 10px;
-  height: 10px;
-  margin-top: 5px;
-  background: var(--color-text-muted);
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
-.update-status__dot--ok {
-  background: rgb(var(--accent-rgb));
-}
-
-.update-status__dot--new {
-  background: #ffcf4a;
-  box-shadow: 0 0 8px rgba(255, 207, 74, 0.8);
+.update-status__mark--new {
+  filter: drop-shadow(0 0 6px rgba(180, 140, 255, 0.8));
   animation: update-blink 1.2s steps(2, jump-none) infinite;
 }
 
-.update-status__dot--error {
-  background: #ff5a5a;
+.update-status__mark--error {
+  filter: grayscale(1) brightness(0.8);
 }
 
 @keyframes update-blink {
@@ -5973,6 +5968,30 @@ button:disabled {
   filter: drop-shadow(0 0 8px rgba(180, 140, 255, 0.55));
   animation: mark-bob 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
   will-change: transform;
+}
+
+/* The play bar's status (homePage.js): the X instead of a dot. */
+.play-bar__mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.play-bar__mark.loading-mark {
+  width: 16px;
+  height: 16px;
+}
+
+.play-bar__mark--idle {
+  filter: grayscale(1) brightness(0.75);
+  opacity: 0.8;
+}
+
+.update-status__mark.loading-mark {
+  width: 20px;
+  height: 20px;
 }
 
 .task-pill__spinner.loading-mark {

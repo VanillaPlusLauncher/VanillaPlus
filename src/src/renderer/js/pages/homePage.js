@@ -10,7 +10,7 @@ import { createSparks, pixelBurst } from '../core/effects.js';
 import { store } from '../state/appStore.js';
 import { playInstance, saveSettings, selectedInstance, stopGame } from '../state/actions.js';
 import { toast } from '../components/toast.js';
-import { createProgress } from '../components/controls.js';
+import { createProgress, loadingMark } from '../components/controls.js';
 import { openCreateInstanceModal } from '../components/createInstanceModal.js';
 import { currentSkin, openDressingRoom } from '../components/dressingRoom.js';
 import { createHomePlayer } from '../skins/homePlayer.js';
@@ -255,7 +255,8 @@ function createPlayBar({ navigate }) {
   const iconHost = h('div', { class: 'play-bar__icon-host' });
   const nameElement = h('span', { class: 'play-bar__name' });
   const subtitleElement = h('span', { class: 'text-muted', style: { fontSize: '13px' } });
-  const statusDot = h('span', { class: 'status-dot' });
+  // The Amethyx X instead of a dot: bobbing while something happens, dim while waiting.
+  const statusDot = loadingMark('play-bar__mark');
   const statusText = h('span');
   const progress = createProgress();
   const progressRow = h('div', { style: { display: 'none' } }, progress.element);
@@ -320,7 +321,7 @@ function createPlayBar({ navigate }) {
       // Not installed yet: nothing to say, "Играть" downloads what is missing.
       text = instance.installed ? `Готово к запуску · играли ${formatAgo(instance.lastPlayedAt)}` : '';
     }
-    statusDot.className = `status-dot${dot ? ` status-dot--${dot}` : ''}`;
+    statusDot.className = `play-bar__mark${dot === 'busy' ? ' loading-mark' : dot ? ` play-bar__mark--${dot}` : ''}`;
     statusDot.hidden = !text;
     statusText.textContent = text;
 
