@@ -33,6 +33,7 @@ function registerFriendsHandlers(handle) {
       instanceId: String(invite?.instanceId ?? ''),
       server: String(invite?.server ?? ''),
       withPack: invite?.withPack !== false,
+      upload: invite?.upload === true,
       world: invite?.world === true,
       // The code from the export dialog, when it already carries the author's files.
       code: typeof invite?.code === 'string' ? invite.code.slice(0, 60000) : null,

@@ -2,6 +2,7 @@ import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage } from '../core/format.js';
 import { LOADER_LABELS } from '../core/content.js';
+import { iconImage } from '../core/mc.js';
 import { defaultHead, headFromSkin } from '../core/skinHead.js';
 import { sfx } from '../core/sound.js';
 import { store } from '../state/appStore.js';
@@ -19,6 +20,39 @@ const KINDS = [
 ];
 const KIND_LABELS = Object.fromEntries(KINDS.map((kind) => [kind.value, kind.label]));
 const ACCOUNT_KIND = { microsoft: 'ms', ely: 'ely', offline: 'offline' };
+// Instances built from a friend's code, by the code: the second click plays instead of building again.
+const BUILT_KEY = 'friends.builtCodes';
+const UPLOAD_LABEL = 'Моды не с Modrinth и CurseForge загрузить на сервер Amethyx, чтобы они передались вместе с кодом';
+
+function codeKey(code) {
+  let hash = 2166136261;
+  for (let index = 0; index < code.length; index += 1) hash = Math.imul(hash ^ code.charCodeAt(index), 16777619);
+  return `${(hash >>> 0).toString(36)}.${code.length.toString(36)}`;
+}
+
+function readBuilt() {
+  try {
+    return JSON.parse(localStorage.getItem(BUILT_KEY) ?? '{}') ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** The instance once built from this code, while it still exists. */
+function builtInstance(code) {
+  const id = code ? readBuilt()[codeKey(code)] : null;
+  return id ? store.get().instances.find((instance) => instance.id === id) ?? null : null;
+}
+
+function rememberBuilt(code, instanceId) {
+  const built = readBuilt();
+  built[codeKey(code)] = instanceId;
+  try {
+    localStorage.setItem(BUILT_KEY, JSON.stringify(built));
+  } catch {
+    // Not remembered: the next click builds again.
+  }
+}
 
 /**
  * Friends on the Amethyx server, like Essential: the list with who is online and what they play
@@ -61,6 +95,7 @@ export function createFriendsPage() {
     'div',
     { class: 'chat__composer' },
     h('button', { class: 'icon-button chat__tool', type: 'button', title: 'Отправить скриншот', onclick: () => pickScreenshot() }, icon('image')),
+    h('button', { class: 'icon-button chat__tool', type: 'button', title: 'Поделиться сборкой', onclick: () => sharePackDialog() }, icon('cube')),
     h('button', { class: 'icon-button chat__tool', type: 'button', title: 'Пригласить играть', onclick: () => inviteDialog() }, icon('play')),
     chatInput,
     sendButton,
@@ -257,11 +292,20 @@ export function createFriendsPage() {
       const what = [invite.instance, invite.minecraft ? `Minecraft ${invite.minecraft}${invite.loader && invite.loader !== 'vanilla' ? ` (${LOADER_LABELS[invite.loader] ?? invite.loader})` : ''}` : null].filter(Boolean).join(' · ');
       // Old invites of the removed Amethyx tunnel carry `tunnel` instead of an address.
       const intoWorld = Boolean(invite.world || invite.tunnel);
+      // Only the instance, nowhere to join: a shared instance.
+      const shared = !intoWorld && !invite.server && Boolean(invite.code);
+      const built = builtInstance(invite.code);
+      let action = intoWorld ? 'Зайти в мир' : 'Играть';
+      if (!built && invite.code) action = shared ? 'Собрать' : intoWorld ? 'Собрать и зайти' : 'Собрать и играть';
+      const button = h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => acceptInvite(invite, button) }, action);
+      let title = mine ? 'Вы позвали играть' : 'Зовёт играть';
+      if (intoWorld) title = mine ? 'Вы позвали в свой мир' : 'Зовёт в свой мир';
+      else if (shared) title = mine ? 'Вы поделились сборкой' : 'Делится сборкой';
       content = [
-        h('b', null, intoWorld ? (mine ? 'Вы позвали в свой мир' : 'Зовёт в свой мир') : mine ? 'Вы позвали играть' : 'Зовёт играть'),
+        h('b', null, title),
         what ? h('span', { 'data-i18n': 'off' }, what) : null,
         invite.server && !intoWorld ? h('span', { class: 'text-muted' }, `Сервер: ${invite.server}`) : null,
-        mine ? null : h('div', { class: 'chat__invite-actions' }, h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => acceptInvite(invite) }, intoWorld ? 'Зайти в мир' : invite.code ? 'Собрать и играть' : 'Играть')),
+        mine ? null : h('div', { class: 'chat__invite-actions' }, button),
       ];
     } else {
       content = [h('span', { class: 'chat__text', 'data-i18n': 'off' }, ...linkify(String(message.body ?? '')))];
@@ -393,7 +437,8 @@ export function createFriendsPage() {
     }
     const select = h('select', { class: 'select' }, ...instances.map((instance) => h('option', { value: instance.id, selected: instance.id === settings?.selectedInstanceId }, `${instance.name} · ${instance.minecraft}`)));
     const serverInput = h('input', { class: 'input', type: 'text', placeholder: 'mc.example.org (необязательно)', spellcheck: 'false' });
-    const withPack = h('input', { type: 'checkbox', checked: true });
+    // The instance always goes with the invite (its code): the friend builds it and joins in one click.
+    const upload = h('input', { type: 'checkbox', checked: true });
     const sendInvite = h('button', { class: 'btn btn--primary btn--compact', type: 'button' }, 'Пригласить');
     // "Into my world": the world opened to LAN gets a public address from the e4mc mod.
     const worldStatus = h('p', { class: 'text-soft' }, 'Проверяем мир…');
@@ -437,10 +482,11 @@ export function createFriendsPage() {
     sendInvite.addEventListener('click', async () => {
       sendInvite.disabled = true;
       try {
-        const { message } = await api.friends.sendInvite(friendId, { instanceId: select.value, server: serverInput.value.trim(), withPack: withPack.checked, world: mode === 'world' });
+        const { message, uploadError } = await api.friends.sendInvite(friendId, { instanceId: select.value, server: serverInput.value.trim(), withPack: true, upload: upload.checked, world: mode === 'world' });
         modal.close();
         if (state.chatWith === friendId) pushMessage(message);
         toast('Приглашение отправлено', 'success');
+        if (uploadError) toast(`Моды не загрузились, сборка ушла без них: ${uploadError}`, 'info', 8000);
       } catch (error) {
         toast(errorMessage(error), 'error');
         sendInvite.disabled = false;
@@ -454,11 +500,52 @@ export function createFriendsPage() {
         modeControl.element,
         worldPanel,
         serverPanel,
-        h('label', { class: 'compat-dialog__remember' }, withPack, h('span', null, 'Приложить сборку: друг соберёт такую же одной кнопкой')),
+        h('label', { class: 'share-upload' }, upload, h('span', null, UPLOAD_LABEL)),
       ),
       footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), sendInvite],
     });
     sendInvite.disabled = true;
+  }
+
+  /** "Поделиться сборкой": any instance goes into the chat with its code; the friend builds it in one click. */
+  function sharePackDialog() {
+    const friendId = state.chatWith;
+    const { instances } = store.get();
+    if (!friendId) return;
+    if (!instances.length) {
+      toast('Сначала создайте сборку на вкладке «Сборки».', 'error');
+      return;
+    }
+    const upload = h('input', { type: 'checkbox', checked: true });
+    async function send(instance) {
+      modal.close();
+      toast('Отправляем сборку…', 'info', 2500);
+      try {
+        const { message, uploadError } = await api.friends.sendInvite(friendId, { instanceId: instance.id, withPack: true, upload: upload.checked });
+        if (state.chatWith === friendId) pushMessage(message);
+        if (uploadError) toast(`Моды не загрузились, сборка ушла без них: ${uploadError}`, 'info', 8000);
+      } catch (error) {
+        toast(errorMessage(error), 'error', 8000);
+      }
+    }
+    const list = h(
+      'div',
+      { class: 'pack-picker' },
+      ...instances.map((instance) =>
+        h(
+          'button',
+          { class: 'pack-picker__item', type: 'button', onclick: () => send(instance) },
+          iconImage(instance.icon, 'pack-picker__icon'),
+          h(
+            'span',
+            { class: 'pack-picker__text' },
+            h('b', { 'data-i18n': 'off' }, instance.name),
+            h('span', { class: 'text-muted' }, `Minecraft ${instance.minecraft}${instance.loader?.type && instance.loader.type !== 'vanilla' ? ` · ${LOADER_LABELS[instance.loader.type] ?? instance.loader.type}` : ''}`),
+          ),
+        ),
+      ),
+    );
+    const modal = openModal({ title: 'Поделиться сборкой', wide: true, content: h('div', { class: 'modal__section' }, list, h('label', { class: 'share-upload' }, upload, h('span', null, UPLOAD_LABEL))) });
   }
 
   async function joinServer(presence, name) {
@@ -476,81 +563,85 @@ export function createFriendsPage() {
     }
   }
 
+  /** With the game already running, the friend's world address for "Direct connection". */
+  function showWorldAddress(address) {
+    const field = h('input', { class: 'input mono', readonly: true, value: address });
+    openModal({
+      title: 'Адрес мира друга',
+      content: h(
+        'div',
+        { class: 'modal__section' },
+        h('p', { class: 'text-soft' }, 'Игра уже запущена: в ней откройте «Сетевая игра» → «Прямое подключение» и вставьте адрес.'),
+        field,
+        h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => navigator.clipboard.writeText(address).then(() => toast('Адрес скопирован', 'success')) }, 'Копировать'),
+      ),
+    });
+  }
+
+  /** Builds the friend's instance from the code, right in the chat (the button shows it); null when it failed. */
+  async function buildFromCode(code, button) {
+    const label = button?.textContent;
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Собираем…';
+    }
+    try {
+      const { instance, failed, filesError } = await api.share.importCode(code, {});
+      rememberBuilt(code, instance.id);
+      await refreshInstances();
+      if (failed.length) toast(`Не удалось поставить: ${failed.length}`, 'info', 6000);
+      if (filesError) toast(`Моды автора не скачались: ${filesError}`, 'info', 8000);
+      return instance;
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+      if (button) {
+        button.disabled = false;
+        button.textContent = label;
+      }
+      return null;
+    }
+  }
+
   /**
-   * "Into my world": the friend's world has an e4mc address. With the game already running, the
-   * address is shown for "Direct connection"; otherwise a matching instance (or the friend's one,
-   * built from its code) starts and joins at once.
+   * One click on an invite or a shared instance: the friend's instance (built from its code the
+   * first time, the same one later) starts and joins the world or server at once. A shared
+   * instance is only built; its button then says "Играть". Without a code, an instance of the
+   * same version plays.
    */
-  async function joinFriendWorld(invite) {
-    const address = invite.server;
-    if (!address) {
+  async function acceptInvite(invite, button) {
+    const intoWorld = Boolean(invite.world || invite.tunnel);
+    if (intoWorld && !invite.server) {
       toast('Это приглашение устарело: попросите друга позвать вас ещё раз.', 'info', 6000);
       return;
     }
-    if (store.get().game?.state === 'running') {
-      const field = h('input', { class: 'input mono', readonly: true, value: address });
-      openModal({
-        title: 'Адрес мира друга',
-        content: h(
-          'div',
-          { class: 'modal__section' },
-          h('p', { class: 'text-soft' }, 'Игра уже запущена: в ней откройте «Сетевая игра» → «Прямое подключение» и вставьте адрес.'),
-          field,
-          h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => navigator.clipboard.writeText(address).then(() => toast('Адрес скопирован', 'success')) }, 'Копировать'),
-        ),
-      });
+    if (intoWorld && store.get().game?.state === 'running') {
+      showWorldAddress(invite.server);
       return;
     }
-    let instance = instanceFor(invite);
-    const exact = instance && instance.minecraft === invite.minecraft && (instance.loader?.type ?? 'vanilla') === (invite.loader ?? 'vanilla');
-    if (!exact && invite.code) {
-      const build = await confirmDialog({ title: `Собрать «${invite.instance ?? 'сборку'}»?`, message: 'У вас нет такой сборки. Лаунчер соберёт сборку друга с теми же модами и сразу зайдёт в мир.', confirmLabel: 'Собрать' });
-      if (!build) return;
-      try {
-        toast('Собираем сборку друга…', 'info', 3000);
-        let filesError;
-        ({ instance, filesError } = await api.share.importCode(invite.code, {}));
-        await refreshInstances();
-        if (filesError) toast(`Моды автора не скачались: ${filesError}`, 'info', 8000);
-      } catch (error) {
-        toast(errorMessage(error), 'error');
+    const server = invite.server || null;
+    let instance = builtInstance(invite.code);
+    if (!instance && invite.code) {
+      instance = await buildFromCode(invite.code, button);
+      if (!instance) return;
+      if (!server) {
+        toast(`Сборка «${instance.name}» готова`, 'success');
+        renderMessages({ keepScroll: true });
         return;
       }
     }
     if (!instance) {
-      toast('Сначала создайте сборку на вкладке «Сборки».', 'error');
-      return;
+      if (!server) {
+        toast('В приглашении нет сервера: договоритесь, куда заходить.', 'info');
+        return;
+      }
+      instance = instanceFor(invite);
+      if (!instance || instance.minecraft !== invite.minecraft) {
+        joinServer(invite, 'другу');
+        return;
+      }
     }
-    playInstance(instance.id, { server: address });
-  }
-
-  /** An invite: build the friend's instance from its code (or use a matching one), then play. */
-  async function acceptInvite(invite) {
-    if (invite.world || invite.tunnel) {
-      joinFriendWorld(invite);
-      return;
-    }
-    if (!invite.code) {
-      if (invite.server) joinServer(invite, 'другу');
-      else toast('В приглашении нет сервера: договоритесь, куда заходить.', 'info');
-      return;
-    }
-    const confirmed = await confirmDialog({
-      title: `Собрать «${invite.instance ?? 'сборку'}»?`,
-      message: `Лаунчер создаст такую же сборку (Minecraft ${invite.minecraft ?? '?'}) с теми же модами${invite.server ? ` и зайдёт на ${invite.server}` : ''}.`,
-      confirmLabel: 'Собрать',
-    });
-    if (!confirmed) return;
-    try {
-      toast('Собираем сборку друга…', 'info', 3000);
-      const { instance, failed, filesError } = await api.share.importCode(invite.code, {});
-      await refreshInstances();
-      if (failed.length) toast(`Не удалось поставить: ${failed.length}`, 'info', 6000);
-      if (filesError) toast(`Моды автора не скачались: ${filesError}`, 'info', 8000);
-      playInstance(instance.id, invite.server ? { server: invite.server } : {});
-    } catch (error) {
-      toast(errorMessage(error), 'error');
-    }
+    playInstance(instance.id, server ? { server } : {});
+    renderMessages({ keepScroll: true });
   }
 
   // --- Loading -------------------------------------------------------------------------------

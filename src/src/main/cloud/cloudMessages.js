@@ -57,10 +57,12 @@ async function sendScreenshot(friendId, instanceId, name, caption = '') {
 
 /**
  * An invite: the instance (name, version, loader), the server when there is one, and the share
- * code when `withPack` is on, so the friend can build the same instance. A ready `code` (the export
+ * code when `withPack` is on, so the friend can build the same instance. With `upload` the mods
+ * that are on neither Modrinth nor CurseForge go to the server and into the code; when that fails
+ * the invite still goes, without them, and `uploadError` says why. A ready `code` (the export
  * dialog's, perhaps with the author's files) is sent as it is.
  */
-async function sendInvite(friendId, { instanceId, server = '', withPack = true, world = false, code: readyCode = null } = {}) {
+async function sendInvite(friendId, { instanceId, server = '', withPack = true, upload = false, world = false, code: readyCode = null } = {}) {
   const settings = await getSettings();
   const instanceService = require('../minecraft/instanceService');
   // "Into my world": the instance that is running now, and the address e4mc gave its world.
@@ -77,14 +79,21 @@ async function sendInvite(friendId, { instanceId, server = '', withPack = true, 
   }
   const instance = await instanceService.getInstance(settings, id);
   let code = null;
+  let uploadError = null;
   if (withPack && typeof readyCode === 'string' && readyCode.startsWith('VP1-')) {
     code = readyCode;
   } else if (withPack) {
     const { makeShareCode } = require('../content/shareService');
-    code = (await makeShareCode(settings, instance.id)).code;
+    try {
+      code = (await makeShareCode(settings, instance.id, { upload })).code;
+    } catch (error) {
+      if (!upload) throw error;
+      uploadError = error.message;
+      code = (await makeShareCode(settings, instance.id)).code;
+    }
   }
   const invite = { instance: instance.name, minecraft: instance.minecraft, loader: instance.loader?.type ?? 'vanilla', server: address, world: world ? instance.name : null, code };
-  return callAs(await me(), 'POST', '/v1/messages', { to: String(friendId), kind: 'invite', invite });
+  return { ...(await callAs(await me(), 'POST', '/v1/messages', { to: String(friendId), kind: 'invite', invite })), uploadError };
 }
 
 async function markRead(friendId) {

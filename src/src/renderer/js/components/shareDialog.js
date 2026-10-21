@@ -142,7 +142,7 @@ export function openShareDialog(instance) {
     const { count, tooBig } = result.extra;
     let first = `В код попало всё — ${result.included} шт.`;
     if (result.uploaded) first = `В коде всё: ${result.included + result.uploaded.count} шт., из них ${result.uploaded.count} — с сервера Amethyx.`;
-    else if (count) first = `В коде: ${result.included} шт. Нет на Modrinth и CurseForge: ${count} шт.`;
+    else if (count) first = result.included ? `В коде: ${result.included} шт. Нет на Modrinth и CurseForge: ${count} шт.` : `Нет на Modrinth и CurseForge: ${count} шт.`;
     else if (tooBig.length) first = `В коде: ${result.included} шт.`;
     // Sentences in their own text nodes: each is translated by itself.
     codeInfo.replaceChildren(h('span', null, first), ...(tooBig.length ? [' ', h('span', null, `Больше 64 МБ, на сервер не загрузятся: ${tooBig.length} шт. Такую сборку передайте файлом.`)] : []));

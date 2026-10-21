@@ -3835,7 +3835,9 @@
 
 .share-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 16px;
 }
 
 /* Optimise for this PC */
@@ -6687,4 +6689,62 @@ input[type="checkbox"]:not(.toggle input):disabled {
 .share-upload input {
   flex: none;
   margin-top: 1px;
+}
+
+/* --- Chat: "Поделиться сборкой" — any instance, one click ------------------------------------------- */
+.pack-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.pack-picker__item {
+  --c: 3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 2px var(--color-border), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  color: var(--color-text);
+  text-align: left;
+  cursor: var(--cursor-hand);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+
+.pack-picker__item:hover,
+.pack-picker__item:focus-visible {
+  outline: none;
+  background: rgba(var(--accent-rgb), 0.12);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.7), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.pack-picker__icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.pack-picker__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.pack-picker__text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.pack-picker + .share-upload {
+  margin-top: 12px;
 }

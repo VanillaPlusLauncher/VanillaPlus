@@ -843,11 +843,17 @@ async function createPack(request, env, user) {
     if (!blob || blob.size !== Number(file.size) || blob.have.size !== blob.parts) throw new Failure(409, `Файл ${filePath} загружен не целиком.`);
     return { path: filePath, hash, size: blob.size };
   });
-  const id = randomHex(16);
   const now = Date.now();
   const expiresAt = now + FILE_DAYS * 86400000;
+  const list = JSON.stringify(clean);
+  // The same files again (the same instance shared twice): the same pack, so the code stays the
+  // same and the friend's launcher plays the instance it already built.
+  const same = await db.prepare('SELECT id FROM packs WHERE owner_id = ? AND files = ? AND expires_at > ?').bind(user.id, list, now).first();
+  const id = same?.id ?? randomHex(16);
   await db.batch([
-    db.prepare('INSERT INTO packs (id, owner_id, files, created_at, expires_at) VALUES (?, ?, ?, ?, ?)').bind(id, user.id, JSON.stringify(clean), now, expiresAt),
+    same
+      ? db.prepare('UPDATE packs SET expires_at = ? WHERE id = ?').bind(expiresAt, id)
+      : db.prepare('INSERT INTO packs (id, owner_id, files, created_at, expires_at) VALUES (?, ?, ?, ?, ?)').bind(id, user.id, list, now, expiresAt),
     db.prepare('UPDATE blobs SET expires_at = MAX(expires_at, ?) WHERE owner_id = ? AND hash IN (SELECT value FROM json_each(?))').bind(expiresAt, user.id, JSON.stringify(clean.map((file) => file.hash))),
   ]);
   return json({ id, expiresAt, files: clean.length, bytes: clean.reduce((sum, file) => sum + file.size, 0) });

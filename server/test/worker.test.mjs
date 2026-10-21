@@ -271,6 +271,8 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.files, 2);
 assert.equal(r.body.bytes, big.length + small.length);
 const packId = r.body.id;
+r = await call('POST', '/v1/packs', { files: packFiles }, steve);
+assert.equal(r.body.id, packId, 'the same files make the same pack (the code stays the same)');
 r = await call('POST', '/v1/files/start', { files: [{ hash: sha(big), size: big.length }] }, steve);
 assert.deepEqual(r.body.need, [], 'uploaded files are not sent twice');
 r = await call('POST', '/v1/files/start', { files: [{ hash: sha(big), size: 65 * 1024 * 1024 }] }, steve);

@@ -34,3 +34,4 @@ CREATE TABLE IF NOT EXISTS packs (
   expires_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS packs_age ON packs (expires_at);
+CREATE INDEX IF NOT EXISTS packs_owner ON packs (owner_id);
