@@ -342,15 +342,25 @@ export function createSettingsPage() {
       latest: ['У вас последняя версия', when ? `Проверено ${when}` : null],
       available: [`Доступна версия ${latest?.version}`, 'Загрузка начнётся сама или по кнопке.'],
       downloading: [`Скачиваем ${latest?.version}… ${status.progress ?? 0}%`, null],
-      ready: [`Версия ${latest?.version} готова к установке`, 'Лаунчер закроется, обновится и откроется снова. Сборки, миры и настройки останутся.'],
+      ready: [
+        `Версия ${latest?.version} готова к установке`,
+        status.postponed
+          ? 'Установится при следующем запуске лаунчера или по кнопке.'
+          : status.autoRestart
+            ? 'Лаунчер обновится сам, когда закроется игра и закончатся загрузки.'
+            : 'Лаунчер закроется, обновится и откроется снова. Сборки, миры и настройки останутся.',
+      ],
+      restarting: [`Ставим версию ${latest?.version}…`, 'Лаунчер закроется на несколько секунд и откроется снова.'],
       error: ['Не получилось обновиться', status.error],
       disabled: ['Обновления выключены', 'Это сборка для разработки: она не обновляет себя.'],
     };
     const [title, hint] = lines[status.state] ?? lines.idle;
-    const badge = status.state === 'ready' || status.state === 'available' ? 'update-status__dot--new' : status.state === 'error' ? 'update-status__dot--error' : status.state === 'latest' ? 'update-status__dot--ok' : '';
+    const badge = ['ready', 'restarting', 'available'].includes(status.state) ? 'update-status__dot--new' : status.state === 'error' ? 'update-status__dot--error' : status.state === 'latest' ? 'update-status__dot--ok' : '';
 
     const actions = [];
-    if (status.state === 'ready') {
+    if (status.state === 'restarting') {
+      actions.push(h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => api.updates.postpone().catch(() => {}) }, 'Позже'));
+    } else if (status.state === 'ready') {
       actions.push(h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: installUpdate }, 'Перезапустить и обновить'));
     } else if (status.state === 'available' || (status.state === 'error' && latest)) {
       actions.push(h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => api.updates.download().catch((error) => toast(errorMessage(error), 'error')) }, 'Скачать обновление'));
@@ -365,7 +375,7 @@ export function createSettingsPage() {
         h('div', null, h('div', { class: 'update-status__title' }, title), hint ? h('div', { class: 'settings-card__desc' }, hint) : null),
       ),
       status.state === 'downloading' ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: { width: `${status.progress ?? 0}%` } })) : null,
-      latest?.notes && ['available', 'downloading', 'ready'].includes(status.state) ? h('div', { class: 'update-notes' }, h('b', null, 'Что нового: '), latest.notes) : null,
+      latest?.notes && ['available', 'downloading', 'ready', 'restarting'].includes(status.state) ? h('div', { class: 'update-notes' }, h('b', null, 'Что нового: '), latest.notes) : null,
       h('div', { class: 'settings-row', style: { justifyContent: 'flex-start', gap: '10px' } }, actions),
     );
 
@@ -384,7 +394,8 @@ export function createSettingsPage() {
       card('Автоматически',
         null,
         row('Проверять обновления', 'При запуске лаунчера и раз в несколько часов.', toggle(updates.autoCheck !== false, (value) => save({ updates: { autoCheck: value } }), 'Проверять')),
-        row('Скачивать сразу', 'Новая версия скачается в фоне — останется только нажать «Обновить».', toggle(updates.autoDownload !== false, (value) => save({ updates: { autoDownload: value } }), 'Скачивать')),
+        row('Скачивать сразу', 'Новая версия скачается в фоне.', toggle(updates.autoDownload !== false, (value) => save({ updates: { autoDownload: value } }), 'Скачивать')),
+        row('Устанавливать сами', 'Когда игра закрыта, лаунчер на несколько секунд закроется, обновится без окон установщика и откроется снова. Выключено — по кнопке.', toggle(updates.autoInstall !== false, (value) => save({ updates: { autoInstall: value } }), 'Устанавливать')),
       ),
       card('Адрес обновлений', 'Пусто — официальные релизы Amethyx Launcher на GitHub. Свой адрес нужен, только если вы выпускаете свою сборку.', feed),
     ];

@@ -19,7 +19,7 @@ const ACCENTS = ['amethyst', 'vanilla', 'berry', 'lavender', 'diamond', 'gold', 
 // Old values (valley, forest, village, dirt) fall back to the latest panorama.
 const BACKGROUND = /^panorama(:(random|[0-9][0-9.]{0,15}))?$/;
 const FONTS = ['pixel', 'clean'];
-const LANGUAGES = ['ru', 'en', 'es', 'pt', 'de', 'fr', 'zh'];
+const LANGUAGES = ['ru', 'en', 'uk', 'pl', 'de', 'fr', 'es', 'pt', 'zh'];
 const SIDEBARS = ['labels', 'hotbar', 'icons'];
 const CARD_STYLES = ['tile', 'card', 'slot'];
 const CONTENT_SOURCES = ['modrinth', 'curseforge'];
@@ -109,6 +109,8 @@ function buildDefaults() {
     updates: {
       autoCheck: true,
       autoDownload: true,
+      /** A downloaded update installs by itself: the launcher closes, updates and opens again. */
+      autoInstall: true,
       /** Where the launcher looks for new versions (latest.json); empty = the built-in address. */
       feedUrl: '',
     },
@@ -174,6 +176,7 @@ function sanitizeUpdates(input, defaults) {
   }
   if (typeof input.autoCheck === 'boolean') updates.autoCheck = input.autoCheck;
   if (typeof input.autoDownload === 'boolean') updates.autoDownload = input.autoDownload;
+  if (typeof input.autoInstall === 'boolean') updates.autoInstall = input.autoInstall;
   if (typeof input.feedUrl === 'string' && (input.feedUrl === '' || /^https:\/\/\S+$/i.test(input.feedUrl.trim()))) {
     updates.feedUrl = input.feedUrl.trim().slice(0, 500);
   }

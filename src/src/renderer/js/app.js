@@ -78,11 +78,11 @@ function setupLogsButton() {
 }
 
 /** Appearance settings: theme colour, font, blur, animations, zoom and background. */
-/** The chosen language, or the system's when none was chosen yet (Russian for ru/uk/be/kk, else English). */
+/** The chosen language, or the system's when none was chosen yet (Russian for be/kk, else English). */
 function resolveLanguage(chosen) {
   if (chosen) return chosen;
   const system = (navigator.language || 'en').slice(0, 2).toLowerCase();
-  if (['ru', 'uk', 'be', 'kk'].includes(system)) return 'ru';
+  if (['be', 'kk'].includes(system)) return 'ru';
   return LANGUAGES.some((entry) => entry.code === system) ? system : 'en';
 }
 
@@ -206,10 +206,20 @@ async function start() {
       action: { label: 'Создать сборку', onClick: () => { router.navigate('builds'); openCreateInstanceModal({ minecraft: version.id, type: version.type }); } },
     });
   });
-  // A downloaded update is announced once; Settings → Updates installs it.
+  // A downloaded update installs by itself: a few seconds' notice, with "Later" (then the next
+  // start installs it). When it does not (turned off in Settings), it is announced once and
+  // Settings → Updates installs it.
   let announcedUpdate = null;
+  let announcedRestart = null;
   api.events.onUpdateStatus((status) => {
-    if (status.state === 'ready' && status.latest?.version !== announcedUpdate) {
+    if (status.state === 'restarting' && status.restartAt !== announcedRestart) {
+      announcedRestart = status.restartAt;
+      toast(`Лаунчер закроется, поставит версию ${status.latest.version} и откроется снова. Сборки, миры и настройки останутся.`, 'info', Math.max(1500, status.restartAt - Date.now()), {
+        title: 'Обновляемся',
+        icon: 'clock_00',
+        action: { label: 'Позже', onClick: () => api.updates.postpone().then(() => toast('Обновление установится при следующем запуске', 'info')).catch(() => {}) },
+      });
+    } else if (status.state === 'ready' && !status.autoRestart && !status.postponed && status.latest?.version !== announcedUpdate) {
       announcedUpdate = status.latest.version;
       toast(`Версия ${status.latest.version} скачана и готова к установке`, 'info', 12000, {
         title: 'Обновление лаунчера',

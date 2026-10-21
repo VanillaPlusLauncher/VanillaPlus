@@ -9,9 +9,10 @@ import { getMcManifest, hasBlock, mcUrl, onMcReady } from '../core/mc.js';
  * Meanwhile everything the launcher needs is fetched (the game's textures, instances, accounts,
  * fonts, news); when all of it is in, the screen fades and the launcher is ready.
  *
- * Only the game's own textures are used (main/minecraft/mcResources.js puts them on disk). On the
- * very first start, before they are downloaded, the plate is a plain glow without any picture and
- * the crystals start as soon as the textures arrive.
+ * Only the game's own textures are used (main/minecraft/mcResources.js puts them on disk). The
+ * plate is not shown at all until every one of them is loaded and decoded, so there is never an
+ * empty stand-in: it fades in whole and the crystals start (on the very first start, once the
+ * textures have been downloaded).
  */
 
 /** The plate is SIDE × SIDE blocks, one block thick. */
@@ -166,7 +167,7 @@ function startGeode(row) {
   const shadow = document.createElement('div');
   shadow.className = 'geode__shadow';
   const slab = document.createElement('div');
-  slab.className = 'geode__slab geode__slab--blank';
+  slab.className = 'geode__slab';
   slab.style.setProperty('--cell', `${CELL}px`);
   slab.style.width = `${SIDE * CELL}px`;
   slab.style.height = `${SIDE * CELL}px`;
@@ -175,15 +176,26 @@ function startGeode(row) {
   const crystals = spiralOrder(SIDE).map((place) => buildCrystal(slab, place, Math.round((random() - 0.5) * 40)));
   float.append(slab);
   row.replaceChildren(shadow, float);
-  sparkleLoop(row, alive);
+  row.classList.add('splash__blocks--waiting');
 
-  // The game's textures: at once when they are on disk already, else as soon as they arrive.
+  // The game's textures: at once when they are on disk already, else as soon as they arrive. The
+  // plate shows only once all of them are decoded, so no face is ever drawn empty.
   let started = false;
-  const begin = () => {
+  const begin = async () => {
     if (started || !running || !getMcManifest() || !TEXTURES.every((name) => hasBlock(name))) return;
     started = true;
-    for (const element of slab.querySelectorAll('.geode__face')) element.style.backgroundImage = `url("${mcUrl(`block/${element.dataset.texture}.png`)}")`;
-    slab.classList.remove('geode__slab--blank');
+    const urls = Object.fromEntries(TEXTURES.map((name) => [name, mcUrl(`block/${name}.png`)]));
+    await Promise.all(
+      Object.values(urls).map((url) => {
+        const image = new Image();
+        image.src = url;
+        return image.decode().catch(() => {});
+      }),
+    );
+    if (!running) return;
+    for (const element of slab.querySelectorAll('.geode__face')) element.style.backgroundImage = `url("${urls[element.dataset.texture]}")`;
+    row.classList.remove('splash__blocks--waiting');
+    sparkleLoop(row, alive);
     snakeLoop(crystals, alive);
   };
   const stopListening = onMcReady(begin);

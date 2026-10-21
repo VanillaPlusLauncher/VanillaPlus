@@ -14,7 +14,7 @@ const { setupScreenshotMode } = require('./screenshotMode');
 const { getSettings } = require('./settings/settingsService');
 const { ensureMcResources, seedBundledMcResources } = require('./minecraft/mcResources');
 const { ensureDefaultAccount } = require('./accounts/accountService');
-const { startUpdateChecks } = require('./updates/updateService');
+const { startUpdateChecks, installPendingAtStart } = require('./updates/updateService');
 const { startVersionWatch } = require('./minecraft/versionWatcher');
 
 const APP_USER_MODEL_ID = 'dev.amethyx.launcher';
@@ -55,6 +55,11 @@ if (!singleInstance) {
     process.on('uncaughtException', (error) => log.error(`Необработанная ошибка: ${error?.stack ?? error}`));
     process.on('unhandledRejection', (reason) => log.warn(`Необработанный отказ: ${reason?.stack ?? reason}`));
     log.info(`Amethyx Launcher ${app.getVersion()} запущен`);
+    // An update downloaded last time goes in before the window opens: the launcher closes, updates
+    // and opens again by itself.
+    if (await installPendingAtStart().catch((error) => log.warn(`Скачанное обновление не установлено: ${error.message}`))) {
+      return;
+    }
     // Folders of the old name: the game folder, then paths saved in settings and instances.
     getDefaultGameDirectory();
     await finishMigration({ settingsFile: getAppPaths().settingsFile, gameDirectory: async () => (await getSettings()).gameDirectory }).catch((error) =>
@@ -79,7 +84,13 @@ if (!singleInstance) {
 
     // New launcher versions: checked a few seconds after start and then every few hours.
     if (!process.env.AMETHYX_SCREENSHOT && !process.env.AMETHYX_MAIN_SCRIPT) {
-      startUpdateChecks();
+      // The launcher does not close for an update while a game, a server or a download is running.
+      startUpdateChecks({
+        busy: () =>
+          require('./minecraft/gameService').getStatus().state !== 'idle' ||
+          require('./minecraft/serverService').anyServerRunning() ||
+          require('./core/progressReporter').runningTaskCount() > 0,
+      });
       startVersionWatch();
       // "Online" for friends on the Amethyx server (nothing happens while no server is set up).
       require('./cloud/cloudFriends').startPresence();

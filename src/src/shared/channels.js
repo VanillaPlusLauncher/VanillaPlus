@@ -167,6 +167,7 @@ const CHANNELS = Object.freeze({
     check: 'updates:check',
     download: 'updates:download',
     install: 'updates:install',
+    postpone: 'updates:postpone',
   }),
   minecraft: Object.freeze({
     resources: 'minecraft:resources',

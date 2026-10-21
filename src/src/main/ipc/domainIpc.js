@@ -133,6 +133,7 @@ function registerDomainHandlers(handle) {
   handle(CHANNELS.updates.check, () => updateService.checkForUpdates({ manual: true }));
   handle(CHANNELS.updates.download, () => updateService.downloadUpdate());
   handle(CHANNELS.updates.install, () => updateService.installUpdate({ isGameRunning: () => gameService.getStatus().state !== 'idle' }));
+  handle(CHANNELS.updates.postpone, () => updateService.postponeUpdate());
 
   handle(CHANNELS.accounts.list, () => accountService.listAccounts());
   handle(CHANNELS.accounts.addOffline, (_event, username) => accountService.addOfflineAccount(username));

@@ -199,6 +199,7 @@ const bridge = {
     check: () => invoke(CHANNELS.updates.check),
     download: () => invoke(CHANNELS.updates.download),
     install: () => invoke(CHANNELS.updates.install),
+    postpone: () => invoke(CHANNELS.updates.postpone),
   },
   minecraft: {
     resources: () => invoke(CHANNELS.minecraft.resources),

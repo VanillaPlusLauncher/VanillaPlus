@@ -1,49 +1,71 @@
 'use strict';
 
-const { BrowserWindow, screen } = require('electron');
+const { app, BrowserWindow, screen } = require('electron');
 const { brandIconDataUrl } = require('./brandIcon');
 
 /*
- * The tray icon's menu in the launcher's own style instead of Windows' grey one: the same soft
- * amethyst-dark card as the notices (notice.js), the mark and the name on top, items in the pixel
- * font. It opens next to the tray icon and goes away when it loses the focus or on Esc.
+ * The tray icon's menu in the launcher's own pixel-cut style instead of Windows' grey one: a dark
+ * panel with corners cut by one pixel step and an even frame (like the launcher's panels), the
+ * mark, the name and the version on top, items as pixel buttons with little pixel icons, all in
+ * the pixel font. It opens next to the tray icon and goes away when it loses the focus or on Esc.
  * The menu is a plain page without Node or the launcher's preload; a chosen item reaches the main
  * process only as a navigation to MENU_URL, which is stopped.
  */
 
-const WIDTH = 230;
+const WIDTH = 236;
 const MENU_URL = 'amethyx-menu://';
 /** Shown even if the pixel font did not arrive (no network). */
 const FONT_WAIT_MS = 400;
+
+/** 16 × 16 pixel icons (one SVG unit is one pixel), by name. */
+const ICONS = {
+  open: '<path d="M2 3h12v10H2z" fill="#8b5cf6"/><path d="M3 6h10v6H3z" fill="#16121f"/><path d="M3 4h2v1H3zm3 0h2v1H6z" fill="#e2d4ff"/>',
+  quit: '<path d="M7 1h2v7H7z" fill="#ff8f84"/><path d="M4 3h2v2H4zM3 5h2v5H3zm1 5h2v2H4zm2 2h4v2H6zm4-2h2v2h-2zm1-5h2v5h-2zm-1-2h2v2h-2z" fill="#ff8f84"/>',
+};
 
 let menuWindow = null;
 
 const escape = (text) => String(text ?? '').replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
-function page(items) {
+/** "1.7-beta.57" → "v1.7 β57", as in the window's corner. */
+const shortVersion = (version) => `v${String(version).replace(/-beta\.(\d+)$/i, ' β$1')}`;
+
+const icon = (name) => (ICONS[name] ? `<svg viewBox="0 0 16 16" width="16" height="16" shape-rendering="crispEdges">${ICONS[name]}</svg>` : '<i></i>');
+
+function page(items, version) {
   const iconUrl = brandIconDataUrl();
   const rows = items
-    .map((item, index) => (item.separator ? '<div class="line"></div>' : `<button class="item${item.danger ? ' item--danger' : ''}" data-index="${index}">${escape(item.label)}</button>`))
+    .map((item, index) =>
+      item.separator
+        ? '<div class="line"></div>'
+        : `<button class="item${item.danger ? ' item--danger' : ''}" data-index="${index}">${icon(item.icon)}<span>${escape(item.label)}</span></button>`,
+    )
     .join('');
+  const cut = (size) => `polygon(0 ${size}, ${size} ${size}, ${size} 0, calc(100% - ${size}) 0, calc(100% - ${size}) ${size}, 100% ${size},
+    100% calc(100% - ${size}), calc(100% - ${size}) calc(100% - ${size}), calc(100% - ${size}) 100%, ${size} 100%, ${size} calc(100% - ${size}), 0 calc(100% - ${size}))`;
   return `<!doctype html><html><head><meta charset="utf-8">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=block">
   <style>
   html, body { margin: 0; background: transparent; overflow: hidden; user-select: none; }
-  .menu { box-sizing: border-box; width: ${WIDTH}px; padding: 8px; border-radius: 12px; background: #161220;
-    border: 1px solid rgba(190, 160, 255, 0.32); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    font-family: "Tiny5", "Segoe UI", sans-serif; animation: in 180ms cubic-bezier(.2, .9, .3, 1.2) both; transform-origin: bottom center; }
-  .head { display: flex; align-items: center; gap: 10px; padding: 4px 8px 8px; color: #cbb4ff; font-size: 16px; }
-  .head img { width: 26px; height: 26px; }
-  .head b { color: #b48cff; font-weight: normal; }
-  .item { display: block; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: #f4f0fb;
-    font: inherit; font-size: 15px; text-align: left; cursor: pointer; transition: background 120ms, transform 120ms, color 120ms; }
-  .item:hover, .item:focus-visible { outline: none; background: rgba(190, 160, 255, 0.16); color: #ffffff; transform: translateX(3px); }
-  .item:active { transform: translateX(3px) scale(0.98); }
-  .item--danger:hover { background: rgba(255, 107, 94, 0.16); color: #ffb3a8; }
-  .line { height: 1px; margin: 6px 6px; background: rgba(226, 214, 255, 0.1); }
-  @keyframes in { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
+  .menu { box-sizing: border-box; width: ${WIDTH}px; padding: 10px; background: #16121f; clip-path: ${cut('5px')};
+    box-shadow: inset 0 0 0 2px #2b2140, inset 0 -3px 0 rgba(0, 0, 0, 0.4);
+    font-family: "Tiny5", "Segoe UI", sans-serif; font-size-adjust: 0.62; letter-spacing: 0.03em; color: #f1ecfb;
+    animation: in 160ms steps(4, end) both; }
+  .head { display: flex; align-items: center; gap: 10px; padding: 2px 4px 10px; }
+  .head img { width: 28px; height: 28px; image-rendering: pixelated; }
+  .head span { font-size: 17px; }
+  .head small { margin-left: auto; color: #8d82a3; font-size: 12px; }
+  .item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px 10px; border: 0; background: transparent;
+    color: inherit; font: inherit; font-size: 15px; letter-spacing: inherit; text-align: left; cursor: pointer; clip-path: ${cut('3px')}; }
+  .item svg, .item i { flex: none; width: 16px; height: 16px; }
+  .item:hover, .item:focus-visible { outline: none; background: #2a2533; box-shadow: inset 0 -3px 0 #8b5cf6; }
+  .item:active { background: #231e2c; box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.38); padding: 10px 10px 8px; }
+  .item--danger { color: #ffb3a8; }
+  .item--danger:hover, .item--danger:focus-visible { background: #3a1f27; box-shadow: inset 0 -3px 0 #ff6b5e; }
+  .line { height: 2px; margin: 6px 4px; background: #2b2140; }
+  @keyframes in { from { opacity: 0; transform: translateY(6px); } }
   </style></head><body><div class="menu" id="menu">
-  <div class="head">${iconUrl ? `<img src="${iconUrl}" alt="" onerror="this.remove()">` : ''}<span>Amethy<b>x</b></span></div>${rows}</div>
+  <div class="head">${iconUrl ? `<img src="${iconUrl}" alt="" onerror="this.remove()">` : ''}<span>Amethyx</span>${version ? `<small>${escape(version)}</small>` : ''}</div>${rows}</div>
   <script>
     let ready = false;
     const show = () => { if (!ready) { ready = true; location.href = '${MENU_URL}ready/' + document.getElementById('menu').offsetHeight; } };
@@ -60,7 +82,8 @@ function closeMenu() {
 }
 
 /**
- * Opens the menu by the tray icon. `items`: [{ label, click, danger? } | { separator: true }].
+ * Opens the menu by the tray icon. `items`: [{ label, click, icon?, danger? } | { separator: true }]
+ * (icon: a name from ICONS).
  * `anchor`: the tray icon's bounds (from the tray's click event), else the mouse position is used.
  */
 function openTrayMenu(items, anchor = null) {
@@ -107,7 +130,7 @@ function openTrayMenu(items, anchor = null) {
     }
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page(items))}`).catch(() => closeMenu());
+  window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(page(items, shortVersion(app.getVersion())))}`).catch(() => closeMenu());
 }
 
 module.exports = { openTrayMenu, closeTrayMenu: closeMenu };

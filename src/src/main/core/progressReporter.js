@@ -4,6 +4,20 @@ const { broadcast } = require('./broadcast');
 const { CHANNELS } = require('../../shared/channels');
 
 const THROTTLE_MS = 80;
+/**
+ * Tasks that have reported progress and not finished yet, with the time of their last report (a
+ * launcher update waits for them). One silent for 10 minutes is taken for lost.
+ */
+const running = new Map();
+const LOST_TASK_MS = 10 * 60 * 1000;
+
+function runningTaskCount() {
+  const now = Date.now();
+  for (const [taskId, at] of running) {
+    if (now - at > LOST_TASK_MS) running.delete(taskId);
+  }
+  return running.size;
+}
 
 /**
  * Creates a reporter that pushes task progress to the renderer.
@@ -28,12 +42,14 @@ function createTaskReporter({ taskId, kind, label, instance = null }) {
       }
       lastSentAt = now;
       lastStage = stage;
+      running.set(taskId, now);
       send({ state: 'running', stage, percent: clamped, detail });
     },
     finish(state, detail = '') {
+      running.delete(taskId);
       send({ state, stage: state, percent: state === 'done' ? 100 : 0, detail });
     },
   };
 }
 
-module.exports = { createTaskReporter };
+module.exports = { createTaskReporter, runningTaskCount };

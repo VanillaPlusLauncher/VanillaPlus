@@ -5244,37 +5244,69 @@
 .wardrobe__stage--loading .wardrobe__model {
   visibility: hidden;
 }
-/* The first start: which language (components/languagePicker.js). */
+/* The first start: which language (components/languagePicker.js). Nine equal pixel buttons, 3 × 3:
+   the language's code small on top, its own name below. */
 .language-picker {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  min-width: 360px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .language-picker__item {
-  padding: 14px 16px;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  color: inherit;
+  --cut: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px 13px;
+  border: 0;
+  background: var(--btn-face);
+  box-shadow: inset 0 -4px 0 var(--btn-dark);
+  color: var(--color-text);
   font: inherit;
-  font-size: 16px;
   text-align: left;
   cursor: var(--cursor-hand);
-  transition: background 150ms, border-color 150ms, transform 150ms;
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+  transition: background 120ms, transform 90ms ease-out, box-shadow 90ms;
 }
 
-.language-picker__item:hover {
-  background: rgba(var(--accent-rgb), 0.14);
-  border-color: rgba(var(--accent-rgb), 0.6);
+.language-picker__code {
+  color: var(--color-text-muted, #a99bc0);
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  font-size-adjust: 0.62;
+  letter-spacing: 0.08em;
+}
+
+.language-picker__name {
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  font-size-adjust: 0.62;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.language-picker__item:hover,
+.language-picker__item:focus-visible {
+  outline: none;
+  background: var(--btn-face-hover);
+  box-shadow: inset 0 -4px 0 var(--color-accent);
   transform: translateY(-1px);
 }
 
-.language-picker__item--system {
-  grid-column: 1 / -1;
-  border-color: rgba(var(--accent-rgb), 0.55);
-  background: rgba(var(--accent-rgb), 0.12);
+.language-picker__item:hover .language-picker__code,
+.language-picker__item:focus-visible .language-picker__code {
+  color: var(--color-accent);
+}
+
+.language-picker__item:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 3px 0 var(--btn-dark);
 }
 /* --- Tooltips in the launcher's style (components/tooltip.js) --------------------------- */
 .tooltip {
@@ -6010,12 +6042,23 @@ button:disabled {
 
 /* A plate of budding amethyst turning slowly in the air (components/splash.js builds its faces):
    crystals grow on it like a snake, from the edge round into the middle, with a little pop at
-   every stage; sparkles blink around it. Before the game's textures are on disk (the very first
-   start) the plate is a plain glow without a picture (.geode__slab--blank). */
+   every stage; sparkles blink around it. Until all of the game's textures are loaded the plate is
+   not shown at all (.splash__blocks--waiting); then it fades in whole. */
 .splash__blocks {
   position: relative;
   width: 240px;
   height: 200px;
+}
+
+.geode__float,
+.geode__shadow {
+  transition: opacity 420ms ease-out, scale 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.splash__blocks--waiting .geode__float,
+.splash__blocks--waiting .geode__shadow {
+  opacity: 0;
+  scale: 0.85;
 }
 
 .geode__float {
@@ -6072,17 +6115,6 @@ button:disabled {
   image-rendering: pixelated;
   backface-visibility: hidden;
   filter: brightness(var(--shade, 1));
-}
-
-.geode__slab--blank .geode__face {
-  background: linear-gradient(135deg, rgba(150, 106, 230, 0.55), rgba(92, 58, 168, 0.55));
-  box-shadow: inset 0 0 0 1px rgba(214, 180, 255, 0.18);
-  animation: geode-wait 1.6s ease-in-out infinite;
-}
-
-@keyframes geode-wait {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 0.9; }
 }
 
 .geode__crystal,
@@ -6210,7 +6242,7 @@ button:disabled {
   width: 340px;
   padding: 16px 18px 14px;
   background: #17121f;
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.07), inset 0 -3px 0 rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(var(--accent-rgb), 0.3);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.3), inset 0 -3px 0 rgba(0, 0, 0, 0.4);
   clip-path: polygon(
     0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
     calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),

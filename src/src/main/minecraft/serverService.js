@@ -300,6 +300,10 @@ async function deleteServer(settings, instanceId) {
   }
 }
 
+function anyServerRunning() {
+  return running.size > 0;
+}
+
 /** Stops every server when the launcher quits. */
 function stopAll() {
   return Promise.all([...running.keys()].map((id) => stopServer(id)));
@@ -463,4 +467,4 @@ async function exportServerPack(settings, instanceId, target, options = {}) {
   }
 }
 
-module.exports = { getServer, createServer, startServer, stopServer, sendCommand, syncServerContent, deleteServer, stopAll, modsForServer, exportServerPack, exportServerModList };
+module.exports = { getServer, createServer, startServer, stopServer, sendCommand, syncServerContent, deleteServer, stopAll, anyServerRunning, modsForServer, exportServerPack, exportServerModList };

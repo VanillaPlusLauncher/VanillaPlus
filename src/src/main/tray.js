@@ -16,17 +16,24 @@ const ICON = path.join(__dirname, '..', '..', 'assets', 'branding', 'amethyx-mar
 const TEXTS = {
   ru: { open: 'Открыть Amethyx', quit: 'Выйти', title: 'Amethyx свёрнут в трей', hint: 'Выйти совсем: правой кнопкой по значку → «Выйти»' },
   en: { open: 'Open Amethyx', quit: 'Quit', title: 'Amethyx is in the tray', hint: 'To quit: right-click its icon → "Quit"' },
+  uk: { open: 'Відкрити Amethyx', quit: 'Вийти', title: 'Amethyx згорнуто в трей', hint: 'Вийти зовсім: правою кнопкою по значку → «Вийти»' },
+  pl: { open: 'Otwórz Amethyx', quit: 'Zakończ', title: 'Amethyx jest w zasobniku', hint: 'Aby zakończyć: prawy przycisk na ikonie → „Zakończ”' },
+  es: { open: 'Abrir Amethyx', quit: 'Salir', title: 'Amethyx está en la bandeja', hint: 'Para salir: clic derecho en su icono → «Salir»' },
+  pt: { open: 'Abrir Amethyx', quit: 'Sair', title: 'Amethyx está na bandeja', hint: 'Para sair: clique direito no ícone → "Sair"' },
+  de: { open: 'Amethyx öffnen', quit: 'Beenden', title: 'Amethyx ist im Infobereich', hint: 'Zum Beenden: Rechtsklick auf das Symbol → „Beenden“' },
+  fr: { open: 'Ouvrir Amethyx', quit: 'Quitter', title: 'Amethyx est dans la zone de notification', hint: 'Pour quitter : clic droit sur son icône → « Quitter »' },
+  zh: { open: '打开 Amethyx', quit: '退出', title: 'Amethyx 已最小化到托盘', hint: '完全退出：右键点击图标 →「退出」' },
 };
 
 let tray = null;
 let quitting = false;
 let hintShown = false;
 
-/** Russian for a Russian interface (or a Russian system while no language is chosen), else English. */
+/** In the interface's language (the system's while none is chosen), else English. */
 async function texts() {
   const settings = await getSettings().catch(() => null);
-  const language = settings?.ui?.language ?? app.getLocale();
-  return String(language).toLowerCase().startsWith('ru') ? TEXTS.ru : TEXTS.en;
+  const language = String(settings?.ui?.language ?? app.getLocale()).slice(0, 2).toLowerCase();
+  return TEXTS[language] ?? TEXTS.en;
 }
 
 function showWindow(window) {
@@ -45,9 +52,9 @@ async function ensureTray(window) {
   tray.on('right-click', (_event, bounds) => {
     openTrayMenu(
       [
-        { label: text.open, click: () => showWindow(window) },
+        { label: text.open, icon: 'open', click: () => showWindow(window) },
         { separator: true },
-        { label: text.quit, danger: true, click: () => app.quit() },
+        { label: text.quit, icon: 'quit', danger: true, click: () => app.quit() },
       ],
       bounds,
     );

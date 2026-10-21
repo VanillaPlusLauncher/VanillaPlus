@@ -30,16 +30,19 @@ function page({ title, text }) {
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiny5&display=block">
   <style>
   html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; cursor: pointer; }
-  /* The launcher's soft style: a rounded amethyst-dark card with a lilac edge; text in its pixel font. */
-  .toast { box-sizing: border-box; height: ${HEIGHT}px; display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 12px;
-    border-radius: 12px; background: #161220; border: 1px solid rgba(190, 160, 255, 0.3);
-    font-family: "Tiny5", "Segoe UI", sans-serif;
-    animation: in 240ms cubic-bezier(.2, .9, .3, 1.15) both; }
-  .toast:hover { border-color: rgba(190, 160, 255, 0.65); }
-  img { width: 42px; height: 42px; flex: none; image-rendering: auto; }
+  /* The launcher's pixel-cut style: a dark panel with corners cut by one pixel step, an even frame
+     (the theme colour on hover) and a dark bottom edge; text in its pixel font. */
+  .toast { box-sizing: border-box; height: ${HEIGHT}px; display: flex; align-items: center; gap: 12px; padding: 10px 16px 12px 12px;
+    background: #16121f; box-shadow: inset 0 0 0 2px #2b2140, inset 0 -3px 0 rgba(0, 0, 0, 0.4);
+    clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px),
+      calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
+    font-family: "Tiny5", "Segoe UI", sans-serif; font-size-adjust: 0.62; letter-spacing: 0.03em;
+    animation: in 200ms steps(5, end) both; }
+  .toast:hover { box-shadow: inset 0 0 0 2px #8b5cf6, inset 0 -3px 0 rgba(0, 0, 0, 0.4); }
+  img { width: 42px; height: 42px; flex: none; image-rendering: pixelated; }
   .lines { min-width: 0; }
-  .title { color: #cbb4ff; font-size: 17px; line-height: 20px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .text { color: #f4f0fb; font-size: 15px; line-height: 18px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .title { color: #cbb4ff; font-size: 16px; line-height: 20px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .text { color: #f1ecfb; font-size: 14px; line-height: 18px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .out { animation: out 200ms ease-in both; }
   @keyframes in { from { opacity: 0; transform: translateX(28px); } }
   @keyframes out { to { opacity: 0; transform: translateX(28px); } }

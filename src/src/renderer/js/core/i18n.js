@@ -11,10 +11,12 @@
 export const LANGUAGES = [
   { code: 'ru', label: 'Русский' },
   { code: 'en', label: 'English' },
-  { code: 'es', label: 'Español' },
-  { code: 'pt', label: 'Português' },
+  { code: 'uk', label: 'Українська' },
+  { code: 'pl', label: 'Polski' },
   { code: 'de', label: 'Deutsch' },
   { code: 'fr', label: 'Français' },
+  { code: 'es', label: 'Español' },
+  { code: 'pt', label: 'Português' },
   { code: 'zh', label: '简体中文' },
 ];
 
@@ -152,7 +154,7 @@ function startObserver() {
   observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRIBUTES });
 }
 
-const LOCALES = { ru: 'ru-RU', en: 'en-US', es: 'es-ES', pt: 'pt-BR', de: 'de-DE', fr: 'fr-FR', zh: 'zh-CN' };
+const LOCALES = { ru: 'ru-RU', en: 'en-US', uk: 'uk-UA', pl: 'pl-PL', es: 'es-ES', pt: 'pt-BR', de: 'de-DE', fr: 'fr-FR', zh: 'zh-CN' };
 
 /** Locale for dates, times and numbers in the current language. */
 export function locale() {
@@ -163,7 +165,7 @@ export function currentLanguage() {
   return language;
 }
 
-/** Switches the whole window to `code` (ru, en, es, pt, de, fr, zh). */
+/** Switches the whole window to `code` (one of LANGUAGES). */
 export async function setLanguage(code) {
   const next = LANGUAGES.some((entry) => entry.code === code) ? code : 'ru';
   if (next === language && (next === 'ru' || dictionary)) return;

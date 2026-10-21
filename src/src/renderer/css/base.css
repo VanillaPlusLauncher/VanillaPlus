@@ -81,6 +81,11 @@ img {
   background-clip: content-box;
 }
 
+/* Where two scrollbars meet: no white square. */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

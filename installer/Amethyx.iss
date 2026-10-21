@@ -62,6 +62,7 @@ Name: "desktopicon"; Description: "Ярлык на рабочем столе"; G
 
 [Files]
 ; Screenshots go first: in a solid archive they are then unpacked instantly at startup.
+Source: "art\update-*.bmp"; Flags: dontcopy
 Source: "art\slide*.bmp"; Flags: dontcopy
 Source: "art\wizard-full.bmp"; Flags: dontcopy
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -89,7 +90,8 @@ Name: "{autoprograms}\Удалить {#AppName}"; Filename: "{uninstallexe}"
 
 [Run]
 Filename: "{app}\Amethyx.exe"; Description: "Запустить {#AppName}"; Flags: nowait postinstall skipifsilent
-; An update started from the launcher (/SILENT /relaunch=1) opens the launcher again when done.
+; An update started from the launcher (/SILENT /relaunch=1) shows only a small window (see
+; BuildUpdateWindow) and opens the launcher again when done.
 Filename: "{app}\Amethyx.exe"; Flags: nowait; Check: IsUpdateRelaunch
 
 [Code]
@@ -172,12 +174,119 @@ begin
   ShowSlide(SlideIndex + 1);
 end;
 
+{ An update from the launcher: no pages and no buttons, only a small window in the launcher's pixel
+  look, like a splash screen. It is one picture (make-update-art.ps1, drawn at 1x, 2x and 3x so the
+  pixels stay sharp) over the wizard's own controls, and the bar is a second picture shown as far
+  as the install has got, in whole blocks. }
+const
+  UpdateFillLeft = 102;
+  UpdateFillTop = 84;
+  UpdateBlock = 12;
+  UpdateCut = 6;
+  RGN_OR = 2;
+
+var
+  UpdateFill: TBitmapImage;
+  UpdateScale: Integer;
+
+function CreateRectRgn(Left, Top, Right, Bottom: Integer): LongWord;
+  external 'CreateRectRgn@gdi32.dll stdcall';
+function CombineRgn(Dest, Source1, Source2: LongWord; Mode: Integer): Integer;
+  external 'CombineRgn@gdi32.dll stdcall';
+function DeleteObject(Handle: LongWord): BOOL;
+  external 'DeleteObject@gdi32.dll stdcall';
+function SetWindowRgn(Wnd: HWND; Region: LongWord; Redraw: BOOL): Integer;
+  external 'SetWindowRgn@user32.dll stdcall';
+
+{ The window's corners cut by one step, like the launcher's panels (the picture's frame follows it). }
+procedure CutUpdateWindowCorners;
+var
+  Cut, W, H: Integer;
+  Region, Across: LongWord;
+begin
+  Cut := UpdateCut * UpdateScale;
+  W := WizardForm.ClientWidth;
+  H := WizardForm.ClientHeight;
+  Region := CreateRectRgn(Cut, 0, W - Cut, H);
+  Across := CreateRectRgn(0, Cut, W, H - Cut);
+  CombineRgn(Region, Region, Across, RGN_OR);
+  DeleteObject(Across);
+  { The window owns the region from here on. }
+  SetWindowRgn(WizardForm.Handle, Region, True);
+end;
+
+procedure BuildUpdateWindow;
+var
+  Cover: TPanel;
+  Back: TBitmapImage;
+  Suffix: String;
+begin
+  UpdateScale := 1;
+  if ScaleX(100) > 112 then UpdateScale := 2;
+  if ScaleX(100) >= 250 then UpdateScale := 3;
+  Suffix := IntToStr(UpdateScale) + 'x.bmp';
+  ExtractTemporaryFile('update-bg-' + Suffix);
+  ExtractTemporaryFile('update-fill-' + Suffix);
+
+  { Pictures are drawn under the wizard's windowed controls, so they sit on a panel above them. }
+  Cover := TPanel.Create(WizardForm);
+  Cover.Parent := WizardForm;
+  Cover.BevelOuter := bvNone;
+  Back := TBitmapImage.Create(WizardForm);
+  Back.Parent := Cover;
+  Back.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-bg-' + Suffix));
+  WizardForm.BorderStyle := bsNone;
+  WizardForm.ClientWidth := Back.Bitmap.Width;
+  WizardForm.ClientHeight := Back.Bitmap.Height;
+  WizardForm.Position := poScreenCenter;
+  Cover.SetBounds(0, 0, Back.Bitmap.Width, Back.Bitmap.Height);
+  Cover.BringToFront;
+  Back.SetBounds(0, 0, Back.Bitmap.Width, Back.Bitmap.Height);
+
+  UpdateFill := TBitmapImage.Create(WizardForm);
+  UpdateFill.Parent := Cover;
+  UpdateFill.Stretch := False;
+  UpdateFill.Center := False;
+  UpdateFill.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-fill-' + Suffix));
+  UpdateFill.SetBounds(UpdateFillLeft * UpdateScale, UpdateFillTop * UpdateScale, 0, UpdateFill.Bitmap.Height);
+  UpdateFill.BringToFront;
+  CutUpdateWindowCorners;
+end;
+
+procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
+var
+  Done: Int64;
+  Width, Block: Integer;
+begin
+  if (UpdateFill = nil) or (MaxProgress <= 0) then
+    Exit;
+  Block := UpdateBlock * UpdateScale;
+  { In 64 bits: the progress counts bytes and would overflow an Integer once multiplied. }
+  Done := CurProgress;
+  Width := Done * UpdateFill.Bitmap.Width div MaxProgress;
+  if Width < UpdateFill.Bitmap.Width then
+    Width := (Width div Block) * Block;
+  UpdateFill.Width := Width;
+end;
+
+{ Nothing in that window to cancel the update with: Esc and Alt+F4 are ignored. }
+procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
+begin
+  if IsUpdateRelaunch then
+    Cancel := False;
+end;
+
 procedure InitializeWizard;
 var
   I, Top, DotSize, DotsLeft, W, H: Integer;
   Page: TNewNotebookPage;
   Picture: TBitmapImage;
 begin
+  if IsUpdateRelaunch then
+  begin
+    BuildUpdateWindow;
+    Exit;
+  end;
   for I := 1 to {#SlideCount} do
     ExtractTemporaryFile('slide' + IntToStr(I) + '.bmp');
 
@@ -229,6 +338,12 @@ end;
 
 procedure CurPageChanged(CurPageID: Integer);
 begin
+  if IsUpdateRelaunch then
+  begin
+    { Again once the window is up, in case Windows made it anew when it was shown. }
+    CutUpdateWindowCorners;
+    Exit;
+  end;
   { The whole-window picture belongs to the welcome page only. }
   WizardForm.WizardBitmapImage.Visible := CurPageID = wpWelcome;
   if CurPageID = wpInstalling then
