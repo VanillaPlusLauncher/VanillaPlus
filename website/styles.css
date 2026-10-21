@@ -644,6 +644,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 .versions__tag.is-latest { color: #1c0e3a; background: var(--btn-specks) 0 0 / 46px 22px, var(--accent); }
 .versions__meta { color: var(--text-muted); font-size: 13px; }
+.versions__list li.versions__empty { color: var(--text-soft); font-size: 14px; text-align: center; }
 .versions__get { margin-left: auto; padding: 7px 14px 10px; font-size: 14px; }
 .versions__get svg { width: 16px; height: 16px; }
 /* "What's new" stays short in the list: two lines. */

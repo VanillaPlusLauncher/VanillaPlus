@@ -110,22 +110,25 @@
   // The big button gives the newest build for the system the visitor is on; "Other versions"
   // opens every build from the admin panel, grouped by system, to go back to a release or try a beta.
   var site = null; // api.php?a=site: { latest: { platform: version }, versions: [newest first] }
-  // windows-legacy is the Windows 7 / 8 build: the regular installer does not start there.
+  // windows-legacy is the build for Windows 7, 8 and Windows 10 older than 1803: the regular
+  // installer does not start there.
   var SYSTEMS = ['windows', 'windows-legacy', 'mac-arm64', 'mac-x64', 'linux'];
-  var SYSTEM_NAMES = { windows: 'Windows', 'windows-legacy': 'Windows 7 / 8', 'mac-arm64': 'macOS (Apple Silicon)', 'mac-x64': 'macOS (Intel)', linux: 'Linux' };
+  var SYSTEM_NAMES = { windows: 'Windows 10 / 11', 'windows-legacy': 'Windows 7 / 8 / старая 10', 'mac-arm64': 'macOS (Apple Silicon)', 'mac-x64': 'macOS (Intel)', linux: 'Linux' };
   var SYSTEM_SHORT = { windows: 'Windows', 'windows-legacy': 'Windows 7 / 8', 'mac-arm64': 'macOS', 'mac-x64': 'macOS', linux: 'Linux' };
   var DL_TEXT = {
     ru: {
       downloadFor: 'Скачать для ', download: 'Скачать', latest: 'последняя',
       more: 'Другие версии', less: 'Скрыть версии', mb: ' МБ', none: 'Для этой системы версий пока нет.',
-      lead: { windows: 'Установщик для Windows. Дальше лаунчер обновляется сам.', 'windows-legacy': 'Установщик для Windows 7 и 8. Дальше лаунчер обновляется сам.', mac: 'Сборка для macOS — пока бета, новые версии ставятся вручную.', linux: 'Сборка для Linux.' },
+      lead: { windows: 'Установщик для Windows. Дальше лаунчер обновляется сам.', 'windows-legacy': 'Установщик для Windows 7, 8 и Windows 10 до версии 1803. Дальше лаунчер обновляется сам.', mac: 'Сборка для macOS — пока бета, новые версии ставятся вручную.', linux: 'Сборка для Linux.' },
       mobile: 'Amethyx работает на компьютере с Windows или macOS — скачайте его там.',
       noBuild: 'Для вашей системы сборки пока нет — вот версия для Windows.',
-      noWin7: 'Для Windows 7 и 8 сборки пока нет. Версия ниже — только для Windows 10 и 11.',
+      noWin7: 'Для Windows 7, 8 и Windows 10 до версии 1803 сборки пока нет. Версия ниже работает только на Windows 10 (1803 и новее) и 11.',
       win10: 'Windows 10 / 11',
+      noLegacy: 'Сборка для Windows 7, 8 и Windows 10 до 1803 скоро появится здесь.',
+      legacyTab: 'Windows 7 / 8 / старая 10', legacyShort: 'старой Windows',
       req: {
-        windows: 'Windows 10 (1803 и новее) или Windows 11, 64 бита. Java лаунчер скачает сам.',
-        'windows-legacy': 'Windows 7 (SP1), 8 или 8.1. Java лаунчер скачает сам.',
+        windows: 'Windows 10 (версия 1803 и новее) или Windows 11, 64 бита. Для Windows 7, 8 и Windows 10 старше 1803 — отдельная сборка в «Других версиях». Java лаунчер скачает сам.',
+        'windows-legacy': 'Windows 7 (SP1), 8, 8.1 или Windows 10 до версии 1803. Java лаунчер скачает сам.',
         mac: 'Java лаунчер скачает сам.',
         linux: 'Java лаунчер скачает сам.'
       },
@@ -140,14 +143,16 @@
     en: {
       downloadFor: 'Download for ', download: 'Download', latest: 'latest',
       more: 'Other versions', less: 'Hide versions', mb: ' MB', none: 'No versions for this system yet.',
-      lead: { windows: 'An installer for Windows. After that the launcher updates itself.', 'windows-legacy': 'An installer for Windows 7 and 8. After that the launcher updates itself.', mac: 'A build for macOS — still a beta, new versions are installed by hand.', linux: 'A build for Linux.' },
+      lead: { windows: 'An installer for Windows. After that the launcher updates itself.', 'windows-legacy': 'An installer for Windows 7, 8 and Windows 10 older than 1803. After that the launcher updates itself.', mac: 'A build for macOS — still a beta, new versions are installed by hand.', linux: 'A build for Linux.' },
       mobile: 'Amethyx runs on a Windows or macOS computer — download it there.',
       noBuild: 'There is no build for your system yet — here is the Windows version.',
-      noWin7: 'There is no build for Windows 7 and 8 yet. The version below is for Windows 10 and 11 only.',
+      noWin7: 'There is no build for Windows 7, 8 and Windows 10 older than 1803 yet. The version below runs on Windows 10 (1803 or newer) and 11 only.',
       win10: 'Windows 10 / 11',
+      noLegacy: 'The build for Windows 7, 8 and Windows 10 older than 1803 will appear here soon.',
+      legacyTab: 'Windows 7 / 8 / old 10', legacyShort: 'older Windows',
       req: {
-        windows: 'Windows 10 (1803 or newer) or Windows 11, 64-bit. The launcher downloads Java by itself.',
-        'windows-legacy': 'Windows 7 (SP1), 8 or 8.1. The launcher downloads Java by itself.',
+        windows: 'Windows 10 (version 1803 or newer) or Windows 11, 64-bit. For Windows 7, 8 and Windows 10 older than 1803 there is a separate build under Other versions. The launcher downloads Java by itself.',
+        'windows-legacy': 'Windows 7 (SP1), 8, 8.1 or Windows 10 older than 1803. The launcher downloads Java by itself.',
         mac: 'The launcher downloads Java by itself.',
         linux: 'The launcher downloads Java by itself.'
       },
@@ -231,6 +236,14 @@
       renderDownloads();
     }).catch(function () {});
   }
+  // Windows 10 older than 1803 (the regular build needs 1803) looks like any Windows 10 in the user
+  // agent; Chrome and Edge tell the release: platformVersion 1-5 is 1507-1709, 6 is 1803.
+  if (!osParam && detected === 'windows' && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+    navigator.userAgentData.getHighEntropyValues(['platformVersion']).then(function (values) {
+      var major = parseInt(values.platformVersion, 10);
+      if (major >= 1 && major < 6) { detected = 'windows-legacy'; chosenSystem = null; renderDownloads(); }
+    }).catch(function () {});
+  }
   var chosenSystem = null; // the system open in "Other versions"
 
   // The system the big button serves: the visitor's own when there is a build for it
@@ -268,7 +281,7 @@
     document.getElementById('dl-req').textContent = T.req[group];
     var button = document.getElementById('download-second');
     button.href = main ? main.url : 'dl.php?platform=' + system;
-    document.getElementById('dl-label').textContent = T.downloadFor + (noWin7 ? T.win10 : SYSTEM_SHORT[system]);
+    document.getElementById('dl-label').textContent = T.downloadFor + (noWin7 ? T.win10 : system === 'windows-legacy' ? T.legacyShort : SYSTEM_SHORT[system]);
     document.getElementById('dl-version').textContent = main
       ? versionText(main.version) + ' · ' + sizeText(main.size, T)
       : '';
@@ -281,15 +294,19 @@
     renderMacHelp(T, group === 'mac');
     if (!versions.length) return;
 
-    // System tabs: only systems that have builds; the main system is open first.
-    var present = SYSTEMS.filter(function (s) { return versions.some(function (v) { return v.platform === s; }); });
+    // System tabs: the systems that have builds, and always Windows 7 / 8 next to Windows (so
+    // people on an old Windows find their place even before its build is out); the main system
+    // is open first.
+    var present = SYSTEMS.filter(function (s) {
+      return s === 'windows-legacy' || versions.some(function (v) { return v.platform === s; });
+    });
     if (!chosenSystem || present.indexOf(chosenSystem) < 0) chosenSystem = present.indexOf(system) >= 0 ? system : present[0];
     if (group !== 'mac' && !picker.hidden && /^mac/.test(chosenSystem)) renderMacHelp(T, true);
     var tabs = document.getElementById('dl-systems');
     while (tabs.firstChild) tabs.removeChild(tabs.firstChild);
     tabs.hidden = present.length < 2;
     present.forEach(function (s) {
-      var tab = makeEl('button', 'picker__system', SYSTEM_NAMES[s]);
+      var tab = makeEl('button', 'picker__system', s === 'windows-legacy' ? T.legacyTab : SYSTEM_NAMES[s]);
       tab.type = 'button';
       tab.setAttribute('role', 'tab');
       tab.setAttribute('aria-selected', String(s === chosenSystem));
@@ -300,7 +317,9 @@
     var list = document.getElementById('versions-list');
     while (list.firstChild) list.removeChild(list.firstChild);
     var latestId = site.latest[chosenSystem] ? site.latest[chosenSystem].id : null;
-    versions.filter(function (v) { return v.platform === chosenSystem; }).forEach(function (v) {
+    var shown = versions.filter(function (v) { return v.platform === chosenSystem; });
+    if (!shown.length) list.appendChild(makeEl('li', 'versions__empty', chosenSystem === 'windows-legacy' ? T.noLegacy : T.none));
+    shown.forEach(function (v) {
       var item = makeEl('li');
       var head = makeEl('div', 'versions__head');
       head.appendChild(makeEl('b', '', versionText(v.version)));
