@@ -43,13 +43,10 @@ WizardSmallImageFile=art\wizard-small.bmp
 WizardImageStretch=yes
 Compression=lzma2/fast
 SolidCompression=yes
-#ifdef Legacy
-; Electron 22 runs on Windows 7 SP1, 8 and 8.1 (and newer).
+; Both builds let Setup start on Windows 7 SP1 and newer. The Windows 7 / 8 build (Electron 22)
+; installs anywhere from there; the usual one (Electron 44) needs Windows 10 1803 and says so itself in
+; InitializeSetup below, with the way to the other build, instead of Setup's own bare version error.
 MinVersion=6.1sp1
-#else
-; Electron 44 runs on Windows 10 and 11 only; 1803 brings tar.exe, used for world backups.
-MinVersion=10.0.17134
-#endif
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
@@ -96,6 +93,23 @@ Filename: "{app}\Amethyx.exe"; Description: "Запустить {#AppName}"; Fla
 Filename: "{app}\Amethyx.exe"; Flags: nowait; Check: IsUpdateRelaunch
 
 [Code]
+#ifndef Legacy
+{ The usual build needs Windows 10 1803 or newer (Electron 44). On an older Windows: plain words and
+  the download page, where the build for Windows 7, 8 and older Windows 10 is. }
+function InitializeSetup: Boolean;
+var
+  Version: TWindowsVersion;
+  ErrorCode: Integer;
+begin
+  GetWindowsVersionEx(Version);
+  Result := (Version.Major > 10) or ((Version.Major = 10) and (Version.Build >= 17134));
+  if not Result and not WizardSilent then
+    if MsgBox('Эта сборка Amethyx работает на Windows 10 версии 1803 и новее, а у вас более старая Windows.' + #13#10#13#10 +
+      'Для Windows 7, 8 и старых версий Windows 10 есть отдельная сборка. Открыть страницу загрузки?',
+      mbInformation, MB_YESNO) = IDYES then
+      ShellExec('open', 'https://launcher.x-world.plus/#download', '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
+end;
+#endif
 function IsUpdateRelaunch: Boolean;
 begin
   Result := ExpandConstant('{param:relaunch|0}') = '1';
