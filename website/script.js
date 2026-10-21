@@ -134,8 +134,9 @@
       macTitle: 'Как установить на Mac',
       macSteps: [
         'Распакуйте zip двойным кликом и перетащите Amethyx.app в «Программы».',
-        'Сборка не подписана у Apple (это платно), поэтому при первом запуске macOS скажет «не удаётся проверить» или «повреждено». Один раз откройте «Терминал» и выполните:',
-        'Если после этого всё равно не открывается, выполните ещё одну команду и снова запустите Amethyx:'
+        'Откройте Amethyx. При первом запуске macOS скажет, что не удалось проверить разработчика, — закройте это окно.',
+        'Откройте «Системные настройки» → «Конфиденциальность и безопасность», внизу нажмите «Всё равно открыть» и подтвердите. Это нужно только один раз.',
+        'Если Amethyx всё равно не открывается, выполните в «Терминале»:'
       ],
       copy: 'Скопировать', copied: 'Скопировано'
     },
@@ -157,14 +158,15 @@
       macTitle: 'How to install on a Mac',
       macSteps: [
         'Unpack the zip with a double click and drag Amethyx.app into Applications.',
-        'The build is not signed by Apple (that costs money), so on the first start macOS says it “cannot be verified” or is “damaged”. Open Terminal once and run:',
-        'If it still does not open, run one more command and start Amethyx again:'
+        'Open Amethyx. On the first start macOS says it could not verify the developer — close that window.',
+        'Open System Settings → Privacy & Security, click “Open Anyway” at the bottom and confirm. This is needed only once.',
+        'If Amethyx still does not open, run this in Terminal:'
       ],
       copy: 'Copy', copied: 'Copied'
     }
   };
   // The commands of the Mac guide (the same in every language).
-  var MAC_COMMANDS = [null, 'xattr -cr /Applications/Amethyx.app', 'codesign --force --deep --sign - /Applications/Amethyx.app'];
+  var MAC_COMMANDS = [null, null, null, 'xattr -cr /Applications/Amethyx.app'];
 
   // The Mac guide: shown when the big button gives a Mac build, or the macOS tab of
   // "Other versions" is open.
