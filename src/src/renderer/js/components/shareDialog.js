@@ -7,12 +7,19 @@ import { openInstance } from '../core/nav.js';
 import { openModal } from './modal.js';
 import { toast } from './toast.js';
 import { createSegmented } from './controls.js';
+import { createFileTree } from './fileTree.js';
 
 const FORMATS = [
   { value: 'modrinth', logo: 'modrinth', title: 'Modrinth (.mrpack)', text: 'Для Modrinth App, Prism Launcher и Amethyx. Моды с Modrinth — ссылками, остальные внутри.' },
   { value: 'curseforge', logo: 'curseforge', title: 'CurseForge (.zip)', text: 'Для приложения CurseForge. Моды с CurseForge — ссылками, остальные внутри.' },
-  { value: 'zip', logo: null, title: 'Обычный .zip', text: 'Вся папка сборки целиком: открывают Prism Launcher, MultiMC и Amethyx.' },
+  { value: 'zip', logo: null, title: 'Обычный .zip', text: 'Папка сборки как есть: открывают Prism Launcher, MultiMC и Amethyx.' },
 ];
+
+/** What a modpack usually carries: its mods, packs, shaders and their settings. */
+const PACK_FOLDERS = new Set(['mods', 'resourcepacks', 'shaderpacks', 'config', 'defaultconfigs', 'kubejs', 'scripts', 'datapacks', 'global_packs', 'openloader', 'paxi']);
+/** Never worth sending in a plain .zip: caches, logs, crash reports, screenshots. */
+const ZIP_LEFT_OUT = new Set(['logs', 'crash-reports', 'screenshots', 'cache', 'debug', 'downloads', 'backup', 'backups']);
+const tickedFor = (format) => (entry) => (format === 'zip' ? !entry.name.startsWith('.') && !ZIP_LEFT_OUT.has(entry.name) : PACK_FOLDERS.has(entry.name));
 
 /** "Экспортировать": a share code to paste into Amethyx, or a file in one of three formats. */
 export function openShareDialog(instance) {
@@ -21,11 +28,14 @@ export function openShareDialog(instance) {
   const copyButton = h('button', { class: 'btn btn--primary btn--compact', type: 'button', disabled: true, onclick: () => copyCode() }, 'Копировать код');
   // Straight into a friend's chat: the friend gets "Собрать и играть".
   const sendButton = h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => sendToFriend() }, 'Отправить другу');
-  const configs = h('input', { type: 'checkbox', checked: true });
-  const worlds = h('input', { type: 'checkbox', checked: true });
-  const screenshots = h('input', { type: 'checkbox' });
-  const saveButton = h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => saveFile() }, 'Сохранить');
+  const saveButton = h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => saveFile() }, icon('export'), 'Сохранить');
   let format = 'modrinth';
+  // Which files and folders go into the file, like Prism Launcher's export.
+  const tree = createFileTree({
+    load: (relative) => api.share.listFiles(instance.id, relative),
+    sizes: (paths) => api.share.folderSizes(instance.id, paths),
+    ticked: tickedFor(format),
+  });
 
   const codePanel = h(
     'div',
@@ -89,21 +99,20 @@ export function openShareDialog(instance) {
       h('span', { class: 'share-format__text' }, h('b', null, entry.title), h('span', { class: 'text-muted' }, entry.text)),
     ),
   );
-  const zipOnly = [h('label', { class: 'compat-dialog__remember' }, worlds, h('span', null, 'Миры')), h('label', { class: 'compat-dialog__remember' }, screenshots, h('span', null, 'Скриншоты'))];
   const filePanel = h(
     'div',
     { class: 'share-panel', hidden: true },
     h('div', { class: 'share-formats' }, ...formatCards),
-    h('div', { class: 'share-options' }, h('label', { class: 'compat-dialog__remember' }, configs, h('span', null, 'Настройки модов (config)')), ...zipOnly),
+    h('div', { class: 'share-tree-head' }, h('span', null, 'Что положить в файл'), h('span', { class: 'text-muted' }, 'Папка с галочкой — целиком; откройте её, чтобы выбрать отдельные файлы.')),
+    tree.element,
     h('div', { class: 'share-actions' }, saveButton),
   );
 
   function pickFormat(value) {
+    const changed = value !== format;
     format = value;
     formatCards.forEach((card) => card.classList.toggle('share-format--active', card.dataset.format === value));
-    zipOnly.forEach((label) => {
-      label.hidden = value !== 'zip';
-    });
+    if (changed) tree.retick(tickedFor(value));
   }
   pickFormat('modrinth');
 
@@ -138,10 +147,15 @@ export function openShareDialog(instance) {
   }
 
   async function saveFile() {
+    const paths = tree.selectedPaths();
+    if (!paths.length) {
+      toast('Ничего не отмечено', 'info');
+      return;
+    }
     saveButton.disabled = true;
-    saveButton.textContent = 'Сохраняем…';
+    saveButton.lastChild.textContent = 'Сохраняем…';
     try {
-      const result = await api.share.exportPack(instance.id, { format, includeConfigs: configs.checked, includeWorlds: worlds.checked, includeScreenshots: screenshots.checked });
+      const result = await api.share.exportPack(instance.id, { format, paths });
       if (result) {
         toast(`Сборка сохранена: ${result.path}`, 'success', 6000);
         modal.close();
@@ -150,7 +164,7 @@ export function openShareDialog(instance) {
       toast(errorMessage(error), 'error');
     } finally {
       saveButton.disabled = false;
-      saveButton.textContent = 'Сохранить';
+      saveButton.lastChild.textContent = 'Сохранить';
     }
   }
 

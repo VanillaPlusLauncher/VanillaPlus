@@ -74,6 +74,10 @@
 - The instance memory slider moves right away and turns "Own value" on by itself; the "Note block" card is gone from Settings
 - Fixed: the long mod list lagged (rows off screen are no longer drawn, ticking no longer redraws the list, the panorama's mouse drift no longer restyles the page); the Minecraft logo's shadow is no longer cut at the top; recent instances fade out at the edge instead of being cut
 - New installer pictures; the installer checks for 64-bit Windows 10 (1803+) or 11
+- The installer is the launcher's own pixel window instead of Setup's pages: one screen with the folder ("Изменить"), the desktop shortcut tick and "Установить" over a Minecraft panorama that changes every time, a block bar with the percentage, and "Готово" with "Закрыть" and "Запустить" (the window's × closes too, without starting the launcher). Fixed: the welcome picture stayed behind the later pages, and the last page could not be closed with ×
+- Export like Prism Launcher: a tree of the instance folder with ticks — a ticked folder goes in whole, open it to choose single files; sizes of files and folders. For .mrpack and CurseForge, chosen mods from those sites go in as links, the rest inside; the usual contents are ticked for each format. "Экспорт…" is also in the instance's right-click menu, in the list and on the instance's page
+- Hand-drawn pixel icons (10 × 10, shown at whole sizes so every pixel stays square) instead of the smooth outline ones — the instance settings gear among them; pixel ticks everywhere instead of Windows' checkboxes; no rounded corners left anywhere; a slider like the game's
+- Fixed: "nullnull" under the update status in Settings → Updates
 
 ### Fixes
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")

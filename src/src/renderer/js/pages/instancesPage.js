@@ -1,6 +1,6 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
-import { openImportCodeDialog } from '../components/shareDialog.js';
+import { openImportCodeDialog, openShareDialog } from '../components/shareDialog.js';
 import { openLauncherImportDialog } from '../components/launcherImportDialog.js';
 import { changeInstanceIcon } from '../components/iconPicker.js';
 import { errorMessage } from '../core/format.js';
@@ -431,6 +431,7 @@ export function createInstancesPage() {
       item('Сменить картинку…', () => changeInstanceIcon(instance)),
       item('Переместить в группу…', () => moveToGroup(instance)),
       item('Копировать сборку', () => duplicate(instance)),
+      item('Экспорт…', () => openShareDialog(instance)),
       h('div', { class: 'context-menu__divider' }),
       item('Удалить', () => remove(instance), true),
     );

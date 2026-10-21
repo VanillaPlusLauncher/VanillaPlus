@@ -4,7 +4,6 @@ const crypto = require('node:crypto');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const zlib = require('node:zlib');
-const AdmZip = require('adm-zip');
 const { createTaskReporter } = require('../core/progressReporter');
 const { createLogger } = require('../core/logger');
 const { writeZip } = require('../core/zipWriter');
@@ -124,46 +123,136 @@ async function importShareCode(settings, code, { name, group } = {}) {
 
 const DEPENDENCY_KEYS = { fabric: 'fabric-loader', quilt: 'quilt-loader', forge: 'forge', neoforge: 'neoforge' };
 
+// --- Choosing what goes into an exported file (the export dialog's tree) ---------------------------
+
+/** The launcher's own files in an instance folder: never shown in the tree, never exported. */
+const INTERNAL = new Set(['instance.json', '.amethyx', 'natives']);
+
+const cleanRelative = (value) =>
+  String(value ?? '')
+    .replace(/\\/g, '/')
+    .replace(/^\/+|\/+$/g, '');
+
 /**
- * Writes the instance as a Modrinth .mrpack to `target`. includeConfigs adds the config folder
- * (settings of the mods) to the overrides.
+ * The paths ticked in the export dialog (relative, "/"-separated; a folder means everything inside
+ * it): chosen(rel) — is it in; skip(rel) — may a folder walk leave rel out (not chosen and no
+ * chosen path inside it).
  */
-async function exportMrpack(settings, instanceId, target, { includeConfigs = true } = {}) {
+function selection(paths) {
+  const list = [...new Set((paths ?? []).map(cleanRelative))].filter((rel) => rel && !rel.split('/').includes('..') && !INTERNAL.has(rel.split('/')[0]));
+  const chosen = (rel) => list.some((entry) => rel === entry || rel.startsWith(`${entry}/`));
+  const onTheWay = (rel) => list.some((entry) => entry.startsWith(`${rel}/`));
+  return { list, chosen, skip: (rel) => INTERNAL.has(rel.split('/')[0]) || (!chosen(rel) && !onTheWay(rel)) };
+}
+
+/** What a modpack carried before the tree existed: its mods, packs and shaders, and the mods' settings. */
+function defaultPackPaths(includeConfigs) {
+  return ['mods', 'resourcepacks', 'shaderpacks', ...(includeConfigs ? ['config', 'defaultconfigs'] : [])];
+}
+
+/** One level of the instance folder for the tree: [{ name, path, dir, size? }], folders first. */
+async function listInstanceFiles(settings, instanceId, relativeDir = '') {
   const instance = await instanceService.getInstance(settings, instanceId);
-  const items = await installedItems(settings, instanceId);
+  const relative = cleanRelative(relativeDir);
+  if (relative.split('/').includes('..')) throw new Error('Путь выходит за папку сборки.');
+  const directory = path.join(instance.directory, relative);
+  const entries = await fsp.readdir(directory, { withFileTypes: true }).catch(() => []);
+  const result = [];
+  for (const entry of entries) {
+    if (!relative && INTERNAL.has(entry.name)) continue;
+    const child = relative ? `${relative}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      result.push({ name: entry.name, path: child, dir: true });
+    } else if (entry.isFile()) {
+      const stat = await fsp.stat(path.join(directory, entry.name)).catch(() => null);
+      result.push({ name: entry.name, path: child, dir: false, size: stat?.size ?? 0 });
+    }
+  }
+  return result.sort((a, b) => Number(b.dir) - Number(a.dir) || a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+/** Sizes of folders for the tree: { [path]: bytes }. A huge folder stops counting at 100 000 files. */
+async function folderSizes(settings, instanceId, relativePaths) {
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const sizes = {};
+  for (const relative of (relativePaths ?? []).map(cleanRelative).slice(0, 200)) {
+    if (!relative || relative.split('/').includes('..')) continue;
+    let total = 0;
+    let count = 0;
+    const walk = async (directory) => {
+      const entries = await fsp.readdir(directory, { withFileTypes: true }).catch(() => []);
+      for (const entry of entries) {
+        if (count > 100000) return;
+        const full = path.join(directory, entry.name);
+        if (entry.isDirectory()) await walk(full);
+        else if (entry.isFile()) {
+          count += 1;
+          total += (await fsp.stat(full).catch(() => null))?.size ?? 0;
+        }
+      }
+    };
+    await walk(path.join(instance.directory, relative));
+    sizes[relative] = total;
+  }
+  return sizes;
+}
+
+/** Adds the chosen path (a file, or a folder with everything in it) under `prefix`, except `handled` files. */
+async function addChosen(zip, root, relative, prefix, handled) {
+  const full = path.join(root, relative);
+  const stat = await fsp.stat(full).catch(() => null);
+  if (!stat) return 0;
+  if (stat.isFile()) {
+    if (handled.has(relative)) return 0;
+    await zip.addFile(`${prefix}/${relative}`, full);
+    return 1;
+  }
+  let added = 0;
+  for (const entry of await fsp.readdir(full, { withFileTypes: true }).catch(() => [])) {
+    added += await addChosen(zip, root, `${relative}/${entry.name}`, prefix, handled);
+  }
+  return added;
+}
+
+/**
+ * Writes the instance as a Modrinth .mrpack to `target`. Only the chosen paths go in (`paths`, else
+ * mods, packs and shaders, and the config folder with includeConfigs). Chosen files from Modrinth are
+ * referenced by URL and hash; everything else chosen goes into "overrides".
+ */
+async function exportMrpack(settings, instanceId, target, { includeConfigs = true, paths } = {}) {
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const pick = selection(paths ?? defaultPackPaths(includeConfigs));
+  const items = (await installedItems(settings, instanceId)).filter((item) => pick.chosen(`${contentService.FOLDERS[item.type]}/${item.file}`));
   const fromModrinth = items.filter((item) => item.platform === 'modrinth' && item.versionId);
   const versions = fromModrinth.length ? await modrinth.getVersionsByIds(fromModrinth.map((item) => item.versionId)) : [];
   const byId = new Map(versions.map((version) => [version.id, version]));
-  const zip = new AdmZip();
   const files = [];
-  const overrides = [];
-  for (const item of items) {
-    const folder = contentService.FOLDERS[item.type];
-    const version = item.platform === 'modrinth' ? byId.get(item.versionId) : null;
-    const file = version?.files.find((candidate) => candidate.primary) ?? version?.files[0];
-    if (file?.sha1 && file?.sha512 && item.enabled) {
-      files.push({ path: `${folder}/${file.filename}`, hashes: { sha1: file.sha1, sha512: file.sha512 }, downloads: [file.url], fileSize: file.size, env: { client: 'required', server: item.side === 'client' ? 'unsupported' : 'required' } });
-    } else {
-      overrides.push(`${folder}/${item.file}`);
-      zip.addLocalFile(path.join(instance.directory, folder, item.file), `overrides/${folder}`);
+  const handled = new Set();
+  let bundled = 0;
+  await writeZip(target, async (zip) => {
+    for (const item of items) {
+      const folder = contentService.FOLDERS[item.type];
+      const relative = `${folder}/${item.file}`;
+      handled.add(relative);
+      const version = item.platform === 'modrinth' ? byId.get(item.versionId) : null;
+      const file = version?.files.find((candidate) => candidate.primary) ?? version?.files[0];
+      if (file?.sha1 && file?.sha512 && item.enabled) {
+        files.push({ path: `${folder}/${file.filename}`, hashes: { sha1: file.sha1, sha512: file.sha512 }, downloads: [file.url], fileSize: file.size, env: { client: 'required', server: item.side === 'client' ? 'unsupported' : 'required' } });
+      } else {
+        await zip.addFile(`overrides/${relative}`, path.join(instance.directory, relative));
+        bundled += 1;
+      }
     }
-  }
-  if (includeConfigs) {
-    const config = path.join(instance.directory, 'config');
-    if (await fsp.stat(config).catch(() => null)) {
-      zip.addLocalFolder(config, 'overrides/config');
+    for (const relative of pick.list) bundled += await addChosen(zip, instance.directory, relative, 'overrides', handled);
+    const dependencies = { minecraft: instance.minecraft };
+    if (DEPENDENCY_KEYS[instance.loader.type] && instance.loader.version) {
+      // Forge/NeoForge versions are stored with the Minecraft prefix in some cases ("1.20.1-47.4.10").
+      dependencies[DEPENDENCY_KEYS[instance.loader.type]] = instance.loader.version.replace(`${instance.minecraft}-`, '');
     }
-  }
-  const dependencies = { minecraft: instance.minecraft };
-  if (DEPENDENCY_KEYS[instance.loader.type] && instance.loader.version) {
-    // Forge/NeoForge versions are stored with the Minecraft prefix in some cases ("1.20.1-47.4.10").
-    dependencies[DEPENDENCY_KEYS[instance.loader.type]] = instance.loader.version.replace(`${instance.minecraft}-`, '');
-  }
-  zip.addFile('modrinth.index.json', Buffer.from(JSON.stringify({ formatVersion: 1, game: 'minecraft', versionId: '1.0.0', name: instance.name, summary: 'Сборка из Amethyx Launcher', files, dependencies }, null, 2)));
-  await fsp.mkdir(path.dirname(target), { recursive: true });
-  await new Promise((resolve, reject) => zip.writeZip(target, (error) => (error ? reject(error) : resolve())));
-  log.info(`Сборка «${instance.name}» сохранена в ${target}: ${files.length} ссылок, ${overrides.length} файлов внутри`);
-  return { path: target, linked: files.length, bundled: overrides.length };
+    await zip.addBuffer('modrinth.index.json', JSON.stringify({ formatVersion: 1, game: 'minecraft', versionId: '1.0.0', name: instance.name, summary: 'Сборка из Amethyx Launcher', files, dependencies }, null, 2));
+  });
+  log.info(`Сборка «${instance.name}» сохранена в ${target}: ${files.length} ссылок, ${bundled} файлов внутри`);
+  return { path: target, linked: files.length, bundled };
 }
 
 /** CurseForge's names for loaders in manifest.json: "forge-47.4.10", "fabric-0.15.11". */
@@ -176,18 +265,22 @@ function curseForgeLoaderId(instance) {
 const escapeHtml = (text) => String(text).replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char]);
 
 /**
- * Writes the instance as a CurseForge modpack (.zip with manifest.json) to `target`. Files from
- * CurseForge are referenced by project and file id; everything else goes into "overrides".
+ * Writes the instance as a CurseForge modpack (.zip with manifest.json) to `target`. Only the chosen
+ * paths go in (as in exportMrpack). Chosen files from CurseForge are referenced by project and file
+ * id; everything else chosen goes into "overrides".
  */
-async function exportCurseForge(settings, instanceId, target, { includeConfigs = true } = {}) {
+async function exportCurseForge(settings, instanceId, target, { includeConfigs = true, paths } = {}) {
   const instance = await instanceService.getInstance(settings, instanceId);
-  const items = await installedItems(settings, instanceId);
+  const pick = selection(paths ?? defaultPackPaths(includeConfigs));
+  const items = (await installedItems(settings, instanceId)).filter((item) => pick.chosen(`${contentService.FOLDERS[item.type]}/${item.file}`));
   const files = [];
   const bundled = [];
   const listed = [];
+  const handled = new Set();
   for (const item of items) {
     const projectID = Number(item.projectId);
     const fileID = Number(item.versionId);
+    handled.add(`${contentService.FOLDERS[item.type]}/${item.file}`);
     if (item.platform === 'curseforge' && Number.isInteger(projectID) && Number.isInteger(fileID)) {
       files.push({ projectID, fileID, required: Boolean(item.enabled) });
       listed.push(item.title);
@@ -206,6 +299,7 @@ async function exportCurseForge(settings, instanceId, target, { includeConfigs =
     files,
     overrides: 'overrides',
   };
+  let extra = 0;
   await writeZip(target, async (zip) => {
     await zip.addBuffer('manifest.json', JSON.stringify(manifest, null, 2));
     await zip.addBuffer('modlist.html', `<ul>\n${listed.map((title) => `<li>${escapeHtml(title)}</li>`).join('\n')}\n</ul>\n`);
@@ -213,12 +307,10 @@ async function exportCurseForge(settings, instanceId, target, { includeConfigs =
       const folder = contentService.FOLDERS[item.type];
       await zip.addFile(`overrides/${folder}/${item.file}`, path.join(instance.directory, folder, item.file));
     }
-    if (includeConfigs) {
-      await zip.addFolder('overrides/config', path.join(instance.directory, 'config'));
-    }
+    for (const relative of pick.list) extra += await addChosen(zip, instance.directory, relative, 'overrides', handled);
   });
-  log.info(`Сборка «${instance.name}» сохранена для CurseForge в ${target}: ${files.length} ссылок, ${bundled.length} файлов внутри`);
-  return { path: target, linked: files.length, bundled: bundled.length };
+  log.info(`Сборка «${instance.name}» сохранена для CurseForge в ${target}: ${files.length} ссылок, ${bundled.length + extra} файлов внутри`);
+  return { path: target, linked: files.length, bundled: bundled.length + extra };
 }
 
 /** Prism Launcher / MultiMC component ids of the loaders. */
@@ -227,22 +319,25 @@ const PRISM_LOADERS = { fabric: 'net.fabricmc.fabric-loader', quilt: 'org.quiltm
 const ZIP_ALWAYS_SKIP = new Set(['.fabric', '.cache', 'natives', 'logs', 'crash-reports', 'instance.json', '.amethyx/backups']);
 
 /**
- * Writes the whole instance as a plain .zip: the game folder under ".minecraft" with instance.cfg
- * and mmc-pack.json beside it, the layout Prism Launcher and MultiMC import (Amethyx too).
- * Worlds, mod settings and screenshots go in when asked.
+ * Writes the instance as a plain .zip: the game folder under ".minecraft" with instance.cfg and
+ * mmc-pack.json beside it, the layout Prism Launcher and MultiMC import (Amethyx too). With `paths`
+ * only the chosen files and folders go in; without, the whole folder, worlds, mod settings and
+ * screenshots as asked.
  */
-async function exportInstanceZip(settings, instanceId, target, { includeConfigs = true, includeWorlds = true, includeScreenshots = false } = {}) {
+async function exportInstanceZip(settings, instanceId, target, { includeConfigs = true, includeWorlds = true, includeScreenshots = false, paths } = {}) {
   const instance = await instanceService.getInstance(settings, instanceId);
   const components = [{ uid: 'net.minecraft', version: instance.minecraft, important: true }];
   if (PRISM_LOADERS[instance.loader.type] && instance.loader.version) {
     components.push({ uid: PRISM_LOADERS[instance.loader.type], version: instance.loader.version.replace(`${instance.minecraft}-`, '') });
   }
   const cfg = ['[General]', 'ConfigVersion=1.2', 'InstanceType=OneSix', `name=${instance.name}`, 'iconKey=default', ''].join('\n');
-  const skip = (relative) =>
-    ZIP_ALWAYS_SKIP.has(relative) ||
-    (!includeWorlds && relative === 'saves') ||
-    (!includeConfigs && (relative === 'config' || relative === 'defaultconfigs')) ||
-    (!includeScreenshots && relative === 'screenshots');
+  const skip = paths
+    ? selection(paths).skip
+    : (relative) =>
+        ZIP_ALWAYS_SKIP.has(relative) ||
+        (!includeWorlds && relative === 'saves') ||
+        (!includeConfigs && (relative === 'config' || relative === 'defaultconfigs')) ||
+        (!includeScreenshots && relative === 'screenshots');
   await writeZip(target, async (zip) => {
     await zip.addBuffer('instance.cfg', cfg);
     await zip.addBuffer('mmc-pack.json', JSON.stringify({ components, formatVersion: 1 }, null, 2));
@@ -253,4 +348,4 @@ async function exportInstanceZip(settings, instanceId, target, { includeConfigs 
   return { path: target, size };
 }
 
-module.exports = { makeShareCode, parseShareCode, importShareCode, exportMrpack, exportCurseForge, exportInstanceZip };
+module.exports = { makeShareCode, parseShareCode, importShareCode, exportMrpack, exportCurseForge, exportInstanceZip, listInstanceFiles, folderSizes };

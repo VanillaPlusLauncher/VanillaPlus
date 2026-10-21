@@ -114,7 +114,9 @@ img {
   font-family: Consolas, "Cascadia Mono", monospace;
 }
 
-/* Icons are drawn with CSS masks so that they inherit currentColor. */
+/* Icons are hand-drawn pixel art on a 10 × 10 grid (assets/ui/pixel-icons.txt), drawn with CSS
+   masks so that they inherit currentColor. They are shown at 10, 20 or 40 px only (features.css
+   sets the sizes), so every pixel stays square. */
 .icon {
   display: inline-block;
   width: 20px;
@@ -125,18 +127,20 @@ img {
   mask: var(--icon) center / contain no-repeat;
 }
 
-.icon--home { --icon: url("../../../assets/ui/home.png"); }
-.icon--cube { --icon: url("../../../assets/ui/cube.png"); }
-.icon--stack { --icon: url("../../../assets/ui/stack.png"); }
-.icon--gear { --icon: url("../../../assets/ui/gear.png"); }
-.icon--user { --icon: url("../../../assets/ui/user.png"); }
-.icon--download { --icon: url("../../../assets/ui/download.png"); }
-.icon--folder { --icon: url("../../../assets/ui/folder.png"); }
-.icon--search { --icon: url("../../../assets/ui/search.png"); }
-.icon--play { --icon: url("../../../assets/ui/play.png"); }
-.icon--chevron { --icon: url("../../../assets/ui/chevron.png"); }
-.icon--close { --icon: url("../../../assets/ui/close.png"); }
-.icon--minus { --icon: url("../../../assets/ui/minus.png"); }
+.icon--home { --icon: url("../../../assets/ui/home.svg"); }
+.icon--cube { --icon: url("../../../assets/ui/cube.svg"); }
+.icon--stack { --icon: url("../../../assets/ui/stack.svg"); }
+.icon--gear { --icon: url("../../../assets/ui/gear.svg"); }
+.icon--user { --icon: url("../../../assets/ui/user.svg"); }
+.icon--download { --icon: url("../../../assets/ui/download.svg"); }
+.icon--folder { --icon: url("../../../assets/ui/folder.svg"); }
+.icon--file { --icon: url("../../../assets/ui/file.svg"); }
+.icon--export { --icon: url("../../../assets/ui/export.svg"); }
+.icon--search { --icon: url("../../../assets/ui/search.svg"); }
+.icon--play { --icon: url("../../../assets/ui/play.svg"); }
+.icon--chevron { --icon: url("../../../assets/ui/chevron.svg"); }
+.icon--close { --icon: url("../../../assets/ui/close.svg"); }
+.icon--minus { --icon: url("../../../assets/ui/minus.svg"); }
 .icon--fullscreen { --icon: url("../../../assets/ui/fullscreen.svg"); }
 .icon--fullscreen-exit { --icon: url("../../../assets/ui/fullscreen-exit.svg"); }
 .icon--bolt { --icon: url("../../../assets/ui/bolt.svg"); }

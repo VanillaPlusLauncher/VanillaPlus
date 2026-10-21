@@ -369,14 +369,17 @@ export function createSettingsPage() {
       h('button', { class: 'btn btn--secondary btn--compact', type: 'button', disabled: ['checking', 'downloading'].includes(status.state), onclick: checkNow }, 'Проверить обновления'),
     );
 
+    // Element.append writes a missing part as the text "null": only the parts there are go in.
     statusBox.append(
-      h('div', { class: 'update-status__main' },
-        h('span', { class: `update-status__dot ${badge}` }),
-        h('div', null, h('div', { class: 'update-status__title' }, title), hint ? h('div', { class: 'settings-card__desc' }, hint) : null),
-      ),
-      status.state === 'downloading' ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: { width: `${status.progress ?? 0}%` } })) : null,
-      latest?.notes && ['available', 'downloading', 'ready', 'restarting'].includes(status.state) ? h('div', { class: 'update-notes' }, h('b', null, 'Что нового: '), latest.notes) : null,
-      h('div', { class: 'settings-row', style: { justifyContent: 'flex-start', gap: '10px' } }, actions),
+      ...[
+        h('div', { class: 'update-status__main' },
+          h('span', { class: `update-status__dot ${badge}` }),
+          h('div', null, h('div', { class: 'update-status__title' }, title), hint ? h('div', { class: 'settings-card__desc' }, hint) : null),
+        ),
+        status.state === 'downloading' ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: { width: `${status.progress ?? 0}%` } })) : null,
+        latest?.notes && ['available', 'downloading', 'ready', 'restarting'].includes(status.state) ? h('div', { class: 'update-notes' }, h('b', null, 'Что нового: '), latest.notes) : null,
+        h('div', { class: 'settings-row', style: { justifyContent: 'flex-start', gap: '10px' } }, actions),
+      ].filter(Boolean),
     );
 
     const feed = h('input', { class: 'input mono', type: 'text', spellcheck: 'false', placeholder: 'https://github.com/VanillaPlusLauncher/VanillaPlus/releases/latest/download/latest.json', value: updates.feedUrl ?? '' });

@@ -193,6 +193,8 @@ const bridge = {
     importCode: (code, fields) => invoke(CHANNELS.share.importCode, code, fields ?? {}),
     /** Asks where to save and writes a .mrpack; resolves with { path, linked, bundled } or null. */
     exportPack: (instanceId, options) => invoke(CHANNELS.share.exportPack, instanceId, options ?? {}),
+    listFiles: (instanceId, relativeDir) => invoke(CHANNELS.share.listFiles, instanceId, relativeDir ?? ''),
+    folderSizes: (instanceId, paths) => invoke(CHANNELS.share.folderSizes, instanceId, paths ?? []),
   },
   updates: {
     status: () => invoke(CHANNELS.updates.status),

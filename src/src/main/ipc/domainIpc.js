@@ -127,8 +127,14 @@ function registerDomainHandlers(handle) {
       includeConfigs: options?.includeConfigs !== false,
       includeWorlds: options?.includeWorlds !== false,
       includeScreenshots: options?.includeScreenshots === true,
+      // The files and folders ticked in the dialog's tree (relative to the instance folder).
+      paths: Array.isArray(options?.paths) ? options.paths.slice(0, 5000).map((entry) => String(entry).slice(0, 1000)) : undefined,
     });
   });
+  handle(CHANNELS.share.listFiles, async (_event, instanceId, relativeDir) => shareService.listInstanceFiles(await settings(), String(instanceId), String(relativeDir ?? '').slice(0, 1000)));
+  handle(CHANNELS.share.folderSizes, async (_event, instanceId, paths) =>
+    shareService.folderSizes(await settings(), String(instanceId), Array.isArray(paths) ? paths.slice(0, 200).map((entry) => String(entry).slice(0, 1000)) : []),
+  );
   handle(CHANNELS.updates.status, () => updateService.getUpdateStatus());
   handle(CHANNELS.updates.check, () => updateService.checkForUpdates({ manual: true }));
   handle(CHANNELS.updates.download, () => updateService.downloadUpdate());

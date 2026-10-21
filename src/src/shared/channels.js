@@ -144,6 +144,8 @@ const CHANNELS = Object.freeze({
     parseCode: 'share:parse-code',
     importCode: 'share:import-code',
     exportPack: 'share:export-pack',
+    listFiles: 'share:list-files',
+    folderSizes: 'share:folder-sizes',
   }),
   friends: Object.freeze({
     status: 'friends:status',

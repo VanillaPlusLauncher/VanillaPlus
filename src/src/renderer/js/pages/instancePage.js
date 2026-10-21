@@ -101,12 +101,40 @@ export function createInstancePage() {
         { class: 'instance-hero__actions' },
         playButton,
         h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => openFolder() }, icon('folder'), 'Папка'),
-        h('button', { class: 'btn btn--secondary btn--compact', type: 'button', title: 'Код сборки или файл: Modrinth, CurseForge или .zip', onclick: () => openShareDialog(instance()) }, 'Экспортировать'),
+        h('button', { class: 'btn btn--secondary btn--compact', type: 'button', title: 'Код сборки или файл: Modrinth, CurseForge или .zip', onclick: () => openShareDialog(instance()) }, icon('export'), 'Экспортировать'),
       ),
     ),
     h('div', { class: 'tabs instance-tabs', role: 'tablist' }, tabButtons, settingsButton),
     tabHost,
   );
+
+  // Right-click on the header: the same quick actions as on the instance's card in the list.
+  element.querySelector('.instance-hero').addEventListener('contextmenu', (event) => {
+    if (event.target.closest('.instance-hero__icon')) return;
+    event.preventDefault();
+    document.querySelector('.context-menu')?.remove();
+    const current = instance();
+    const item = (label, action) => h('button', { class: 'context-menu__item', type: 'button', onclick: () => { menu.remove(); action(); } }, label);
+    const menu = h(
+      'div',
+      { class: 'context-menu', role: 'menu' },
+      item('Играть', () => playButton.click()),
+      item('Папка сборки', () => openFolder()),
+      item('Сменить картинку…', () => changeIcon()),
+      h('div', { class: 'context-menu__divider' }),
+      item('Экспорт…', () => openShareDialog(current)),
+    );
+    document.body.append(menu);
+    menu.style.left = `${Math.min(event.clientX, window.innerWidth - menu.offsetWidth - 12)}px`;
+    menu.style.top = `${Math.min(event.clientY, window.innerHeight - menu.offsetHeight - 12)}px`;
+    const close = (pointer) => {
+      if (!menu.contains(pointer.target)) {
+        menu.remove();
+        document.removeEventListener('pointerdown', close, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('pointerdown', close, true));
+  });
 
   function renderHeader() {
     const current = instance();
