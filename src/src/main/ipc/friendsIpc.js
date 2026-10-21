@@ -29,7 +29,14 @@ function registerFriendsHandlers(handle) {
   handle(CHANNELS.friends.sendText, (_event, friendId, text) => messages.sendText(String(friendId), String(text ?? '')));
   handle(CHANNELS.friends.sendScreenshot, (_event, friendId, instanceId, name, caption) => messages.sendScreenshot(String(friendId), String(instanceId), String(name), String(caption ?? '')));
   handle(CHANNELS.friends.sendInvite, (_event, friendId, invite) =>
-    messages.sendInvite(String(friendId), { instanceId: String(invite?.instanceId ?? ''), server: String(invite?.server ?? ''), withPack: invite?.withPack !== false, world: invite?.world === true }),
+    messages.sendInvite(String(friendId), {
+      instanceId: String(invite?.instanceId ?? ''),
+      server: String(invite?.server ?? ''),
+      withPack: invite?.withPack !== false,
+      world: invite?.world === true,
+      // The code from the export dialog, when it already carries the author's files.
+      code: typeof invite?.code === 'string' ? invite.code.slice(0, 60000) : null,
+    }),
   );
   handle(CHANNELS.friends.hostStatus, () => worldShare.hostStatus());
   handle(CHANNELS.friends.markRead, (_event, friendId) => messages.markRead(String(friendId)));

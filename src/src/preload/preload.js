@@ -188,7 +188,7 @@ const bridge = {
     ping: (address) => invoke(CHANNELS.server.ping, address),
   },
   share: {
-    makeCode: (instanceId) => invoke(CHANNELS.share.makeCode, instanceId),
+    makeCode: (instanceId, options) => invoke(CHANNELS.share.makeCode, instanceId, options ?? {}),
     parseCode: (code) => invoke(CHANNELS.share.parseCode, code),
     importCode: (code, fields) => invoke(CHANNELS.share.importCode, code, fields ?? {}),
     /** Asks where to save and writes a .mrpack; resolves with { path, linked, bundled } or null. */

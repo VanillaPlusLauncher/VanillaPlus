@@ -9,32 +9,34 @@ import assert from 'node:assert/strict';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const db = new DatabaseSync(':memory:');
 db.exec(fs.readFileSync(path.join(root, 'server', 'schema.sql'), 'utf8'));
+const filesDb = new DatabaseSync(':memory:');
+filesDb.exec(fs.readFileSync(path.join(root, 'server', 'files-schema.sql'), 'utf8'));
 
-function statement(sql, params = []) {
-  return {
+/** A D1-shaped binding over a node:sqlite database. */
+function d1(database) {
+  const statement = (sql, params = []) => ({
     sql,
     params,
     bind: (...values) => statement(sql, values),
-    first: async () => db.prepare(sql).get(...params) ?? null,
-    all: async () => ({ results: db.prepare(sql).all(...params) }),
-    run: async () => db.prepare(sql).run(...params),
-  };
-}
-const env = {
-  DB: {
+    first: async () => database.prepare(sql).get(...params) ?? null,
+    all: async () => ({ results: database.prepare(sql).all(...params) }),
+    run: async () => database.prepare(sql).run(...params),
+  });
+  return {
     prepare: (sql) => statement(sql),
     batch: async (list) => {
-      db.exec('BEGIN');
+      database.exec('BEGIN');
       try {
-        for (const item of list) db.prepare(item.sql).run(...item.params);
-        db.exec('COMMIT');
+        for (const item of list) database.prepare(item.sql).run(...item.params);
+        database.exec('COMMIT');
       } catch (error) {
-        db.exec('ROLLBACK');
+        database.exec('ROLLBACK');
         throw error;
       }
     },
-  },
-};
+  };
+}
+const env = { DB: d1(db), FILES: d1(filesDb) };
 
 // Mojang / Ely.by: a set of serverIds the "launcher" has joined.
 const joined = new Map();
@@ -47,11 +49,13 @@ globalThis.fetch = async (url) => {
 };
 
 const worker = (await import(pathToFileURL(path.join(root, 'server', 'src', 'worker.js')))).default;
+/** A JSON call; a string body is sent as it is (file parts). */
 async function call(method, pathname, body, token) {
   const headers = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (body !== undefined) headers['Content-Type'] = typeof body === 'string' ? 'text/plain' : 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
-  const response = await worker.fetch(new Request(`https://vp.example${pathname}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }), env);
+  const payload = body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body);
+  const response = await worker.fetch(new Request(`https://vp.example${pathname}`, { method, headers, body: payload }), env);
   const type = response.headers.get('Content-Type') ?? '';
   return { status: response.status, body: type.includes('json') ? await response.json() : Buffer.from(await response.arrayBuffer()) };
 }
@@ -229,6 +233,77 @@ r = await call('DELETE', `/v1/tunnels/${tunnelIds[0]}`, undefined, steve);
 assert.equal(r.status, 200);
 r = await call('POST', '/v1/tunnels', {}, steve);
 assert.equal(r.status, 200);
+
+// Share-code files: upload in parts, a pack, download by its id without signing in, cleanup.
+const { createHash, randomBytes } = await import('node:crypto');
+const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const big = randomBytes(3_000_000);
+const small = Buffer.from('tiny file');
+r = await call('POST', '/v1/files/start', { files: [{ hash: sha(big), size: big.length }, { hash: sha(small), size: small.length }] }, steve);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const partBytes = r.body.partBytes;
+assert.deepEqual(r.body.need, [{ hash: sha(big), parts: [0, 1, 2] }, { hash: sha(small), parts: [0] }]);
+const partOf = (bytes, part) => bytes.subarray(part * partBytes, (part + 1) * partBytes).toString('base64');
+r = await call('PUT', `/v1/files/${sha(big)}/0`, partOf(big, 0), steve);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await call('PUT', `/v1/files/${sha(big)}/1`, partOf(big, 1).slice(1), steve);
+assert.equal(r.status, 400, 'a short part is refused');
+r = await call('PUT', `/v1/files/${sha(big)}/3`, partOf(big, 2), steve);
+assert.equal(r.status, 400, 'no fourth part');
+r = await call('PUT', `/v1/files/${sha(big)}/1`, partOf(big, 1));
+assert.equal(r.status, 401);
+const packFiles = [{ path: 'mods/big.jar', hash: sha(big), size: big.length }, { path: 'resourcepacks/small.zip', hash: sha(small), size: small.length }];
+r = await call('POST', '/v1/packs', { files: packFiles }, steve);
+assert.equal(r.status, 409, 'not all parts are there yet');
+// The launcher asks again (as after a broken connection): only the missing parts.
+r = await call('POST', '/v1/files/start', { files: [{ hash: sha(big), size: big.length }, { hash: sha(small), size: small.length }] }, steve);
+assert.deepEqual(r.body.need, [{ hash: sha(big), parts: [1, 2] }, { hash: sha(small), parts: [0] }]);
+for (const part of [1, 2]) assert.equal((await call('PUT', `/v1/files/${sha(big)}/${part}`, partOf(big, part), steve)).status, 200);
+assert.equal((await call('PUT', `/v1/files/${sha(small)}/0`, partOf(small, 0), steve)).status, 200);
+for (const bad of ['config/options.txt', 'mods/../evil.jar', 'mods/..', 'mods/a:b.jar', '../mods/x.jar']) {
+  r = await call('POST', '/v1/packs', { files: [{ path: bad, hash: sha(small), size: small.length }] }, steve);
+  assert.equal(r.status, 400, bad);
+}
+r = await call('POST', '/v1/packs', { files: packFiles }, alex);
+assert.equal(r.status, 409, "someone else's files cannot be packed");
+r = await call('POST', '/v1/packs', { files: packFiles }, steve);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.files, 2);
+assert.equal(r.body.bytes, big.length + small.length);
+const packId = r.body.id;
+r = await call('POST', '/v1/files/start', { files: [{ hash: sha(big), size: big.length }] }, steve);
+assert.deepEqual(r.body.need, [], 'uploaded files are not sent twice');
+r = await call('POST', '/v1/files/start', { files: [{ hash: sha(big), size: 65 * 1024 * 1024 }] }, steve);
+assert.equal(r.status, 413);
+r = await call('GET', `/packs/${packId}`);
+assert.equal(r.status, 200);
+assert.deepEqual(r.body.files, packFiles);
+const parts = [];
+for (let part = 0; part < 3; part += 1) {
+  r = await call('GET', `/packs/${packId}/${sha(big)}/${part}`);
+  assert.equal(r.status, 200);
+  parts.push(Buffer.from(r.body.toString('ascii'), 'base64'));
+}
+assert.equal(sha(Buffer.concat(parts)), sha(big));
+r = await call('GET', `/packs/${'0'.repeat(32)}`);
+assert.equal(r.status, 404);
+// Alex uploads a file of his own: Steve's pack id does not open it.
+const alexFile = Buffer.from('alex only');
+await call('POST', '/v1/files/start', { files: [{ hash: sha(alexFile), size: alexFile.length }] }, alex);
+await call('PUT', `/v1/files/${sha(alexFile)}/0`, alexFile.toString('base64'), alex);
+r = await call('GET', `/packs/${packId}/${sha(alexFile)}/0`);
+assert.equal(r.status, 404);
+// A second pack with the small file only; then the first expires and takes the big file with it.
+r = await call('POST', '/v1/packs', { files: [packFiles[1]] }, steve);
+const secondPack = r.body.id;
+filesDb.prepare('UPDATE packs SET expires_at = 1 WHERE id = ?').run(packId);
+filesDb.prepare('UPDATE blobs SET expires_at = 1 WHERE hash = ?').run(sha(big));
+await worker.scheduled(null, env);
+r = await call('GET', `/packs/${packId}`);
+assert.equal(r.status, 404);
+assert.equal(filesDb.prepare('SELECT COUNT(*) AS count FROM blob_parts WHERE hash = ?').get(sha(big)).count, 0);
+r = await call('GET', `/packs/${secondPack}/${sha(small)}/0`);
+assert.equal(Buffer.from(r.body.toString('ascii'), 'base64').toString(), 'tiny file');
 
 globalThis.fetch = realFetch;
 console.log('server tests passed');

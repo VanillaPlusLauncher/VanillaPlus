@@ -9,6 +9,13 @@ database_name = "vanillaplus"
 # "npx wrangler d1 create vanillaplus" (see README.md).
 database_id = "ef5716ee-bd09-41df-8610-8bfa2e309041"
 
+# Files of share codes (mods that are on neither Modrinth nor CurseForge), kept 14 days: their own
+# database, so they never crowd out accounts and friends. Tables: files-schema.sql.
+[[d1_databases]]
+binding = "FILES"
+database_name = "amethyx-files"
+database_id = "4c190847-5bcf-4ab5-9445-22b4a68c8907"
+
 # One LiveHub per player: the WebSocket for instant messages (SQLite Durable Objects work on the free plan).
 [[durable_objects.bindings]]
 name = "LIVE"
@@ -27,7 +34,7 @@ class_name = "TunnelRoom"
 tag = "v2"
 new_sqlite_classes = ["TunnelRoom"]
 
-# Daily cleanup: pictures older than 30 days, expired sign-ins.
+# Daily cleanup: pictures older than 30 days, expired sign-ins, share-code files no code needs.
 [triggers]
 crons = ["17 4 * * *"]
 

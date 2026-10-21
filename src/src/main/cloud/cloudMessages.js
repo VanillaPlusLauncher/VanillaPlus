@@ -57,9 +57,10 @@ async function sendScreenshot(friendId, instanceId, name, caption = '') {
 
 /**
  * An invite: the instance (name, version, loader), the server when there is one, and the share
- * code when `withPack` is on, so the friend can build the same instance.
+ * code when `withPack` is on, so the friend can build the same instance. A ready `code` (the export
+ * dialog's, perhaps with the author's files) is sent as it is.
  */
-async function sendInvite(friendId, { instanceId, server = '', withPack = true, world = false } = {}) {
+async function sendInvite(friendId, { instanceId, server = '', withPack = true, world = false, code: readyCode = null } = {}) {
   const settings = await getSettings();
   const instanceService = require('../minecraft/instanceService');
   // "Into my world": the instance that is running now, and the address e4mc gave its world.
@@ -76,7 +77,9 @@ async function sendInvite(friendId, { instanceId, server = '', withPack = true, 
   }
   const instance = await instanceService.getInstance(settings, id);
   let code = null;
-  if (withPack) {
+  if (withPack && typeof readyCode === 'string' && readyCode.startsWith('VP1-')) {
+    code = readyCode;
+  } else if (withPack) {
     const { makeShareCode } = require('../content/shareService');
     code = (await makeShareCode(settings, instance.id)).code;
   }

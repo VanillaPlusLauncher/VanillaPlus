@@ -96,12 +96,13 @@ function registerDomainHandlers(handle) {
     return serverList.saveServers(await listDirectory(id), Array.isArray(servers) ? servers.slice(0, 500) : []);
   });
   handle(CHANNELS.server.ping, (_event, address) => serverList.pingServer(String(address ?? '').slice(0, 255)));
-  handle(CHANNELS.share.makeCode, async (_event, instanceId) => shareService.makeShareCode(await settings(), String(instanceId)));
+  handle(CHANNELS.share.makeCode, async (_event, instanceId, options) => shareService.makeShareCode(await settings(), String(instanceId), { upload: options?.upload === true }));
   handle(CHANNELS.share.parseCode, (_event, code) => shareService.parseShareCode(String(code ?? '').slice(0, 200000)));
   handle(CHANNELS.share.importCode, async (_event, code, fields) => {
     const result = await shareService.importShareCode(await settings(), String(code ?? '').slice(0, 200000), {
       name: fields?.name ? String(fields.name).slice(0, 64) : undefined,
       group: fields?.group ? String(fields.group).slice(0, 40) : '',
+      withFiles: fields?.withFiles !== false,
     });
     instancesChanged(result.instance.id);
     return result;

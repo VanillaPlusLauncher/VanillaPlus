@@ -6663,3 +6663,28 @@ input[type="checkbox"]:not(.toggle input):disabled {
 .file-tree__children[hidden] {
   display: none;
 }
+
+/* --- Share code: the author's files through the Amethyx server (consent tick) ------------------------- */
+.share-upload {
+  --c: 3px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.28);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-soft);
+  cursor: var(--cursor-hand);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+
+.share-upload[hidden] {
+  display: none;
+}
+
+.share-upload input {
+  flex: none;
+  margin-top: 1px;
+}

@@ -83,12 +83,15 @@ async function requireServer() {
   return url;
 }
 
-async function callServer(base, method, pathname, { body, token } = {}) {
+/** A JSON call; `text` sends a plain-text body instead (parts of files). */
+async function callServer(base, method, pathname, { body, text, token, timeoutMs = TIMEOUT_MS } = {}) {
   const headers = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (text !== undefined) headers['Content-Type'] = 'text/plain';
+  else if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
+  const payload = text !== undefined ? text : body === undefined ? undefined : JSON.stringify(body);
   try {
-    const response = await request(`${base}${pathname}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), timeoutMs: TIMEOUT_MS, retries: method === 'GET' ? 1 : 0 });
+    const response = await request(`${base}${pathname}`, { method, headers, body: payload, timeoutMs, retries: method === 'GET' ? 1 : 0 });
     return response.status === 204 ? null : response.json();
   } catch (error) {
     if (error instanceof HttpError) {
@@ -180,17 +183,17 @@ async function tokenFor(base, account, { fresh = false } = {}) {
   return signIns.get(key);
 }
 
-/** A call as the given account; a stale token is renewed once. */
-async function callAs(accountId, method, pathname, body) {
+/** A call as the given account; a stale token is renewed once. `options`: { text, timeoutMs }. */
+async function callAs(accountId, method, pathname, body, options = {}) {
   const base = await requireServer();
   const account = await findAccount(accountId);
   let token = await tokenFor(base, account);
   try {
-    return await callServer(base, method, pathname, { body, token });
+    return await callServer(base, method, pathname, { ...options, body, token });
   } catch (error) {
     if (error.status !== 401) throw error;
     token = await tokenFor(base, account, { fresh: true });
-    return callServer(base, method, pathname, { body, token });
+    return callServer(base, method, pathname, { ...options, body, token });
   }
 }
 
@@ -222,4 +225,4 @@ function forgetAccount(accountId) {
   });
 }
 
-module.exports = { serverUrl, callAs, fetchAs, sessionFor, findAccount, readStore, updateStore, forgetAccount, CloudUnavailable, NAMESPACE };
+module.exports = { serverUrl, requireServer, callAs, fetchAs, sessionFor, findAccount, readStore, updateStore, forgetAccount, CloudUnavailable, NAMESPACE, BUILT_IN_SERVER };

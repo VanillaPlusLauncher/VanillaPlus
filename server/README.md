@@ -24,6 +24,10 @@
 | `PUT/DELETE /v1/me/skin`, `/v1/me/cape` | свой скин и плащ |
 | `POST /v1/me/presence` | статус «в сети» / «играет» |
 | `GET /v1/friends`, `POST /v1/friends/request`, `/accept`, `/decline`, `DELETE /v1/friends/<id>` | друзья |
+| `POST /v1/files/start`, `PUT /v1/files/<sha256>/<часть>`, `POST /v1/packs` | загрузка файлов кода сборки (моды не с Modrinth и CurseForge, с согласия игрока) |
+| `GET /packs/<id>`, `GET /packs/<id>/<sha256>/<часть>` | скачивание этих файлов лаунчером друга, без входа (ключ — случайный id) |
+
+Файлы кода сборки лежат в отдельной базе `amethyx-files`, чтобы не занимать место аккаунтов и друзей. Хранятся 14 дней, потом их удаляет ежедневная очистка. Ограничения: файл до 64 МБ, у игрока до 150 МБ, всего до 320 МБ.
 
 ## Как запустить свой сервер
 
@@ -39,9 +43,10 @@
    npx wrangler d1 create vanillaplus
    ```
    Скопируйте `database_id` из ответа в `wrangler.toml` вместо `PASTE_DATABASE_ID_HERE`.
-4. Создайте таблицы:
+4. Создайте таблицы. Для файлов кода сборки нужна вторая база: `npx wrangler d1 create amethyx-files`, её `database_id` впишите в блок `FILES` в `wrangler.toml`.
    ```
    npx wrangler d1 execute vanillaplus --remote --file=schema.sql
+   npx wrangler d1 execute amethyx-files --remote --file=files-schema.sql
    ```
 5. Опубликуйте сервер:
    ```

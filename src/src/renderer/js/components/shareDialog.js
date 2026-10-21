@@ -1,7 +1,7 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
-import { errorMessage } from '../core/format.js';
-import { LOADER_LABELS } from '../core/content.js';
+import { errorMessage, formatReleaseDate } from '../core/format.js';
+import { LOADER_LABELS, formatBytes } from '../core/content.js';
 import { refreshInstances } from '../state/actions.js';
 import { openInstance } from '../core/nav.js';
 import { openModal } from './modal.js';
@@ -29,6 +29,12 @@ export function openShareDialog(instance) {
   // Straight into a friend's chat: the friend gets "Собрать и играть".
   const sendButton = h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => sendToFriend() }, 'Отправить другу');
   const saveButton = h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => saveFile() }, icon('export'), 'Сохранить');
+  // Files added by hand go along only when the player ticks this: to the Amethyx server for 14 days.
+  const uploadCheck = h('input', { type: 'checkbox', onchange: () => toggleUpload() });
+  const uploadText = h('span', null);
+  const uploadBox = h('label', { class: 'share-upload', hidden: true }, uploadCheck, uploadText);
+  // The code without the author's files, to go back to when the tick is taken off.
+  let plainCode = null;
   let format = 'modrinth';
   // Which files and folders go into the file, like Prism Launcher's export.
   const tree = createFileTree({
@@ -43,6 +49,7 @@ export function openShareDialog(instance) {
     h('p', { class: 'text-soft' }, 'Друг вставляет код в Amethyx («Сборки» → «Вставить код») и получает ту же сборку: версию игры, загрузчик и те же версии модов, ресурспаков и шейдеров.'),
     codeArea,
     codeInfo,
+    uploadBox,
     h('div', { class: 'share-actions' }, sendButton, copyButton),
   );
 
@@ -77,7 +84,7 @@ export function openShareDialog(instance) {
               onclick: async () => {
                 picker.close();
                 try {
-                  await api.friends.sendInvite(friend.id, { instanceId: instance.id, withPack: true });
+                  await api.friends.sendInvite(friend.id, { instanceId: instance.id, withPack: true, code: codeArea.value });
                   toast(`Сборка отправлена: ${friend.name}`, 'success');
                 } catch (error) {
                   toast(errorMessage(error), 'error');
@@ -128,16 +135,48 @@ export function openShareDialog(instance) {
     },
   });
 
-  async function makeCode() {
-    try {
-      const result = await api.share.makeCode(instance.id);
-      codeArea.value = result.code;
-      copyButton.disabled = false;
+  function showCode(result) {
+    codeArea.value = result.code;
+    copyButton.disabled = false;
+    if (result.uploaded) {
+      const until = formatReleaseDate(new Date(result.uploaded.expiresAt).toISOString());
+      // Two sentences in their own text nodes: each is translated by itself.
+      codeInfo.replaceChildren(
+        h('span', null, `В коде: ${result.included} с Modrinth и CurseForge и ${result.uploaded.count} с сервера Amethyx (${formatBytes(result.uploaded.bytes)}, хранятся до ${until}).`),
+        ...(result.skipped.length ? [' ', h('span', null, `Не поместились (больше 64 МБ): ${result.skipped.join(', ')} — их можно передать файлом .mrpack.`)] : []),
+      );
+    } else {
       codeInfo.textContent = result.skipped.length
         ? `В коде: ${result.included}. Не попали (добавлены вручную, не с Modrinth или CurseForge): ${result.skipped.join(', ')} — их можно передать файлом .mrpack.`
         : `В код попало всё — ${result.included} шт.`;
+    }
+  }
+
+  async function makeCode() {
+    try {
+      plainCode = await api.share.makeCode(instance.id);
+      showCode(plainCode);
+      if (plainCode.extra.count) {
+        uploadText.textContent = `Загрузить на сервер Amethyx то, чего нет на Modrinth и CurseForge (${plainCode.extra.count} шт., ${formatBytes(plainCode.extra.bytes)}), чтобы друг получил это вместе с кодом. Через 14 дней файлы удалятся с сервера.`;
+        uploadBox.hidden = false;
+      }
     } catch (error) {
       codeInfo.textContent = errorMessage(error);
+    }
+  }
+
+  async function toggleUpload() {
+    const upload = uploadCheck.checked;
+    for (const control of [uploadCheck, copyButton, sendButton]) control.disabled = true;
+    if (upload) codeInfo.textContent = 'Загружаем файлы на сервер Amethyx…';
+    try {
+      showCode(upload ? await api.share.makeCode(instance.id, { upload: true }) : plainCode);
+    } catch (error) {
+      uploadCheck.checked = false;
+      showCode(plainCode);
+      toast(errorMessage(error), 'error', 8000);
+    } finally {
+      for (const control of [uploadCheck, copyButton, sendButton]) control.disabled = false;
     }
   }
 
@@ -180,11 +219,16 @@ export function openImportCodeDialog() {
   const preview = h('div', { class: 'share-preview text-muted' }, 'Код начинается с VP1-.');
   const nameInput = h('input', { class: 'input', type: 'text', maxlength: '64', placeholder: 'Название сборки' });
   const createButton = h('button', { class: 'btn btn--primary btn--compact', type: 'button', disabled: true, onclick: () => create() }, 'Создать сборку');
+  // The author's files from the server (mods added by hand): they come unless this is unticked.
+  const filesCheck = h('input', { type: 'checkbox', checked: true });
+  const filesText = h('span', null);
+  const filesBox = h('label', { class: 'share-upload', hidden: true }, filesCheck, filesText);
   let parsed = null;
 
   async function check() {
     parsed = null;
     createButton.disabled = true;
+    filesBox.hidden = true;
     const code = area.value.trim();
     if (!code) {
       preview.textContent = 'Код начинается с VP1-.';
@@ -200,6 +244,12 @@ export function openImportCodeDialog() {
         h('b', null, parsed.name),
         ` — ${`Minecraft ${parsed.minecraft}, ${LOADER_LABELS[parsed.loader.type] ?? parsed.loader.type}${parsed.loader.version ? ` ${parsed.loader.version}` : ''}`}. Модов: ${counts.mod}, ресурспаков: ${counts.resourcepack}, шейдеров: ${counts.shader}.`,
       );
+      if (parsed.files && parsed.files.expiresAt && parsed.files.expiresAt < Date.now()) {
+        preview.append(h('br'), h('span', null, 'Файлы автора уже удалены с сервера (они хранятся 14 дней): сборка соберётся без них.'));
+      } else if (parsed.files) {
+        filesText.textContent = `Скачать файлы автора с сервера Amethyx: ${parsed.files.count} шт., ${formatBytes(parsed.files.bytes)}. Их нет на Modrinth и CurseForge — ставьте, если доверяете тому, кто прислал код.`;
+        filesBox.hidden = false;
+      }
       nameInput.placeholder = parsed.name;
       createButton.disabled = false;
     } catch (error) {
@@ -211,10 +261,11 @@ export function openImportCodeDialog() {
     createButton.disabled = true;
     createButton.textContent = 'Собираем…';
     try {
-      const { instance, failed } = await api.share.importCode(area.value.trim(), { name: nameInput.value.trim() || undefined });
+      const { instance, failed, filesError } = await api.share.importCode(area.value.trim(), { name: nameInput.value.trim() || undefined, withFiles: !filesBox.hidden && filesCheck.checked });
       await refreshInstances();
       modal.close();
       toast(failed.length ? `Сборка «${instance.name}» готова, не удалось поставить: ${failed.length}` : `Сборка «${instance.name}» готова`, failed.length ? 'info' : 'success', 6000);
+      if (filesError) toast(`Файлы автора не скачались: ${filesError}`, 'info', 8000);
       openInstance(instance.id);
     } catch (error) {
       toast(errorMessage(error), 'error');
@@ -227,7 +278,7 @@ export function openImportCodeDialog() {
   const modal = openModal({
     title: 'Сборка по коду',
     wide: true,
-    content: h('div', { class: 'share-dialog' }, area, preview, h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Название'), nameInput)),
+    content: h('div', { class: 'share-dialog' }, area, preview, filesBox, h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Название'), nameInput)),
     footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), createButton],
   });
   navigator.clipboard

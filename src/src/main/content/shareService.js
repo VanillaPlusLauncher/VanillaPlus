@@ -10,12 +10,15 @@ const { writeZip } = require('../core/zipWriter');
 const instanceService = require('../minecraft/instanceService');
 const contentService = require('./contentService');
 const modrinth = require('./modrinth');
+const packFiles = require('./packFiles');
 
 /*
  * Sharing an instance.
  *  - A share code ("VP1-…"): Minecraft version, loader and the exact versions of the mods, resource
  *    packs and shaders that came from Modrinth or CurseForge, compressed into one line. Pasting it
- *    builds the same instance. Files added by hand cannot travel in a code and are listed as left out.
+ *    builds the same instance. Files added by hand travel only when the player agrees: they go to
+ *    the Amethyx server for 14 days (packFiles.js) and the code names them; otherwise they are
+ *    listed as left out.
  *  - A .mrpack file: Modrinth's modpack format, which Prism and other launchers open too. Modrinth
  *    files are referenced by URL and hash; everything else (CurseForge and local files, and the
  *    config folder when asked) goes into "overrides".
@@ -41,8 +44,12 @@ async function installedItems(settings, instanceId) {
   return items;
 }
 
-/** { code, included, skipped: [titles of files that cannot travel in a code] } */
-async function makeShareCode(settings, instanceId) {
+/**
+ * { code, included, skipped: [titles left out], extra: { count, bytes, tooBig: [titles] }, uploaded }.
+ * `extra` is what the server could carry; with `upload` those files are uploaded first and the code
+ * names them (`uploaded`: { count, bytes, expiresAt }).
+ */
+async function makeShareCode(settings, instanceId, { upload = false } = {}) {
   const instance = await instanceService.getInstance(settings, instanceId);
   const items = await installedItems(settings, instanceId);
   const shared = items.filter((item) => item.platform && item.projectId && item.versionId && PLATFORM_CODES[item.platform]);
@@ -54,15 +61,41 @@ async function makeShareCode(settings, instanceId) {
     // [type, platform, project, version, enabled]
     c: shared.map((item) => [TYPE_CODES[item.type], PLATFORM_CODES[item.platform], item.projectId, item.versionId, item.enabled ? 1 : 0]),
   };
+  const byHand = items.filter((item) => !shared.includes(item));
+  const fitting = byHand.filter((item) => item.size <= packFiles.MAX_FILE_BYTES);
+  let uploaded = null;
+  if (upload && fitting.length) {
+    const reporter = createTaskReporter({ taskId: `share-upload:${crypto.randomBytes(4).toString('hex')}`, kind: 'content', label: `Файлы для кода: ${instance.name}` });
+    try {
+      const files = fitting.map((item) => {
+        const relative = `${contentService.FOLDERS[item.type]}/${item.file}`;
+        return { path: relative, file: path.join(instance.directory, ...relative.split('/')), size: item.size };
+      });
+      const pack = await packFiles.uploadPackFiles(files, (sent, total) => reporter.report('Загрузка на сервер', total ? (sent / total) * 100 : 100, `${Math.round(sent / 1048576)}/${Math.round(total / 1048576)} МБ`));
+      reporter.finish('done', `${pack.files} шт.`);
+      // The server is named only when it is not the built-in one: codes stay short.
+      data.f = { i: pack.id, n: pack.files, b: pack.bytes, e: pack.expiresAt, ...(pack.server !== packFiles.BUILT_IN_SERVER ? { s: pack.server } : {}) };
+      uploaded = { count: pack.files, bytes: pack.bytes, expiresAt: pack.expiresAt };
+    } catch (error) {
+      reporter.finish('error', error.message);
+      throw error;
+    }
+  }
   const code = CODE_PREFIX + zlib.deflateRawSync(Buffer.from(JSON.stringify(data)), { level: 9 }).toString('base64url');
+  const tooBig = byHand.filter((item) => !fitting.includes(item));
   return {
     code,
     included: shared.length,
-    skipped: items.filter((item) => !shared.includes(item)).map((item) => item.title),
+    skipped: (uploaded ? tooBig : byHand).map((item) => item.title),
+    extra: { count: fitting.length, bytes: fitting.reduce((sum, item) => sum + item.size, 0), tooBig: tooBig.map((item) => item.title) },
+    uploaded,
   };
 }
 
-/** Reads a share code: { name, minecraft, loader, content: [{ type, platform, projectId, versionId, enabled }] }. */
+/**
+ * Reads a share code: { name, minecraft, loader, content: [{ type, platform, projectId, versionId, enabled }],
+ * files: { id, count, bytes, expiresAt, server } | null — the author's files on the server }.
+ */
 function parseShareCode(code) {
   const text = String(code ?? '').trim().replace(/\s+/g, '');
   if (!text.startsWith(CODE_PREFIX)) {
@@ -85,16 +118,34 @@ function parseShareCode(code) {
       .filter((entry) => Array.isArray(entry) && CODE_TYPES[entry[0]] && CODE_PLATFORMS[entry[1]])
       .slice(0, 1000)
       .map(([type, platform, projectId, versionId, enabled]) => ({ type: CODE_TYPES[type], platform: CODE_PLATFORMS[platform], projectId: String(projectId), versionId: String(versionId), enabled: enabled !== 0 })),
+    files:
+      data.f && /^[0-9a-f]{32}$/.test(String(data.f.i))
+        ? {
+            id: String(data.f.i),
+            count: Number(data.f.n) || 0,
+            bytes: Number(data.f.b) || 0,
+            expiresAt: Number(data.f.e) || null,
+            server: typeof data.f.s === 'string' && /^https?:\/\/[^/]+$/.test(data.f.s) ? data.f.s : null,
+          }
+        : null,
   };
 }
 
-/** Builds a new instance from a share code. Content that fails is listed, the rest is installed. */
-async function importShareCode(settings, code, { name, group } = {}) {
+/**
+ * Builds a new instance from a share code. Content that fails is listed, the rest is installed.
+ * The author's files on the server come too unless `withFiles` is false; when they are gone
+ * already, `filesError` says so. Resolves with { instance, failed, filesError }.
+ */
+async function importShareCode(settings, code, { name, group, withFiles = true } = {}) {
   const pack = parseShareCode(code);
   const reporter = createTaskReporter({ taskId: `share:${crypto.randomBytes(4).toString('hex')}`, kind: 'modpack', label: name || pack.name });
   try {
     const instance = await instanceService.createInstance(settings, { name: name || pack.name, group, minecraft: pack.minecraft, loader: pack.loader, icon: 'block:grass_block' });
     const failed = [];
+    const files = withFiles ? pack.files : null;
+    // Progress: mods and packs, then the author's files, then the game.
+    const contentShare = files ? 70 : 85;
+    let filesError = null;
     let done = 0;
     for (const entry of pack.content) {
       try {
@@ -109,12 +160,23 @@ async function importShareCode(settings, code, { name, group } = {}) {
         log.warn(`Из кода не установлено ${entry.projectId}: ${error.message}`);
       }
       done += 1;
-      reporter.report('Моды и ресурсы', 5 + (done / Math.max(1, pack.content.length)) * 85, `${done}/${pack.content.length}`);
+      reporter.report('Моды и ресурсы', 5 + (done / Math.max(1, pack.content.length)) * contentShare, `${done}/${pack.content.length}`);
+    }
+    if (files) {
+      try {
+        const result = await packFiles.downloadPackFiles(files, instance.directory, (received, total) =>
+          reporter.report('Файлы автора', 75 + (total ? received / total : 1) * 15, `${Math.round(received / 1048576)}/${Math.round(total / 1048576)} МБ`),
+        );
+        failed.push(...result.failed);
+      } catch (error) {
+        filesError = error.message;
+        log.warn(`Файлы автора кода не скачаны: ${error.message}`);
+      }
     }
     reporter.report('Minecraft и загрузчик', 92, pack.minecraft);
     await instanceService.ensureInstanceReady(settings, instance.id).catch((error) => log.warn(`Сборка по коду создана, игра не установлена: ${error.message}`));
     reporter.finish('done', instance.name);
-    return { instance, failed };
+    return { instance, failed, filesError };
   } catch (error) {
     reporter.finish('error', error.message);
     throw error;

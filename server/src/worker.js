@@ -1,7 +1,8 @@
 /*
  * Amethyx server (Cloudflare Worker + D1; the worker and database keep their first name,
  * "vanillaplus"): Amethyx skins and capes that other Amethyx players see in the game
- * (CustomSkinLoader's CustomSkinAPI), and friends with online status.
+ * (CustomSkinLoader's CustomSkinAPI), friends with online status and messages, tunnels into a
+ * friend's world, and the files of share codes that are on neither Modrinth nor CurseForge.
  *
  * Accounts:
  *  - Microsoft and Ely.by: proven the way Minecraft servers check players. The launcher "joins" a
@@ -465,7 +466,10 @@ async function image(env, user, id) {
   return new Response(fromBase64(row.data), { headers: { 'Content-Type': row.type, 'Cache-Control': 'private, max-age=86400' } });
 }
 
-/** Daily: pictures older than 30 days go (the messages stay, showing "picture expired"). */
+/**
+ * Daily: pictures older than 30 days go (the messages stay, showing "picture expired"), and so do
+ * share-code files no code needs any more and uploads never finished.
+ */
 async function cleanup(env) {
   const now = Date.now();
   await env.DB.batch([
@@ -474,6 +478,13 @@ async function cleanup(env) {
     env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now),
     env.DB.prepare('DELETE FROM tunnels WHERE created_at < ?').bind(now - TUNNEL_DAYS * 86400000),
   ]);
+  if (env.FILES) {
+    await env.FILES.batch([
+      env.FILES.prepare('DELETE FROM packs WHERE expires_at < ?').bind(now),
+      env.FILES.prepare('DELETE FROM blob_parts WHERE (owner_id, hash) IN (SELECT owner_id, hash FROM blobs WHERE expires_at < ?)').bind(now),
+      env.FILES.prepare('DELETE FROM blobs WHERE expires_at < ?').bind(now),
+    ]);
+  }
 }
 
 /**
@@ -696,6 +707,169 @@ async function tunnelSocket(request, env, url, id) {
   return room.fetch(new Request(target, request));
 }
 
+// --- Files of share codes ------------------------------------------------------------------
+
+/*
+ * Mods, resource packs and shaders that are on neither Modrinth nor CurseForge travel with a share
+ * code only when the player agrees. The launcher uploads them in parts (base64 text: a D1 row holds
+ * at most 2 MB, and passing text through costs the worker no CPU), then names them in a "pack";
+ * the code carries the pack's id, and the friend's launcher downloads the parts and checks each
+ * file's SHA-256. The files live in their own database (FILES), so they never crowd out accounts
+ * and friends, and go FILE_DAYS days after the last pack that names them.
+ */
+const PART_BYTES = 1400 * 1000;
+const MAX_FILE_BYTES = 64 * 1024 * 1024;
+const MAX_PACK_FILES = 300;
+// Raw sizes; the database holds a third more as base64 (it has 500 MB on the free plan).
+const USER_BYTES = 150 * 1024 * 1024;
+const STORE_BYTES = 320 * 1024 * 1024;
+const FILE_DAYS = 14;
+const UPLOAD_MS = 24 * 60 * 60 * 1000;
+const PACK_FOLDERS = ['mods', 'resourcepacks', 'shaderpacks'];
+
+const partsOf = (size) => Math.max(1, Math.ceil(size / PART_BYTES));
+const base64Length = (size) => Math.ceil(size / 3) * 4;
+
+function filesDb(env) {
+  if (!env.FILES) throw new Failure(503, 'Хранилище файлов сборок недоступно.');
+  return env.FILES;
+}
+
+/** "mods/name.jar": a file right inside one of the content folders, with a name Windows accepts. */
+function packPath(value) {
+  const text = String(value ?? '');
+  const slash = text.indexOf('/');
+  const name = text.slice(slash + 1);
+  const ok = PACK_FOLDERS.includes(text.slice(0, slash)) && name.length > 0 && name.length <= 200 && !/[\\/:*?"<>|\u0000-\u001f]/.test(name) && !/^\.+$/.test(name);
+  return ok ? text : null;
+}
+
+/** Each player's files and their parts, in two cheap reads (the parts' data is not read). */
+async function ownBlobs(db, user) {
+  const [blobs, parts] = await Promise.all([
+    db.prepare('SELECT hash, size, parts FROM blobs WHERE owner_id = ?').bind(user.id).all(),
+    db.prepare('SELECT hash, part FROM blob_parts WHERE owner_id = ?').bind(user.id).all(),
+  ]);
+  const have = new Map();
+  for (const row of parts.results) {
+    if (!have.has(row.hash)) have.set(row.hash, new Set());
+    have.get(row.hash).add(row.part);
+  }
+  return new Map(blobs.results.map((row) => [row.hash, { ...row, have: have.get(row.hash) ?? new Set() }]));
+}
+
+/**
+ * POST /v1/files/start { files: [{ hash, size }] }: which parts of these files the server still
+ * needs. New files must fit the player's share and the whole store.
+ */
+async function startUpload(request, env, user) {
+  const db = filesDb(env);
+  const { files } = await readJson(request);
+  if (!Array.isArray(files) || !files.length || files.length > MAX_PACK_FILES) throw new Failure(400, 'Неверный список файлов.');
+  const wanted = new Map();
+  for (const file of files) {
+    const hash = String(file?.hash ?? '');
+    const size = Number(file?.size);
+    if (!HASH.test(hash) || !Number.isInteger(size) || size < 0) throw new Failure(400, 'Неверный список файлов.');
+    if (size > MAX_FILE_BYTES) throw new Failure(413, `Файлы больше ${MAX_FILE_BYTES / 1048576} МБ на сервер не помещаются.`);
+    wanted.set(hash, size);
+  }
+  const now = Date.now();
+  const own = await ownBlobs(db, user);
+  const added = [...wanted].filter(([hash, size]) => own.get(hash)?.size !== size);
+  const addedBytes = added.reduce((sum, [, size]) => sum + size, 0);
+  if (addedBytes) {
+    const usage = await db.prepare('SELECT COALESCE(SUM(size), 0) AS total, COALESCE(SUM(CASE WHEN owner_id = ? THEN size END), 0) AS mine FROM blobs').bind(user.id).first();
+    if (usage.mine + addedBytes > USER_BYTES) {
+      throw new Failure(507, `На сервере можно держать до ${USER_BYTES / 1048576} МБ своих файлов, они удаляются через ${FILE_DAYS} дней. Пока передайте сборку файлом.`);
+    }
+    if (usage.total + addedBytes > STORE_BYTES) throw new Failure(507, 'Хранилище сервера сейчас заполнено: попробуйте через несколько дней или передайте сборку файлом.');
+  }
+  const list = (entries) => JSON.stringify(entries.map(([hash, size]) => ({ hash, size, parts: partsOf(size) })));
+  const statements = [];
+  // Same hash with another size cannot be the same file: it starts again.
+  const changed = added.filter(([hash]) => own.has(hash)).map(([hash]) => hash);
+  if (changed.length) {
+    statements.push(db.prepare('DELETE FROM blob_parts WHERE owner_id = ? AND hash IN (SELECT value FROM json_each(?))').bind(user.id, JSON.stringify(changed)));
+    statements.push(db.prepare('DELETE FROM blobs WHERE owner_id = ? AND hash IN (SELECT value FROM json_each(?))').bind(user.id, JSON.stringify(changed)));
+  }
+  if (added.length) {
+    statements.push(
+      db.prepare("INSERT INTO blobs (owner_id, hash, size, parts, created_at, expires_at) SELECT ?, json_extract(value, '$.hash'), json_extract(value, '$.size'), json_extract(value, '$.parts'), ?, ? FROM json_each(?)")
+        .bind(user.id, now, now + UPLOAD_MS, list(added)),
+    );
+  }
+  // Files already here stay at least until this upload is done (the daily cleanup must not take them meanwhile).
+  statements.push(db.prepare('UPDATE blobs SET expires_at = MAX(expires_at, ?) WHERE owner_id = ? AND hash IN (SELECT value FROM json_each(?))').bind(now + UPLOAD_MS, user.id, JSON.stringify([...wanted.keys()])));
+  await db.batch(statements);
+  const need = [];
+  for (const [hash, size] of wanted) {
+    const have = added.some(([addedHash]) => addedHash === hash) ? new Set() : own.get(hash).have;
+    const missing = Array.from({ length: partsOf(size) }, (_, part) => part).filter((part) => !have.has(part));
+    if (missing.length) need.push({ hash, parts: missing });
+  }
+  return json({ partBytes: PART_BYTES, need });
+}
+
+/** PUT /v1/files/<hash>/<part>: one part of a file announced by /v1/files/start, as base64 text. */
+async function putPart(request, env, user, hash, part) {
+  const db = filesDb(env);
+  const blob = await db.prepare('SELECT size, parts FROM blobs WHERE owner_id = ? AND hash = ?').bind(user.id, hash).first();
+  if (!blob) throw new Failure(404, 'Загрузка этого файла не начата или устарела.');
+  if (part >= blob.parts) throw new Failure(400, 'Неверная часть файла.');
+  const expected = base64Length(part === blob.parts - 1 ? blob.size - part * PART_BYTES : PART_BYTES);
+  if (Number(request.headers.get('Content-Length') ?? 0) > expected) throw new Failure(413, 'Часть файла слишком большая.');
+  const data = await request.text();
+  if (data.length !== expected) throw new Failure(400, 'Часть файла пришла не целиком.');
+  await db.prepare('INSERT OR REPLACE INTO blob_parts (owner_id, hash, part, data) VALUES (?, ?, ?, ?)').bind(user.id, hash, part, data).run();
+  return json({ ok: true });
+}
+
+/** POST /v1/packs { files: [{ path, hash, size }] }: the files of one share code, all uploaded. */
+async function createPack(request, env, user) {
+  const db = filesDb(env);
+  const { files } = await readJson(request);
+  if (!Array.isArray(files) || !files.length || files.length > MAX_PACK_FILES) throw new Failure(400, 'Неверный список файлов.');
+  const own = await ownBlobs(db, user);
+  const paths = new Set();
+  const clean = files.map((file) => {
+    const filePath = packPath(file?.path);
+    const hash = String(file?.hash ?? '');
+    if (!filePath || paths.has(filePath) || !HASH.test(hash)) throw new Failure(400, 'Неверный список файлов.');
+    paths.add(filePath);
+    const blob = own.get(hash);
+    if (!blob || blob.size !== Number(file.size) || blob.have.size !== blob.parts) throw new Failure(409, `Файл ${filePath} загружен не целиком.`);
+    return { path: filePath, hash, size: blob.size };
+  });
+  const id = randomHex(16);
+  const now = Date.now();
+  const expiresAt = now + FILE_DAYS * 86400000;
+  await db.batch([
+    db.prepare('INSERT INTO packs (id, owner_id, files, created_at, expires_at) VALUES (?, ?, ?, ?, ?)').bind(id, user.id, JSON.stringify(clean), now, expiresAt),
+    db.prepare('UPDATE blobs SET expires_at = MAX(expires_at, ?) WHERE owner_id = ? AND hash IN (SELECT value FROM json_each(?))').bind(expiresAt, user.id, JSON.stringify(clean.map((file) => file.hash))),
+  ]);
+  return json({ id, expiresAt, files: clean.length, bytes: clean.reduce((sum, file) => sum + file.size, 0) });
+}
+
+/** GET /packs/<id>: the files of a share code. No sign-in: the random id is the key. */
+async function packInfo(env, id) {
+  const pack = await filesDb(env).prepare('SELECT files, expires_at FROM packs WHERE id = ? AND expires_at > ?').bind(id, Date.now()).first();
+  if (!pack) return json({ error: `Файлы этой сборки уже удалены с сервера: они хранятся ${FILE_DAYS} дней.` }, 404);
+  return json({ files: JSON.parse(pack.files), partBytes: PART_BYTES, expiresAt: pack.expires_at });
+}
+
+/** GET /packs/<id>/<hash>/<part>: one part of a file of the pack, as base64 text. */
+async function packPart(env, id, hash, part) {
+  const row = await filesDb(env)
+    .prepare(
+      "SELECT blob_parts.data FROM packs JOIN blob_parts ON blob_parts.owner_id = packs.owner_id WHERE packs.id = ?1 AND packs.expires_at > ?2 AND blob_parts.hash = ?3 AND blob_parts.part = ?4 AND EXISTS (SELECT 1 FROM json_each(packs.files) WHERE json_extract(value, '$.hash') = ?3)",
+    )
+    .bind(id, Date.now(), hash, part)
+    .first();
+  if (!row) return json({ error: `Файлы этой сборки уже удалены с сервера: они хранятся ${FILE_DAYS} дней.` }, 404);
+  return new Response(row.data, { headers: { 'Content-Type': 'text/plain; charset=us-ascii', 'Cache-Control': 'private, max-age=86400' } });
+}
+
 // --- CustomSkinLoader ----------------------------------------------------------------------
 
 /**
@@ -731,8 +905,15 @@ async function route(request, env) {
   if (match && method === 'GET') return cslProfile(env, match[1], match[2]);
   match = /^\/(?:csl\/(?:ms|ely|offline)\/)?textures\/([0-9a-f]{64})$/.exec(pathname);
   if (match && method === 'GET' && HASH.test(match[1])) return texture(env, match[1]);
+  match = /^\/packs\/([0-9a-f]{32})$/.exec(pathname);
+  if (match && method === 'GET') return packInfo(env, match[1]);
+  match = /^\/packs\/([0-9a-f]{32})\/([0-9a-f]{64})\/(\d{1,4})$/.exec(pathname);
+  if (match && method === 'GET') return packPart(env, match[1], match[2], Number(match[3]));
 
   if (pathname.startsWith('/v1/')) {
+    // Parts of an upload come dozens a minute: past the limiter, but signed in and within the player's share.
+    match = /^\/v1\/files\/([0-9a-f]{64})\/(\d{1,4})$/.exec(pathname);
+    if (match && method === 'PUT') return putPart(request, env, await authenticate(request, env), match[1], Number(match[2]));
     if (env.LIMITER) {
       const { success } = await env.LIMITER.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' });
       if (!success) throw new Failure(429, 'Слишком много запросов, подождите минуту.');
@@ -752,6 +933,8 @@ async function route(request, env) {
     if (pathname === '/v1/messages/read' && method === 'POST') return markRead(request, env, user);
     if (pathname === '/v1/tunnels' && method === 'GET') return listTunnels(env, user);
     if (pathname === '/v1/tunnels' && method === 'POST') return createTunnel(env, user);
+    if (pathname === '/v1/files/start' && method === 'POST') return startUpload(request, env, user);
+    if (pathname === '/v1/packs' && method === 'POST') return createPack(request, env, user);
     match = /^\/v1\/tunnels\/([0-9a-f]{32})$/.exec(pathname);
     if (match && method === 'DELETE') return deleteTunnel(env, user, match[1]);
     match = /^\/v1\/images\/([0-9a-f]{32})$/.exec(pathname);
