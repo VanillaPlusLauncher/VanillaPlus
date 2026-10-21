@@ -642,7 +642,6 @@ img { max-width: 100%; height: auto; display: block; }
     var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
   );
 }
-.versions__tag.is-beta { color: var(--accent); background: rgba(var(--accent-rgb), 0.2); }
 .versions__tag.is-latest { color: #1c0e3a; background: var(--btn-specks) 0 0 / 46px 22px, var(--accent); }
 .versions__meta { color: var(--text-muted); font-size: 13px; }
 .versions__get { margin-left: auto; padding: 7px 14px 10px; font-size: 14px; }

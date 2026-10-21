@@ -116,7 +116,7 @@
   var SYSTEM_SHORT = { windows: 'Windows', 'windows-legacy': 'Windows 7 / 8', 'mac-arm64': 'macOS', 'mac-x64': 'macOS', linux: 'Linux' };
   var DL_TEXT = {
     ru: {
-      downloadFor: 'Скачать для ', download: 'Скачать', release: 'релиз', beta: 'бета', latest: 'последняя',
+      downloadFor: 'Скачать для ', download: 'Скачать', latest: 'последняя',
       more: 'Другие версии', less: 'Скрыть версии', mb: ' МБ', none: 'Для этой системы версий пока нет.',
       lead: { windows: 'Установщик для Windows. Дальше лаунчер обновляется сам.', 'windows-legacy': 'Установщик для Windows 7 и 8. Дальше лаунчер обновляется сам.', mac: 'Сборка для macOS — пока бета, новые версии ставятся вручную.', linux: 'Сборка для Linux.' },
       mobile: 'Amethyx работает на компьютере с Windows или macOS — скачайте его там.',
@@ -138,7 +138,7 @@
       copy: 'Скопировать', copied: 'Скопировано'
     },
     en: {
-      downloadFor: 'Download for ', download: 'Download', release: 'release', beta: 'beta', latest: 'latest',
+      downloadFor: 'Download for ', download: 'Download', latest: 'latest',
       more: 'Other versions', less: 'Hide versions', mb: ' MB', none: 'No versions for this system yet.',
       lead: { windows: 'An installer for Windows. After that the launcher updates itself.', 'windows-legacy': 'An installer for Windows 7 and 8. After that the launcher updates itself.', mac: 'A build for macOS — still a beta, new versions are installed by hand.', linux: 'A build for Linux.' },
       mobile: 'Amethyx runs on a Windows or macOS computer — download it there.',
@@ -270,7 +270,7 @@
     button.href = main ? main.url : 'dl.php?platform=' + system;
     document.getElementById('dl-label').textContent = T.downloadFor + (noWin7 ? T.win10 : SYSTEM_SHORT[system]);
     document.getElementById('dl-version').textContent = main
-      ? versionText(main.version) + ' · ' + (main.channel === 'beta' ? T.beta : T.release) + ' · ' + sizeText(main.size, T)
+      ? versionText(main.version) + ' · ' + sizeText(main.size, T)
       : '';
 
     var versions = (site && site.versions) || [];
@@ -304,7 +304,6 @@
       var item = makeEl('li');
       var head = makeEl('div', 'versions__head');
       head.appendChild(makeEl('b', '', versionText(v.version)));
-      head.appendChild(makeEl('span', 'versions__tag' + (v.channel === 'beta' ? ' is-beta' : ''), v.channel === 'beta' ? T.beta : T.release));
       if (v.id === latestId) head.appendChild(makeEl('span', 'versions__tag is-latest', T.latest));
       head.appendChild(makeEl('span', 'versions__meta', dateText(v.date) + ' · ' + sizeText(v.size, T)));
       var link = makeEl('a', 'btn btn--ghost versions__get');
