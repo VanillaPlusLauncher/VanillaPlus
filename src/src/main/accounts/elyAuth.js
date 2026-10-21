@@ -46,6 +46,14 @@ async function post(endpoint, payload) {
       if (body.errorMessage === TWO_FACTOR_MESSAGE) {
         throw new ElyTwoFactorRequired();
       }
+      // A real answer of the auth server (an errorMessage, or 401/403) says the token or password is
+      // wrong. Anything else (5xx, an empty 404 while Ely.by is down) means the service is not there
+      // right now: the account stays as it is and nobody is told to delete it.
+      if (!body.errorMessage && error.status !== 401 && error.status !== 403) {
+        const down = new Error('Ely.by сейчас не отвечает. Попробуйте чуть позже: аккаунт удалять не нужно.');
+        down.unavailable = true;
+        throw down;
+      }
       const rejected = new Error(body.errorMessage ? translateError(body.errorMessage) : error.message);
       rejected.rejectedByServer = true;
       throw rejected;

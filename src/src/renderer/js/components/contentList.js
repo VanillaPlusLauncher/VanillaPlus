@@ -131,13 +131,13 @@ export function createContentList(getInstance, type) {
       }
       state.items = items;
       renderRows();
-      // Files added by hand get their names and icons from Modrinth, once per visit.
+      // Files added by hand get their names and icons from Modrinth or CurseForge, once per visit.
       if (!state.identified && items.some((item) => !item.platform && !item.folder)) {
         state.identified = true;
         api.content.identify(instance.id, type).then((count) => count > 0 && load({ quiet: true })).catch(() => {});
       }
-      // Client/server sides of mods from Modrinth installed before sides were stored.
-      if (isMods && !state.sidesResolved && items.some((item) => item.platform === 'modrinth' && !item.side)) {
+      // Client/server sides of mods installed before sides were stored (Modrinth and CurseForge).
+      if (isMods && !state.sidesResolved && items.some((item) => (item.platform === 'modrinth' || item.platform === 'curseforge') && !item.side)) {
         state.sidesResolved = true;
         api.content.resolveSides(instance.id).then((count) => count > 0 && load({ quiet: true })).catch(() => {});
       }

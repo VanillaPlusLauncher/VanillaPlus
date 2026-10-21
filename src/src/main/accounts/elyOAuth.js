@@ -96,6 +96,12 @@ async function tokenRequest(fields) {
       } catch {
         // Not JSON.
       }
+      // Ely.by down (5xx, or an empty answer that is not its own refusal): not the account's fault.
+      if (error.status >= 500 || (!message && error.status !== 400 && error.status !== 401)) {
+        const down = new Error('Ely.by сейчас не отвечает. Попробуйте чуть позже: аккаунт удалять не нужно.');
+        down.unavailable = true;
+        throw down;
+      }
       throw new Error(`Ely.by не выдал доступ${message ? `: ${message}` : ''}.`);
     }
     throw error;

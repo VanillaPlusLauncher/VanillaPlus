@@ -11,6 +11,7 @@ const { parallelDownloads } = require('../core/downloadConfig');
 const { createTaskReporter } = require('../core/progressReporter');
 const { createLogger } = require('../core/logger');
 const { readContentMetadata } = require('./modMetadata');
+const { fingerprintFile } = require('./curseFingerprint');
 const modrinth = require('./modrinth');
 const curseforge = require('./curseforge');
 const instanceService = require('../minecraft/instanceService');
@@ -213,8 +214,9 @@ async function installVersionFiles({ directory, type, version, meta, onProgress,
       versionNumber: version.versionNumber,
       title: meta?.title ?? null,
       iconUrl: meta?.iconUrl ?? null,
-      clientSide: meta?.clientSide ?? null,
-      serverSide: meta?.serverSide ?? null,
+      // Modrinth tells it on the project, CurseForge on the file (curseforge.js sidesOfFile).
+      clientSide: meta?.clientSide ?? version.clientSide ?? null,
+      serverSide: meta?.serverSide ?? version.serverSide ?? null,
       installedAt: new Date().toISOString(),
     };
   });
@@ -443,49 +445,97 @@ async function addLocalFiles(settings, instanceId, type, filePaths) {
   return added;
 }
 
+/** Files neither site knew, by path, size and date: not asked about again in this run. */
+const unrecognised = new Set();
+
 /**
- * Recognises files added by hand (by SHA-1 on Modrinth), so they get an icon, a title and updates.
- * Returns how many files were recognised.
+ * Recognises files added by hand, so they get an icon, a title, a site, client/server and updates:
+ * first on Modrinth by SHA-1, then what Modrinth does not have on CurseForge by its fingerprint
+ * (curseFingerprint.js; needs the CurseForge key). Returns how many files were recognised.
  */
 async function identifyContent(settings, instanceId, type) {
   const items = await listContent(settings, instanceId, type);
   const instance = await instanceService.getInstance(settings, instanceId);
-  const unknown = items.filter((item) => !item.platform && !item.folder);
+  const pathOf = (item) => path.join(instance.directory, FOLDERS[type], item.file);
+  const unknown = items.filter((item) => !item.platform && !item.folder && !unrecognised.has(`${pathOf(item)}|${item.size}|${item.modifiedAt}`));
   if (unknown.length === 0) {
     return 0;
   }
-  const hashes = new Map();
-  for (const item of unknown) {
-    hashes.set(await sha1File(path.join(instance.directory, FOLDERS[type], item.file)), item);
-  }
-  const versions = await modrinth.versionsForHashes([...hashes.keys()]);
-  const projects = await modrinth.getProjectsBrief([...new Set(Object.values(versions).map((version) => version.projectId))]);
-  const byId = new Map(projects.map((project) => [project.id, project]));
   let recognised = 0;
-  await updateIndex(instance.directory, (entries) => {
-    for (const [hash, version] of Object.entries(versions)) {
-      const item = hashes.get(hash);
-      const project = byId.get(version.projectId);
-      if (!item || !project) {
-        continue;
-      }
-      entries[entryKey(type, item.file)] = {
-        platform: 'modrinth',
-        projectId: version.projectId,
-        versionId: version.id,
-        versionNumber: version.versionNumber,
-        title: project.title,
-        iconUrl: project.iconUrl,
-        clientSide: project.clientSide ?? null,
-        serverSide: project.serverSide ?? null,
-        installedAt: new Date().toISOString(),
-      };
-      recognised += 1;
+  const left = new Set(unknown);
+
+  // Modrinth.
+  try {
+    const hashes = new Map();
+    for (const item of unknown) {
+      hashes.set(await sha1File(pathOf(item)), item);
     }
-  });
+    const versions = await modrinth.versionsForHashes([...hashes.keys()]);
+    const projects = await modrinth.getProjectsBrief([...new Set(Object.values(versions).map((version) => version.projectId))]);
+    const byId = new Map(projects.map((project) => [project.id, project]));
+    await updateIndex(instance.directory, (entries) => {
+      for (const [hash, version] of Object.entries(versions)) {
+        const item = hashes.get(hash);
+        const project = byId.get(version.projectId);
+        if (!item || !project) continue;
+        entries[entryKey(type, item.file)] = {
+          platform: 'modrinth',
+          projectId: version.projectId,
+          versionId: version.id,
+          versionNumber: version.versionNumber,
+          title: project.title,
+          iconUrl: project.iconUrl,
+          clientSide: project.clientSide ?? null,
+          serverSide: project.serverSide ?? null,
+          installedAt: new Date().toISOString(),
+        };
+        left.delete(item);
+        recognised += 1;
+      }
+    });
+  } catch (error) {
+    log.warn(`Моды не распознаны на Modrinth: ${error.message}`);
+  }
+
+  // CurseForge, for what Modrinth does not have.
+  const key = curseforge.apiKey(settings);
+  if (left.size > 0 && key) {
+    try {
+      const byFingerprint = new Map();
+      for (const item of left) {
+        byFingerprint.set(await fingerprintFile(pathOf(item)), item);
+      }
+      const files = await curseforge.matchFingerprints(key, [...byFingerprint.keys()]);
+      const mods = await curseforge.getMods(key, [...new Set(Object.values(files).map((file) => file.modId))]);
+      const modById = new Map(mods.map((mod) => [mod.id, mod]));
+      await updateIndex(instance.directory, (entries) => {
+        for (const [fingerprint, item] of byFingerprint) {
+          const file = files[fingerprint];
+          const mod = file && modById.get(file.modId);
+          if (!mod) continue;
+          entries[entryKey(type, item.file)] = {
+            platform: 'curseforge',
+            projectId: String(mod.id),
+            versionId: String(file.id),
+            versionNumber: file.displayName ?? null,
+            title: mod.name,
+            iconUrl: mod.logo?.thumbnailUrl || mod.logo?.url || null,
+            ...curseforge.sidesOfFile(file),
+            installedAt: new Date().toISOString(),
+          };
+          left.delete(item);
+          recognised += 1;
+        }
+      });
+    } catch (error) {
+      log.warn(`Моды не распознаны на CurseForge: ${error.message}`);
+    }
+  }
+
+  for (const item of left) unrecognised.add(`${pathOf(item)}|${item.size}|${item.modifiedAt}`);
+  if (recognised) log.info(`Распознано файлов: ${recognised} из ${unknown.length}`);
   return recognised;
 }
-
 // --- Compatibility check before installing ---------------------------------------------
 
 /** Mods that do the same job and are known not to work together (Modrinth slugs). */
@@ -613,26 +663,39 @@ async function setEnabledMany(settings, instanceId, type, files, enabled) {
 async function resolveSides(settings, instanceId) {
   const instance = await instanceService.getInstance(settings, instanceId);
   const index = await readIndex(instance.directory);
-  const missing = Object.entries(index.entries).filter(([key, entry]) => key.startsWith(`${FOLDERS.mod}/`) && entry.platform === 'modrinth' && entry.projectId && !entry.clientSide);
-  if (missing.length === 0) {
+  const lacking = Object.entries(index.entries).filter(([key, entry]) => key.startsWith(`${FOLDERS.mod}/`) && entry.projectId && !entry.clientSide);
+  const fromModrinth = lacking.filter(([, entry]) => entry.platform === 'modrinth');
+  // CurseForge: the sides are on the file (its "Client" / "Server" tags), not on the project.
+  const key = curseforge.apiKey(settings);
+  const fromCurseForge = key ? lacking.filter(([, entry]) => entry.platform === 'curseforge' && entry.versionId) : [];
+  if (fromModrinth.length === 0 && fromCurseForge.length === 0) {
     return 0;
   }
-  const projects = await modrinth.getProjectsBrief([...new Set(missing.map(([, entry]) => entry.projectId))]);
+  const projects = fromModrinth.length ? await modrinth.getProjectsBrief([...new Set(fromModrinth.map(([, entry]) => entry.projectId))]) : [];
   const byId = new Map(projects.map((project) => [project.id, project]));
+  const files = fromCurseForge.length ? await curseforge.getFiles(key, [...new Set(fromCurseForge.map(([, entry]) => entry.versionId))]).catch(() => []) : [];
+  const fileById = new Map(files.map((file) => [String(file.id), file]));
   let filled = 0;
   await updateIndex(instance.directory, (entries) => {
-    for (const [key, entry] of missing) {
+    for (const [entryName, entry] of fromModrinth) {
       const project = byId.get(entry.projectId);
-      if (project && entries[key]) {
-        entries[key].clientSide = project.clientSide;
-        entries[key].serverSide = project.serverSide;
+      if (project && entries[entryName]) {
+        entries[entryName].clientSide = project.clientSide;
+        entries[entryName].serverSide = project.serverSide;
+        filled += 1;
+      }
+    }
+    for (const [entryName, entry] of fromCurseForge) {
+      const file = fileById.get(String(entry.versionId));
+      const sides = file ? curseforge.sidesOfFile(file) : null;
+      if (sides?.clientSide && entries[entryName]) {
+        Object.assign(entries[entryName], sides);
         filled += 1;
       }
     }
   });
   return filled;
 }
-
 /**
  * Installs every available update of one content type (automatic updates before a launch).
  * onLog(text) reports each step. Returns { updated: [titles], failed: [titles] }.

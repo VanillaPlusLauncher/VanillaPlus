@@ -170,6 +170,8 @@ function toVersion(file) {
     dependencies: (file.dependencies ?? [])
       .filter((dependency) => dependency.relationType === 3 || dependency.relationType === 2)
       .map((dependency) => ({ projectId: String(dependency.modId), versionId: null, type: dependency.relationType === 3 ? 'required' : 'optional' })),
+    // Client / server from the file's own tags (CurseForge has no such field on the project).
+    ...sidesOfFile(file),
   };
 }
 
@@ -211,7 +213,34 @@ async function getMods(apiKey, modIds) {
   return result;
 }
 
+/** Files CurseForge knows by their fingerprint (curseFingerprint.js): { [fingerprint]: file }. */
+async function matchFingerprints(apiKey, fingerprints) {
+  const found = {};
+  for (let start = 0; start < fingerprints.length; start += 500) {
+    const batch = fingerprints.slice(start, start + 500);
+    const answer = await call(apiKey, `${API}/fingerprints/${MINECRAFT_GAME_ID}`, { body: { fingerprints: batch } });
+    for (const match of answer.data?.exactMatches ?? []) {
+      if (match.file) found[match.file.fileFingerprint ?? ''] = match.file;
+    }
+  }
+  return found;
+}
+
+/**
+ * Where a CurseForge file runs, from its "Client" / "Server" tags (newer files carry them), in
+ * Modrinth's words so sideOf() reads both alike: { clientSide, serverSide } or nulls.
+ */
+function sidesOfFile(file) {
+  const tags = new Set((file.gameVersions ?? []).map((value) => String(value).toLowerCase()));
+  const client = tags.has('client');
+  const server = tags.has('server');
+  if (!client && !server) return { clientSide: null, serverSide: null };
+  return { clientSide: client ? 'required' : 'unsupported', serverSide: server ? 'required' : 'unsupported' };
+}
+
 module.exports = {
+  matchFingerprints,
+  sidesOfFile,
   search,
   getProject,
   getVersions,

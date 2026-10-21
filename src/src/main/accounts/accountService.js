@@ -180,6 +180,7 @@ async function elyOAuthLaunchSession(store, account) {
     try {
       session = await refreshElyOAuth(decryptSecret(account.secrets?.refreshToken), { id: account.uuid, username: account.username });
     } catch (error) {
+      if (error.unavailable) throw error;
       throw new Error(`Вход Ely.by аккаунта ${account.username} устарел (${error.message}). Войдите заново.`);
     }
     accessToken = session.accessToken;
@@ -209,6 +210,8 @@ async function elyLaunchSession(store, account) {
     try {
       session = await refreshElyToken({ accessToken, clientToken });
     } catch (error) {
+      // Ely.by itself is down: its message says so; the account and its token stay.
+      if (error.unavailable) throw error;
       throw new Error(`Сессия Ely.by аккаунта ${account.username} устарела (${error.message}). Удалите аккаунт и войдите заново.`);
     }
     const updated = {
