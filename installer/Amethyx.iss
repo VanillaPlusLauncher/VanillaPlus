@@ -174,18 +174,34 @@ end;
 
 procedure InitializeWizard;
 var
-  I, Top, DotSize, DotsLeft: Integer;
+  I, Top, DotSize, DotsLeft, W, H: Integer;
   Page: TNewNotebookPage;
+  Picture: TBitmapImage;
 begin
   for I := 1 to {#SlideCount} do
     ExtractTemporaryFile('slide' + IntToStr(I) + '.bmp');
 
-  { Welcome page: one picture across the whole page, the name is part of it. }
+  { Welcome page: one picture across the whole window, under the buttons too; the name is part of
+    it. It keeps its proportions: it covers the window and what sticks out is cut off. }
   ExtractTemporaryFile('wizard-full.bmp');
   WizardForm.WelcomeLabel1.Visible := False;
   WizardForm.WelcomeLabel2.Visible := False;
-  WizardForm.WizardBitmapImage.Bitmap.LoadFromFile(ExpandConstant('{tmp}\wizard-full.bmp'));
-  WizardForm.WizardBitmapImage.SetBounds(0, 0, WizardForm.WelcomePage.Width, WizardForm.WelcomePage.Height);
+  Picture := WizardForm.WizardBitmapImage;
+  Picture.Bitmap.LoadFromFile(ExpandConstant('{tmp}\wizard-full.bmp'));
+  Picture.Parent := WizardForm;
+  Picture.Stretch := True;
+  H := WizardForm.ClientHeight;
+  W := H * Picture.Bitmap.Width div Picture.Bitmap.Height;
+  if W < WizardForm.ClientWidth then
+  begin
+    W := WizardForm.ClientWidth;
+    H := W * Picture.Bitmap.Height div Picture.Bitmap.Width;
+  end;
+  Picture.SetBounds((WizardForm.ClientWidth - W) div 2, (WizardForm.ClientHeight - H) div 2, W, H);
+  Picture.BringToFront;
+  WizardForm.BackButton.BringToFront;
+  WizardForm.NextButton.BringToFront;
+  WizardForm.CancelButton.BringToFront;
 
   { Installing page: screenshots change while files are copied. }
   Page := WizardForm.InstallingPage;
@@ -213,6 +229,8 @@ end;
 
 procedure CurPageChanged(CurPageID: Integer);
 begin
+  { The whole-window picture belongs to the welcome page only. }
+  WizardForm.WizardBitmapImage.Visible := CurPageID = wpWelcome;
   if CurPageID = wpInstalling then
   begin
     ShowSlide(0);
