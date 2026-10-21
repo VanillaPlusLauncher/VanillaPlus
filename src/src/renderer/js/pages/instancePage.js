@@ -26,6 +26,9 @@ const TABS = [
   { key: 'log', label: 'Журнал' },
 ];
 
+/** A setting is saved this long after the typing stops. */
+const AUTOSAVE_MS = 600;
+
 /** Less used parts live behind the Settings button, with their own menu. */
 const SETTINGS_SECTIONS = [
   { key: 'settings', label: 'Основное' },
@@ -266,13 +269,31 @@ export function createInstancePage() {
   const card = (title, description, ...children) =>
     h('div', { class: 'surface settings-card settings-card--static' }, h('div', null, h('div', { class: 'settings-card__title' }, title), description ? h('div', { class: 'settings-card__desc' }, description) : null), ...children);
   const field = (label, control, hint = null) => h('label', { class: 'field' }, h('span', { class: 'field__label' }, label), control, hint ? h('span', { class: 'field__hint' }, hint) : null);
-  const saveRow = (onSave, ...left) => h('div', { class: 'instance-settings__actions' }, ...left, h('span', { class: 'content-toolbar__spacer' }), h('button', { class: 'btn btn--primary', type: 'button', onclick: onSave }, 'Сохранить'));
+  /**
+   * Settings save themselves, quietly: a change is written a moment after the typing stops (a list
+   * or a tick at once, a field when it loses the focus). Only an error says something.
+   */
+  function autoSave(save, ...controls) {
+    let timer = 0;
+    const now = () => {
+      clearTimeout(timer);
+      save();
+    };
+    for (const control of controls) {
+      control.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(now, AUTOSAVE_MS);
+      });
+      control.addEventListener('change', now);
+    }
+    return now;
+  }
 
-  /** Saves a part of the overrides; the others stay as they are. */
+  /** Saves a part of the overrides; the others stay as they are (read fresh: another part may have just saved). */
   async function saveOverrides(current, patch, extra = {}) {
+    const fresh = instance() ?? current;
     try {
-      await updateInstance(current.id, { ...extra, overrides: { ...(current.overrides ?? {}), ...patch } });
-      toast('Сохранено', 'success');
+      await updateInstance(fresh.id, { ...extra, overrides: { ...(fresh.overrides ?? {}), ...patch } });
       renderHeader();
     } catch (error) {
       toast(errorMessage(error), 'error');
@@ -344,8 +365,9 @@ export function createInstancePage() {
         h('div', { class: 'field-row' }, field('Команда перед запуском', preLaunchInput), field('Команда после выхода из игры', postExitInput)),
         h('span', { class: 'field__hint' }, 'Если команда перед запуском завершится с ошибкой, игра не запустится. Доступны переменные INST_NAME, INST_ID, INST_DIR, INST_MC_VERSION.'),
       ),
-      saveRow(save, h('button', { class: 'btn btn--secondary btn--compact btn--danger', type: 'button', onclick: () => removeInstance() }, 'Удалить сборку')),
+      h('div', { class: 'instance-settings__actions' }, h('button', { class: 'btn btn--secondary btn--compact btn--danger', type: 'button', onclick: () => removeInstance() }, 'Удалить сборку')),
     );
+    autoSave(save, nameInput, groupInput, widthInput, heightInput, fullscreenSelect, serverInput, afterLaunchSelect, preLaunchInput, postExitInput);
   }
 
   // "Java": memory, which Java, JVM and game arguments.
@@ -384,18 +406,29 @@ export function createInstancePage() {
     paintRam();
 
     // Java: automatic (as in the Java page), one of the found runtimes, or a file picked by hand.
+    // The list names the Java only; its path is plain text under it, to select or copy.
     const javaSelect = h('select', { class: 'select' });
+    const javaPathText = h('span', { class: 'java-path__text mono', 'data-i18n': 'off' });
+    const javaCopy = h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => navigator.clipboard.writeText(javaSelect.value).then(() => toast('Путь скопирован', 'success')) }, 'Копировать');
+    const javaPath = h('div', { class: 'java-path' }, javaPathText, javaCopy);
+    const showJavaPath = () => {
+      javaPathText.textContent = javaSelect.value || 'Лаунчер подберёт Java сам при запуске.';
+      javaPathText.classList.toggle('text-muted', !javaSelect.value);
+      javaCopy.hidden = !javaSelect.value;
+    };
+    javaSelect.addEventListener('change', showJavaPath);
     const fillJava = () => {
       const runtimes = store.get().javaRuntimes ?? [];
       const options = [h('option', { value: '' }, 'Как в общих настройках (подбирается сама)')];
       for (const runtime of runtimes) {
-        options.push(h('option', { value: runtime.path }, `Java ${runtime.majorVersion} · ${runtime.vendor ?? ''} ${runtime.version} — ${runtime.path}`));
+        options.push(h('option', { value: runtime.path }, `Java ${runtime.majorVersion} · ${runtime.vendor ?? ''} ${runtime.version}`));
       }
       if (overrides.javaPath && !runtimes.some((runtime) => runtime.path === overrides.javaPath)) {
-        options.push(h('option', { value: overrides.javaPath }, overrides.javaPath));
+        options.push(h('option', { value: overrides.javaPath }, `Свой файл · ${overrides.javaPath.split(/[\\/]/).slice(-3).join('\\')}`));
       }
       javaSelect.replaceChildren(...options);
       javaSelect.value = overrides.javaPath ?? '';
+      showJavaPath();
     };
     fillJava();
     if (!store.get().javaRuntimes) {
@@ -406,6 +439,7 @@ export function createInstancePage() {
       if (path) {
         overrides.javaPath = path;
         fillJava();
+        save();
       }
     }
 
@@ -434,14 +468,16 @@ export function createInstancePage() {
       ),
       card('Java', 'Обычно лаунчер сам берёт нужную Java. Своя Java пригодится, если нужна особая сборка.',
         h('div', { class: 'path-row' }, javaSelect, h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: pickJava }, 'Файл…')),
+        javaPath,
       ),
       card('Аргументы JVM', 'Заменяют общие аргументы для этой сборки. Память задаётся выше, не здесь.',
         jvmInput,
-        h('div', { class: 'chip-row' }, h('span', { class: 'text-muted' }, 'Готовые:'), ...presets.map(([label, value]) => h('button', { class: 'chip chip--small', type: 'button', onclick: () => { jvmInput.value = value; } }, label))),
+        h('div', { class: 'chip-row' }, h('span', { class: 'text-muted' }, 'Готовые:'), ...presets.map(([label, value]) => h('button', { class: 'chip chip--small', type: 'button', onclick: () => { jvmInput.value = value; saveNow(); } }, label))),
       ),
       card('Аргументы игры', 'Добавляются к запуску Minecraft.', gameArgsInput),
-      saveRow(save),
     );
+    const saveNow = autoSave(save, ramSlider, javaSelect, jvmInput, gameArgsInput);
+    ramToggle.querySelector('input').addEventListener('change', saveNow);
   }
 
   // "Версия": Minecraft version, loader and its version, repair.
