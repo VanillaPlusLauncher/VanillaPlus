@@ -1,8 +1,5 @@
 User-agent: *
-Disallow: /admin/
 Disallow: /api.php
 Disallow: /dl.php
-Disallow: /lib/
-Disallow: /data/
 
 Sitemap: https://launcher.x-world.plus/sitemap.xml

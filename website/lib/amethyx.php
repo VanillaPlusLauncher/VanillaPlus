@@ -5,6 +5,11 @@
 
 if (!defined('AMX')) { http_response_code(404); exit; }
 
+// Errors go to the hosting's log, never to the visitor (they would show paths and code).
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+header_remove('X-Powered-By');
+
 const AMX_ROOT = __DIR__ . '/..';
 const AMX_DOWNLOADS = AMX_ROOT . '/downloads';
 // windows-legacy: the Windows 7 / 8 build (an older Electron, Amethyx-Setup-<version>-win7.exe).
@@ -18,8 +23,10 @@ const AMX_FEEDS = [
 ];
 const AMX_HIT_KINDS = ['view', 'video'];
 const AMX_LOGIN_TRIES = 5;          // failed logins allowed per address...
-const AMX_LOGIN_WINDOW = 15 * 60;   // ...within this many seconds
-const AMX_SESSION_IDLE = 12 * 3600; // a session ends after 12 hours without activity
+const AMX_LOGIN_WINDOW = 15 * 60;   // ...within this many seconds,
+const AMX_LOGIN_DAY_TRIES = 20;     // and this many within a day
+const AMX_SESSION_IDLE = 12 * 3600; // a session ends after 12 hours without activity...
+const AMX_SESSION_MAX = 3 * 86400;  // ...and after 3 days in any case
 
 // The data folder holds the database and unfinished uploads. It lives next to the
 // site folder when the hosting allows it (then the web can't reach it at all),
@@ -123,16 +130,39 @@ function amx_session_start(): void {
   session_set_cookie_params([
     'lifetime' => 0, 'path' => '/', 'secure' => amx_https(), 'httponly' => true, 'samesite' => 'Strict',
   ]);
+  ini_set('session.use_strict_mode', '1'); // never take a session id the server did not give
   session_start();
-  if (!empty($_SESSION['admin']) && time() - ($_SESSION['seen'] ?? 0) > AMX_SESSION_IDLE) {
+  if (!empty($_SESSION['admin']) && (time() - ($_SESSION['seen'] ?? 0) > AMX_SESSION_IDLE || time() - ($_SESSION['since'] ?? 0) > AMX_SESSION_MAX)) {
     $_SESSION = [];
   }
   if (!empty($_SESSION['admin'])) $_SESSION['seen'] = time();
 }
 
-function amx_admin_login(): ?string {
+// A session is tied to the admin's current password: changing it ends every other session.
+function amx_password_key(string $passHash): string {
+  return hash_hmac('sha256', $passHash, amx_secret());
+}
+
+function amx_session_login(string $login, string $passHash): void {
   amx_session_start();
-  return $_SESSION['admin'] ?? null;
+  session_regenerate_id(true);
+  $_SESSION = ['admin' => $login, 'key' => amx_password_key($passHash), 'since' => time(), 'seen' => time()];
+}
+
+function amx_admin_login(): ?string {
+  // Visitors without the admin's cookie get no session at all.
+  if (empty($_COOKIE['AMXSESS']) && session_status() !== PHP_SESSION_ACTIVE) return null;
+  amx_session_start();
+  $login = $_SESSION['admin'] ?? null;
+  if ($login === null) return null;
+  $q = amx_db()->prepare('SELECT pass_hash FROM admin WHERE login = ?');
+  $q->execute([$login]);
+  $hash = $q->fetchColumn();
+  if ($hash === false || !hash_equals(amx_password_key($hash), (string) ($_SESSION['key'] ?? ''))) {
+    $_SESSION = [];
+    return null;
+  }
+  return $login;
 }
 
 function amx_has_admin(): bool {
@@ -161,10 +191,16 @@ function amx_client_key(): string {
 
 function amx_login_locked(): bool {
   $db = amx_db();
-  $db->prepare('DELETE FROM login_fail WHERE at < ?')->execute([time() - AMX_LOGIN_WINDOW]);
-  $q = $db->prepare('SELECT COUNT(*) FROM login_fail WHERE who = ?');
-  $q->execute([amx_client_key()]);
-  return (int) $q->fetchColumn() >= AMX_LOGIN_TRIES;
+  $db->prepare('DELETE FROM login_fail WHERE at < ?')->execute([time() - 86400]);
+  $q = $db->prepare('SELECT COUNT(*) AS day, COALESCE(SUM(at >= ?), 0) AS recent FROM login_fail WHERE who = ?');
+  $q->execute([time() - AMX_LOGIN_WINDOW, amx_client_key()]);
+  $n = $q->fetch();
+  return (int) $n['recent'] >= AMX_LOGIN_TRIES || (int) $n['day'] >= AMX_LOGIN_DAY_TRIES;
+}
+
+// Wrong passwords and unknown tokens all count; a locked address is refused before anything is checked.
+function amx_refuse_if_locked(): void {
+  if (amx_login_locked()) amx_fail(429, 'locked', 'Too many attempts. Try again later.');
 }
 
 function amx_login_failed(): void {
@@ -188,10 +224,11 @@ function amx_token_user(): ?string {
     foreach (getallheaders() as $k => $v) if (strcasecmp($k, 'Authorization') === 0) $header = $v;
   }
   if (!preg_match('/^Bearer\s+(amx_[A-Za-z0-9]{40})$/', trim($header), $m)) return null;
+  amx_refuse_if_locked();
   $q = amx_db()->prepare('SELECT id, name FROM tokens WHERE hash = ?');
   $q->execute([hash('sha256', $m[1])]);
   $row = $q->fetch();
-  if (!$row) amx_fail(401, 'token', 'Unknown token.');
+  if (!$row) { amx_login_failed(); amx_fail(401, 'token', 'Unknown token.'); }
   amx_db()->prepare('UPDATE tokens SET used_at = ? WHERE id = ?')->execute([time(), $row['id']]);
   return $row['name'];
 }

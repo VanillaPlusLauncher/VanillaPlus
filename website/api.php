@@ -12,6 +12,12 @@ function need_post(): void {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') amx_fail(405, 'method', 'Use POST.');
 }
 
+// Logging in and out only from the admin panel itself (another site can't send this header).
+function need_panel(): void {
+  need_post();
+  if (($_SERVER['HTTP_X_AMETHYX'] ?? '') !== '1') amx_fail(403, 'header', 'Missing X-Amethyx header.');
+}
+
 switch ($action) {
 
   // ---- Public -------------------------------------------------------------
@@ -39,62 +45,67 @@ switch ($action) {
     amx_json(['admin' => amx_admin_login(), 'setup' => !amx_has_admin()]);
 
   case 'setup':
-    need_post();
+    need_panel();
     if (amx_has_admin()) amx_fail(409, 'exists', 'The admin already exists.');
     $body = amx_body();
     $login = trim((string) ($body['login'] ?? ''));
     $password = (string) ($body['password'] ?? '');
     if (!preg_match('/^[A-Za-z0-9_.-]{3,32}$/', $login)) amx_fail(400, 'login', 'Login: 3–32 latin letters, digits, _ . -');
     if ($problem = amx_check_password($password)) amx_fail(400, 'password', $problem);
-    amx_db()->prepare('INSERT INTO admin (login, pass_hash, created_at) VALUES (?, ?, ?)')
-      ->execute([$login, amx_hash_password($password), time()]);
+    $hash = amx_hash_password($password);
+    amx_db()->prepare('INSERT INTO admin (login, pass_hash, created_at) VALUES (?, ?, ?)')->execute([$login, $hash, time()]);
     amx_import_downloads();
     amx_write_feeds();
-    amx_session_start();
-    session_regenerate_id(true);
-    $_SESSION['admin'] = $login;
-    $_SESSION['seen'] = time();
+    amx_session_login($login, $hash);
     amx_json(['admin' => $login]);
 
   case 'login':
-    need_post();
+    need_panel();
+    amx_refuse_if_locked();
     $body = amx_body();
     $login = trim((string) ($body['login'] ?? ''));
     $password = (string) ($body['password'] ?? '');
-    if (amx_login_locked()) amx_fail(429, 'locked', 'Too many attempts. Try again in 15 minutes.');
     $q = amx_db()->prepare('SELECT login, pass_hash FROM admin WHERE login = ?');
     $q->execute([$login]);
     $row = $q->fetch();
-    if (!$row || !password_verify($password, $row['pass_hash'])) {
+    // An unknown login takes as long as a wrong password, so the answer tells nothing about it.
+    $ok = password_verify($password, $row ? $row['pass_hash'] : amx_hash_password(bin2hex(random_bytes(8))));
+    if (!$row || !$ok) {
       amx_login_failed();
-      usleep(400000);
+      usleep(random_int(400000, 900000));
       amx_fail(401, 'wrong', 'Wrong login or password.');
     }
-    if (password_needs_rehash($row['pass_hash'], defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT)) {
-      amx_db()->prepare('UPDATE admin SET pass_hash = ? WHERE login = ?')->execute([amx_hash_password($password), $login]);
+    $hash = $row['pass_hash'];
+    if (password_needs_rehash($hash, defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT)) {
+      $hash = amx_hash_password($password);
+      amx_db()->prepare('UPDATE admin SET pass_hash = ? WHERE login = ?')->execute([$hash, $row['login']]);
     }
-    amx_session_start();
-    session_regenerate_id(true);
-    $_SESSION['admin'] = $row['login'];
-    $_SESSION['seen'] = time();
+    amx_session_login($row['login'], $hash);
     amx_json(['admin' => $row['login']]);
 
   case 'logout':
-    need_post();
+    need_panel();
     amx_session_start();
     $_SESSION = [];
     session_destroy();
     amx_json(['ok' => true]);
 
+  // A new password ends every other session (a stolen one included); this one stays logged in.
   case 'password':
     need_post();
     $login = amx_require_admin();
+    amx_refuse_if_locked();
     $body = amx_body();
     $q = amx_db()->prepare('SELECT pass_hash FROM admin WHERE login = ?');
     $q->execute([$login]);
-    if (!password_verify((string) ($body['old'] ?? ''), (string) $q->fetchColumn())) amx_fail(401, 'wrong', 'The current password is wrong.');
+    if (!password_verify((string) ($body['old'] ?? ''), (string) $q->fetchColumn())) {
+      amx_login_failed();
+      amx_fail(401, 'wrong', 'The current password is wrong.');
+    }
     if ($problem = amx_check_password((string) ($body['new'] ?? ''))) amx_fail(400, 'password', $problem);
-    amx_db()->prepare('UPDATE admin SET pass_hash = ? WHERE login = ?')->execute([amx_hash_password((string) $body['new']), $login]);
+    $hash = amx_hash_password((string) $body['new']);
+    amx_db()->prepare('UPDATE admin SET pass_hash = ? WHERE login = ?')->execute([$hash, $login]);
+    amx_session_login($login, $hash);
     amx_json(['ok' => true]);
 
   // ---- Versions -----------------------------------------------------------

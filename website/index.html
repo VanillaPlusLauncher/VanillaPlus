@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <title>Amethyx Launcher — лаунчер Minecraft с модами, скинами и друзьями</title>
     <meta name="description" content="Бесплатный лаунчер Minecraft: Java Edition для Windows. Сборки с модами, Modrinth и CurseForge, гардероб скинов, друзья и чат, свой сервер, оптимизация в один клик." />
     <meta name="theme-color" content="#0a080f" />
@@ -21,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tiny5&display=swap" />
-    <link rel="stylesheet" href="styles.css?v=b31190a7" />
+    <link rel="stylesheet" href="styles.css?v=0f44a4bd" />
   </head>
   <body>
     <header class="topbar" id="top">
@@ -203,19 +204,7 @@
       <video controls playsinline preload="none" poster="assets/video/promo-poster.webp"></video>
     </div>
 
-    <!-- The owner's entrance: five quick clicks on the X logo open it. The login is checked on the server. -->
-    <div class="owner" id="owner" hidden>
-      <form class="owner__card" id="owner-form" autocomplete="on">
-        <button class="lightbox__close" type="button" id="owner-close" aria-label="Закрыть"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg></button>
-        <h2 class="owner__title">Вход</h2>
-        <label>Логин<input name="login" autocomplete="username" required /></label>
-        <label>Пароль<input name="password" type="password" autocomplete="current-password" required /></label>
-        <p class="owner__error" id="owner-error" role="alert"></p>
-        <button class="btn btn--primary" type="submit">Войти</button>
-      </form>
-    </div>
-
     <script src="geode.js?v=8b13c549"></script>
-    <script src="script.js?v=b8c9ddb9"></script>
+    <script src="script.js?v=cabfcd82"></script>
   </body>
 </html>

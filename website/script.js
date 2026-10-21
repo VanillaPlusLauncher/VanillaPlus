@@ -423,7 +423,7 @@
     });
   }
 
-  // ---- The site's server (api.php): latest builds, visit counters, the owner's entrance ----
+  // ---- The site's server (api.php): latest builds and visit counters ----
   // Without PHP (a plain preview) all of this quietly does nothing and the page still works.
 
   // Counters keep only numbers per day; a page view is counted once per visit.
@@ -467,43 +467,6 @@
     event.preventDefault();
     document.getElementById('download').scrollIntoView({ behavior: scrollBehavior, block: 'start' });
     history.replaceState(null, '', '#download');
-  });
-
-  // Five quick clicks on the X logo open the owner's login; the server checks it.
-  var owner = document.getElementById('owner');
-  var ownerForm = document.getElementById('owner-form');
-  var ownerError = document.getElementById('owner-error');
-  var logoClicks = [];
-  function closeOwner() { owner.hidden = true; ownerForm.reset(); ownerError.textContent = ''; }
-  function openOwner() {
-    fetch('api.php?a=me', { credentials: 'same-origin' }).then(function (res) { return res.json(); }).then(function (me) {
-      if (me.admin || me.setup) { location.href = 'admin/'; return; }
-      owner.hidden = false;
-      ownerForm.login.focus();
-    }).catch(function () { /* no server, no entrance */ });
-  }
-  Array.prototype.forEach.call(document.querySelectorAll('.brand img, .hero__mark img'), function (logo) {
-    logo.addEventListener('click', function () {
-      var now = Date.now();
-      logoClicks = logoClicks.filter(function (t) { return now - t < 3000; });
-      logoClicks.push(now);
-      if (logoClicks.length >= 5) { logoClicks = []; openOwner(); }
-    });
-  });
-  document.getElementById('owner-close').addEventListener('click', closeOwner);
-  owner.addEventListener('click', function (event) { if (event.target === owner) closeOwner(); });
-  document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && !owner.hidden) closeOwner(); });
-  ownerForm.addEventListener('submit', function (event) {
-    event.preventDefault();
-    ownerError.textContent = '';
-    fetch('api.php?a=login', {
-      method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', 'X-Amethyx': '1' },
-      body: JSON.stringify({ login: ownerForm.login.value.trim(), password: ownerForm.password.value })
-    }).then(function (res) {
-      if (res.ok) { location.href = 'admin/'; return; }
-      ownerError.textContent = res.status === 429 ? 'Слишком много попыток. Подождите 15 минут.' : 'Неверный логин или пароль.';
-    }).catch(function () { ownerError.textContent = 'Сервер не отвечает.'; });
   });
 
   // The launcher's start screen in miniature: the turning amethyst geode (geode.js).

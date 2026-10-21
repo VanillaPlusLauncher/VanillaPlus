@@ -2,25 +2,40 @@
 # database in data/ — neither may be opened from the browser.
 DirectoryIndex index.html
 Options -Indexes
+ServerSignature Off
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^(lib|data)(/|$) - [F,L]
+  # Hidden files, backups, databases, logs and notes are never served.
+  RewriteRule (^|/)\.(?!well-known/) - [F,L]
+  RewriteRule \.(sqlite|sqlite-wal|sqlite-shm|db|bak|old|orig|save|swp|tmp|log|ini|sh|ps1|md|lock)$ - [F,NC,L]
+  # Builds, feeds and pictures are only files: nothing in those folders runs as a program.
+  RewriteRule ^(downloads|updates|assets)/.*\.(php\d?|phtml|phar|pl|py|cgi|shtml)$ - [F,NC,L]
   # Pass the API token through to PHP on hostings that drop the Authorization header.
   RewriteCond %{HTTP:Authorization} .
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 </IfModule>
 
 <IfModule mod_headers.c>
+  Header always unset X-Powered-By
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # No other site may show these pages inside a frame (no fake overlays over the admin panel).
+  Header always set X-Frame-Options "DENY"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+  # Browsers keep to https for half a year.
+  Header always set Strict-Transport-Security "max-age=15552000"
+  # Only this site's own scripts run; styles and fonts also from Google Fonts.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
   <FilesMatch "\.(exe|zip|dmg)$">
     Header set Content-Disposition "attachment"
   </FilesMatch>
-  # The launcher's update feeds (updates/latest.json, beta.json) and the pages must always be
-  # fresh. Scripts and styles may be kept: the pages ask for them as file.js?v=<its hash>, so a
-  # changed file has a new address.
-  <FilesMatch "(^(latest|beta)\.json|\.html)$">
+  # The launcher's update feeds (updates/latest.json, beta.json and their -win7 twins) and the
+  # pages must always be fresh. Scripts and styles may be kept: the pages ask for them as
+  # file.js?v=<its hash>, so a changed file has a new address.
+  <FilesMatch "(^(latest|beta)(-win7)?\.json|\.html)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
 </IfModule>
