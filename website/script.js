@@ -113,7 +113,7 @@
   // windows-legacy is the build for Windows 7, 8 and Windows 10 older than 1803: the regular
   // installer does not start there.
   var SYSTEMS = ['windows', 'windows-legacy', 'mac-arm64', 'mac-x64', 'linux'];
-  var SYSTEM_NAMES = { windows: 'Windows 10 / 11', 'windows-legacy': 'Windows 7 / 8 / старая 10', 'mac-arm64': 'macOS (Apple Silicon)', 'mac-x64': 'macOS (Intel)', linux: 'Linux' };
+  var SYSTEM_NAMES = { windows: 'Windows', 'windows-legacy': 'Windows 7 / 8 / старая 10', 'mac-arm64': 'macOS (Apple Silicon)', 'mac-x64': 'macOS (Intel)', linux: 'Linux' };
   var SYSTEM_SHORT = { windows: 'Windows', 'windows-legacy': 'Windows 7 / 8', 'mac-arm64': 'macOS', 'mac-x64': 'macOS', linux: 'Linux' };
   var DL_TEXT = {
     ru: {
@@ -124,7 +124,6 @@
       noBuild: 'Для вашей системы сборки пока нет — вот версия для Windows.',
       noWin7: 'Для Windows 7, 8 и Windows 10 до версии 1803 сборки пока нет. Версия ниже работает только на Windows 10 (1803 и новее) и 11.',
       win10: 'Windows 10 / 11',
-      noLegacy: 'Сборка для Windows 7, 8 и Windows 10 до 1803 скоро появится здесь.',
       legacyTab: 'Windows 7 / 8 / старая 10', legacyShort: 'старой Windows',
       req: {
         windows: 'Windows 10 (версия 1803 и новее) или Windows 11, 64 бита. Для Windows 7, 8 и Windows 10 старше 1803 — отдельная сборка в «Других версиях». Java лаунчер скачает сам.',
@@ -148,7 +147,6 @@
       noBuild: 'There is no build for your system yet — here is the Windows version.',
       noWin7: 'There is no build for Windows 7, 8 and Windows 10 older than 1803 yet. The version below runs on Windows 10 (1803 or newer) and 11 only.',
       win10: 'Windows 10 / 11',
-      noLegacy: 'The build for Windows 7, 8 and Windows 10 older than 1803 will appear here soon.',
       legacyTab: 'Windows 7 / 8 / old 10', legacyShort: 'older Windows',
       req: {
         windows: 'Windows 10 (version 1803 or newer) or Windows 11, 64-bit. For Windows 7, 8 and Windows 10 older than 1803 there is a separate build under Other versions. The launcher downloads Java by itself.',
@@ -294,19 +292,19 @@
     renderMacHelp(T, group === 'mac');
     if (!versions.length) return;
 
-    // System tabs: the systems that have builds, and always Windows 7 / 8 next to Windows (so
-    // people on an old Windows find their place even before its build is out); the main system
-    // is open first.
+    // System tabs: one per system that has builds. The Windows 7 / 8 / old 10 build is no tab of
+    // its own: it sits in the Windows tab with its tag. The main system is open first.
+    var tabOf = function (platform) { return platform === 'windows-legacy' ? 'windows' : platform; };
     var present = SYSTEMS.filter(function (s) {
-      return s === 'windows-legacy' || versions.some(function (v) { return v.platform === s; });
+      return s !== 'windows-legacy' && versions.some(function (v) { return tabOf(v.platform) === s; });
     });
-    if (!chosenSystem || present.indexOf(chosenSystem) < 0) chosenSystem = present.indexOf(system) >= 0 ? system : present[0];
+    if (!chosenSystem || present.indexOf(chosenSystem) < 0) chosenSystem = present.indexOf(tabOf(system)) >= 0 ? tabOf(system) : present[0];
     if (group !== 'mac' && !picker.hidden && /^mac/.test(chosenSystem)) renderMacHelp(T, true);
     var tabs = document.getElementById('dl-systems');
     while (tabs.firstChild) tabs.removeChild(tabs.firstChild);
     tabs.hidden = present.length < 2;
     present.forEach(function (s) {
-      var tab = makeEl('button', 'picker__system', s === 'windows-legacy' ? T.legacyTab : SYSTEM_NAMES[s]);
+      var tab = makeEl('button', 'picker__system', SYSTEM_NAMES[s]);
       tab.type = 'button';
       tab.setAttribute('role', 'tab');
       tab.setAttribute('aria-selected', String(s === chosenSystem));
@@ -316,14 +314,14 @@
 
     var list = document.getElementById('versions-list');
     while (list.firstChild) list.removeChild(list.firstChild);
-    var latestId = site.latest[chosenSystem] ? site.latest[chosenSystem].id : null;
-    var shown = versions.filter(function (v) { return v.platform === chosenSystem; });
-    if (!shown.length) list.appendChild(makeEl('li', 'versions__empty', chosenSystem === 'windows-legacy' ? T.noLegacy : T.none));
-    shown.forEach(function (v) {
+    var latestIds = SYSTEMS.map(function (s) { return site.latest[s] ? site.latest[s].id : null; });
+    var shown = versions.filter(function (v) { return tabOf(v.platform) === chosenSystem; });
+    if (!shown.length) list.appendChild(makeEl('li', 'versions__empty', T.none));    shown.forEach(function (v) {
       var item = makeEl('li');
       var head = makeEl('div', 'versions__head');
       head.appendChild(makeEl('b', '', versionText(v.version)));
-      if (v.id === latestId) head.appendChild(makeEl('span', 'versions__tag is-latest', T.latest));
+      if (v.platform === 'windows-legacy') head.appendChild(makeEl('span', 'versions__tag', T.legacyTab));
+      if (latestIds.indexOf(v.id) >= 0) head.appendChild(makeEl('span', 'versions__tag is-latest', T.latest));
       head.appendChild(makeEl('span', 'versions__meta', dateText(v.date) + ' · ' + sizeText(v.size, T)));
       var link = makeEl('a', 'btn btn--ghost versions__get');
       link.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg>';
