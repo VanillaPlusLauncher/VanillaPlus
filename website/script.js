@@ -394,11 +394,12 @@
     revealing.forEach(function (node) { node.classList.add('is-in'); });
   }
 
-  // The promo: silent in the hero window; a click opens it large, with sound
-  // (a little quieter than full volume). Closing pauses it.
+  // The trailer: the hero window plays a silent loop; a click opens the trailer large, with sound
+  // (a little quieter than full volume). Small screens get the lighter 720p file. Closing pauses it.
   var player = document.getElementById('player');
   var playerVideo = player.querySelector('video');
-  var FULL_VIDEO = 'assets/video/amethyx-promo.mp4';
+  var FULL_VIDEO = Math.max(screen.width, screen.height) * (window.devicePixelRatio || 1) < 1600
+    ? 'assets/video/trailer-720p.mp4' : 'assets/video/trailer-1080p.mp4';
   function closePlayer() {
     if (player.hidden) return;
     playerVideo.pause();
