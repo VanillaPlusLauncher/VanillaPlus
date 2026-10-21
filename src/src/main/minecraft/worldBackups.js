@@ -1,17 +1,17 @@
 'use strict';
 
-const { spawn } = require('node:child_process');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { createLogger } = require('../core/logger');
 const { SerialQueue } = require('../core/serialQueue');
+const { zipFolder, extractArchive } = require('../core/archive');
 
 /*
  * World backups of an instance: zip archives in <instance>/.amethyx/backups with an index.
  * Made by hand or automatically before risky changes (mod updates, another Minecraft version);
  * restoring keeps a copy of the current world first, so a restore can itself be undone.
- * Archives are written by the bsdtar that ships with the system (Windows, macOS), in its own
- * process: big worlds do not freeze the launcher.
+ * Archives are written by the system's bsdtar in its own process (big worlds do not freeze the
+ * launcher); Windows 7 / 8 have no tar.exe and get adm-zip instead (core/archive.js).
  */
 
 const AUTO_KEEP = 5;
@@ -21,23 +21,6 @@ const queue = new SerialQueue();
 
 function backupsDirectory(instanceDirectory) {
   return path.join(instanceDirectory, '.amethyx', 'backups');
-}
-
-function tarPath() {
-  return process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : '/usr/bin/tar';
-}
-
-/** bsdtar reads "C:" in a path as a remote host: it only ever gets paths relative to `cwd`. */
-function runTar(args, cwd) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(tarPath(), args, { cwd, windowsHide: true });
-    let stderr = '';
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk;
-    });
-    child.on('error', reject);
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(stderr.trim() || `tar завершился с кодом ${code}`))));
-  });
 }
 
 async function readIndex(instanceDirectory) {
@@ -95,7 +78,7 @@ function createBackup(instanceDirectory, world, { reason = 'Вручную', aut
     const relativeZip = path.join('.amethyx', 'backups', `${id}.zip`);
     await fsp.mkdir(backupsDirectory(instanceDirectory), { recursive: true });
     // -a picks the format from the extension (.zip); entries are "saves/<world>/…".
-    await runTar(['-a', '-c', '-f', relativeZip, path.join('saves', name)], instanceDirectory);
+    await zipFolder(instanceDirectory, path.join('saves', name), relativeZip);
     const size = (await fsp.stat(path.join(instanceDirectory, relativeZip))).size;
     const backups = await readIndex(instanceDirectory);
     backups.push({ id, world: name, createdAt, size, reason, auto });
@@ -164,14 +147,14 @@ function restoreBackup(instanceDirectory, id) {
       // A copy of what is replaced: the restore can be undone from the same list.
       const createdAt = new Date().toISOString();
       const safetyId = `${createdAt.replace(/[:.]/g, '-')}-before-restore`;
-      await runTar(['-a', '-c', '-f', path.join('.amethyx', 'backups', `${safetyId}.zip`), path.join('saves', world)], instanceDirectory);
+      await zipFolder(instanceDirectory, path.join('saves', world), path.join('.amethyx', 'backups', `${safetyId}.zip`));
       const size = (await fsp.stat(path.join(backupsDirectory(instanceDirectory), `${safetyId}.zip`))).size;
       backups.push({ id: safetyId, world, createdAt, size, reason: 'Перед восстановлением', auto: false });
       await writeIndex(instanceDirectory, backups);
       await fsp.rename(worldDirectory, aside);
     }
     try {
-      await runTar(['-x', '-f', path.join('.amethyx', 'backups', `${backup.id}.zip`)], instanceDirectory);
+      await extractArchive(path.join(instanceDirectory, '.amethyx', 'backups', `${backup.id}.zip`), instanceDirectory);
     } catch (error) {
       await fsp.rm(worldDirectory, { recursive: true, force: true }).catch(() => {});
       if (exists) await fsp.rename(aside, worldDirectory).catch(() => {});

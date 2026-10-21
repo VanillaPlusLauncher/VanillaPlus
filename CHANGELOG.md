@@ -43,6 +43,9 @@
 - The installer is dark like the launcher, with screenshots of the current look
 - Updates come from the launcher's site (launcher.x-world.plus/updates/latest.json) and from GitHub: both are checked, the newest version wins, either one being down does not stop updates. A launcher on a test build also gets new test builds from the site (updates/beta.json)
 - Versions are written short ("1.7", not "1.7.0"), and test builds have their own number, 1.7-beta.N (shown as "v1.7 β28" under the logo): N counts the changes since the version was set and starts again with the next version. The released 1.7 counts as newer than all of its betas
+- Windows 7, 8 and 8.1: a build of its own (`installer/build.ps1 -Legacy`, Amethyx-Setup-…-win7.exe) on Electron 22, the last one that runs there; it updates from its own feeds, never to the Windows 10 installer. Where Windows has no tar.exe, Java and world backups are unpacked and packed by the launcher itself
+- A light start on Windows 7 / 8 and on computers with 4 GB of memory or less: animations, blur and music begin turned off, fewer downloads at once, Chromium's low-memory mode, and the 3D player on the home screen is drawn only while it is turned or gets a new skin (with animations off on any computer). Everything can be turned on in Settings
+- The memory suggested for the game always leaves at least 2 GB for the system
 - A first macOS build (Apple Silicon and Intel, `installer/build-mac.ps1`, made on Windows): Java for macOS from the same vendors (Mojang's runtimes included), the system's Java found in /Library/Java, world backups with the system tar. Not signed by Apple yet; updates on macOS are by hand for now
 - A new pixel-cut look: buttons, panels, fields, switches and cards have corners cut by one pixel step instead of rounded ones; buttons are solid raised blocks (a light strip on top, a darker one at the bottom) that press down when clicked, the main one in the theme colour with light specks. The Friends panel is wider so the account switch fits
 - The close button hides the launcher in the tray: friends' messages and downloads go on; click the icon to open it, right-click → "Quit" to exit. Can be turned off in Settings → "Launcher"
@@ -77,6 +80,7 @@
 - Before mod updates and version changes every world was copied again, even ones not played for weeks (a 14-world pack: about 1.1 GB each time). Now only worlds played since their last copy are copied
 - In other languages the start screen's steps ("3D models…") and the dates of Minecraft news stayed in Russian
 - Friends: a stray "null" under your name when your account has no code
+- In a narrow window the account and window buttons slid to the left of the top bar
 
 ## 1.3.1 — 2026-10-19
 

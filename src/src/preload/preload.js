@@ -40,8 +40,11 @@ const bridge = {
     setZoom: (percent) => invoke(CHANNELS.app.setZoom, percent),
     /** Asks where to save content (text) and writes it. Resolves with the path or null. */
     saveText: (options) => invoke(CHANNELS.app.saveText, options),
-    /** Disk path of a file dropped onto the window (drag and drop of mods and packs). */
-    pathForFile: (file) => webUtils.getPathForFile(file),
+    /**
+     * Disk path of a file dropped onto the window (drag and drop of mods and packs). Electron 22
+     * (the Windows 7 / 8 build) has no webUtils: there the file itself carries its path.
+     */
+    pathForFile: (file) => (webUtils?.getPathForFile ? webUtils.getPathForFile(file) : file.path),
   },
   settings: {
     get: () => invoke(CHANNELS.settings.get),

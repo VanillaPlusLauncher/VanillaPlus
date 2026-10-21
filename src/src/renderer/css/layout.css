@@ -252,7 +252,8 @@
   :root {
     --gutter: 24px;
   }
+  /* Hidden but still taking the room: it is what keeps the account and window buttons on the right. */
   .topbar__title {
-    display: none;
+    visibility: hidden;
   }
 }

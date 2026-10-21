@@ -6,6 +6,7 @@ const { readJsonFile, writeJsonFileAtomic } = require('../core/jsonFile');
 const { SerialQueue } = require('../core/serialQueue');
 const { getAppPaths, getDefaultGameDirectory } = require('../core/paths');
 const { configureDownloads } = require('../core/downloadConfig');
+const { isLightSystem } = require('../core/system');
 
 const MEGABYTE = 1024 * 1024;
 const MIN_RAM_MB = 512;
@@ -33,13 +34,20 @@ function totalMemoryMb() {
   return Math.floor(os.totalmem() / MEGABYTE);
 }
 
-/** 40% of physical RAM, rounded to 512 MB and kept between 2 and 8 GB. */
+/**
+ * 40% of physical RAM, rounded to 512 MB and kept between 2 and 8 GB; at least 2 GB stay for the
+ * system and the launcher (on a 3 GB computer the game gets 1 GB, never more than there is).
+ */
 function suggestedRamMb() {
   const suggested = Math.floor((totalMemoryMb() * 0.4) / 512) * 512;
-  return Math.min(8192, Math.max(2048, suggested));
+  const room = Math.floor((totalMemoryMb() - 2048) / 512) * 512;
+  return Math.max(1024, Math.min(8192, Math.max(2048, suggested), room));
 }
 
 function buildDefaults() {
+  // Windows 7 / 8 and computers with 4 GB or less start with the heavy effects off
+  // (core/system.js); everything can be turned on in Settings.
+  const light = isLightSystem();
   return {
     gameDirectory: null,
     ramMb: suggestedRamMb(),
@@ -71,9 +79,9 @@ function buildDefaults() {
       font: 'pixel',
       sidebar: 'labels',
       cards: 'tile',
-      animations: true,
+      animations: !light,
       scale: 100,
-      blur: true,
+      blur: !light,
     },
     sounds: {
       enabled: true,
@@ -83,14 +91,14 @@ function buildDefaults() {
       events: true,
       navSound: 'click',
       actions: {},
-      music: true,
+      music: !light,
       musicVolume: 35,
     },
     downloads: {
       /** Mods and other files downloaded at the same time (updates, modpacks, game files). */
-      parallel: 8,
+      parallel: light ? 4 : 8,
       /** A big file (8 MB and more) is downloaded in this many parts at once; 1 = in one piece. */
-      segments: 4,
+      segments: light ? 2 : 4,
     },
     compat: {
       /** Warn about possible mod conflicts before installing. */

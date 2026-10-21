@@ -14,18 +14,23 @@
 # -Publish puts the installer on the launcher's site right after (publish-site.ps1, as the newest
 # build of its channel: the site's buttons and update feeds take it at once).
 #
-# Usage: .\build.ps1 [-Iscc <path to ISCC.exe>] [-Version 1.3.1 | -Release] [-Output <folder>] [-Publish] [-Notes "…"]
+# -Legacy builds the launcher for Windows 7 and 8: the same app on Electron 22 (the last one that
+# runs there), installer Amethyx-Setup-<version>-win7.exe for Windows 7 SP1 and newer.
+#
+# Usage: .\build.ps1 [-Iscc <path to ISCC.exe>] [-Version 1.3.1 | -Release] [-Output <folder>] [-Legacy] [-Publish] [-Notes "…"]
 param(
   [string]$Iscc = '',
   [string]$Version = '',
   [string]$Output = '',
   [switch]$Release,
   [switch]$Publish,
+  [switch]$Legacy,
   [string]$Notes = ''
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$runtime = Join-Path $root 'build\Amethyx'
+$runtime = Join-Path $root $(if ($Legacy) { 'build\Amethyx-win7' } else { 'build\Amethyx' })
+$suffix = if ($Legacy) { '-win7' } else { '' }
 if (-not $Version) { $Version = & (Join-Path $PSScriptRoot 'version.ps1') -Release:$Release }
 if (-not $Output) { $Output = Join-Path $root 'build' }
 if (-not $Iscc) {
@@ -34,7 +39,7 @@ if (-not $Iscc) {
 }
 
 # A fresh clone has no runtime yet: Electron is downloaded from its GitHub releases and checked.
-$electronVersion = '44.9.0'
+$electronVersion = if ($Legacy) { '22.3.27' } else { '44.9.0' }
 if (-not (Test-Path (Join-Path $runtime 'Amethyx.exe'))) {
   $zipName = "electron-v$electronVersion-win32-x64.zip"
   $base = "https://github.com/electron/electron/releases/download/v$electronVersion"
@@ -54,7 +59,7 @@ if (-not (Test-Path (Join-Path $runtime 'Amethyx.exe'))) {
 if (-not (Test-Path (Join-Path $root 'src\node_modules\adm-zip'))) { throw 'Нет зависимостей: выполните `npm install --omit=dev` в папке src.' }
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw 'Нужен Python 3 (для упаковки app.asar).' }
 
-$stage = Join-Path $env:TEMP "amethyx-stage-$Version"
+$stage = Join-Path $env:TEMP "amethyx-stage-$Version$suffix"
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $stage | Out-Null
 Get-ChildItem $runtime | Where-Object { $_.Name -ne 'resources' } | Copy-Item -Destination $stage -Recurse
@@ -63,7 +68,7 @@ Get-ChildItem (Join-Path $runtime 'resources') | Where-Object { $_.Name -notlike
 
 # A copy of src is packed: without the Minecraft cache, and with the version set when -Version is given.
 $source = Join-Path $root 'src'
-$copy = Join-Path $env:TEMP "amethyx-src-$Version"
+$copy = Join-Path $env:TEMP "amethyx-src-$Version$suffix"
 Remove-Item $copy -Recurse -Force -ErrorAction SilentlyContinue
 robocopy $source $copy /E /XD mc-ui /NFL /NDL /NJH /NJS /NP | Out-Null
 $package = Join-Path $copy 'package.json'
@@ -113,7 +118,9 @@ $numericVersion = ($Version -replace '[^\d.].*$', '')
   --set-version-string CompanyName 'Amethyx' --set-version-string LegalCopyright 'GPL-3.0' `
   --set-version-string OriginalFilename 'Amethyx.exe' --set-version-string InternalName 'Amethyx'
 if ($LASTEXITCODE -ne 0) { throw "rcedit завершился с кодом $LASTEXITCODE" }
-& $Iscc /Q "/DSourceDir=$stage" "/DAppVersion=$Version" "/O$Output" (Join-Path $PSScriptRoot 'Amethyx.iss')
+$isccArgs = @('/Q', "/DSourceDir=$stage", "/DAppVersion=$Version", "/O$Output")
+if ($Legacy) { $isccArgs += '/DLegacy' }
+& $Iscc @isccArgs (Join-Path $PSScriptRoot 'Amethyx.iss')
 if ($LASTEXITCODE -ne 0) { throw "ISCC завершился с кодом $LASTEXITCODE" }
 # The runnable folder gets the same app (skipped while the launcher is open from there).
 try {
@@ -122,6 +129,9 @@ try {
 } catch {
   Write-Warning "build\Amethyx не обновлён: закройте лаунчер, запущенный оттуда."
 }
-$installer = Join-Path $Output "Amethyx-Setup-$Version.exe"
+$installer = Join-Path $Output "Amethyx-Setup-$Version$suffix.exe"
 Write-Output $installer
-if ($Publish) { & (Join-Path $PSScriptRoot 'publish-site.ps1') -File $installer -Latest -Notes $Notes }
+# The Windows 7 / 8 installer must never become the site's ordinary Windows build: it goes up only
+# once the site has a platform of its own for it (updates/latest-win7.json, beta-win7.json).
+if ($Publish -and $Legacy) { Write-Warning 'Сборка для Windows 7/8 пока не выкладывается: у сайта ещё нет для неё отдельной платформы.' }
+elseif ($Publish) { & (Join-Path $PSScriptRoot 'publish-site.ps1') -File $installer -Latest -Notes $Notes }

@@ -12,6 +12,7 @@ const { broadcast } = require('../core/broadcast');
 const { createLogger } = require('../core/logger');
 const { CHANNELS } = require('../../shared/channels');
 const { getSettings } = require('../settings/settingsService');
+const { isLegacyBuild } = require('../core/system');
 
 /*
  * Launcher updates.
@@ -34,6 +35,12 @@ const DEFAULT_FEED_URL = 'https://github.com/VanillaPlusLauncher/VanillaPlus/rel
  */
 const SITE_FEED_URL = 'https://launcher.x-world.plus/updates/latest.json';
 const SITE_BETA_FEED_URL = 'https://launcher.x-world.plus/updates/beta.json';
+/**
+ * The build for Windows 7 and 8 (Electron 22) has feeds of its own: the usual installer would not
+ * start there. GitHub's latest.json is never asked by it for the same reason.
+ */
+const SITE_LEGACY_FEED_URL = 'https://launcher.x-world.plus/updates/latest-win7.json';
+const SITE_LEGACY_BETA_FEED_URL = 'https://launcher.x-world.plus/updates/beta-win7.json';
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const FIRST_CHECK_DELAY_MS = 8000;
 const log = createLogger('updates');
@@ -96,6 +103,7 @@ function feedUrls(settings) {
   const custom = settings.updates?.feedUrl || process.env.AMETHYX_UPDATE_FEED;
   if (custom) return [custom];
   const beta = /-beta\b/i.test(app.getVersion());
+  if (isLegacyBuild()) return [SITE_LEGACY_FEED_URL, ...(beta ? [SITE_LEGACY_BETA_FEED_URL] : [])];
   return [SITE_FEED_URL, ...(beta ? [SITE_BETA_FEED_URL] : []), DEFAULT_FEED_URL];
 }
 

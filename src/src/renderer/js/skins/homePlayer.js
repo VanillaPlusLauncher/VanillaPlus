@@ -55,8 +55,20 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
   let gestureStart = 0;
   let idleTimer = 0;
 
+  const still = () => document.documentElement.dataset.animations === 'off';
+
   viewer.animation = new lib.FunctionAnimation((player, progress) => {
     resetPose(player);
+    // Animations off: the plain pose, only turned by hand (no breathing, no looking around).
+    if (still()) {
+      player.skin.leftArm.rotation.z = 0.06;
+      player.skin.rightArm.rotation.z = -0.06;
+      spin.yaw += (spin.targetYaw - spin.yaw) * 0.35;
+      spin.tilt += (spin.targetTilt - spin.tilt) * 0.35;
+      viewer.playerWrapper.rotation.y = REST_YAW + spin.yaw;
+      viewer.playerWrapper.rotation.x = spin.tilt;
+      return;
+    }
     // Breathing arms, like the game's idle pose, and a slow shift of weight from foot to foot.
     player.skin.leftArm.rotation.z = 0.03 * Math.cos(progress * 2) + 0.06;
     player.skin.rightArm.rotation.z = -0.03 * Math.cos(progress * 2) - 0.06;
@@ -145,6 +157,7 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
   // Hold and drag: the player turns round (and tilts a little); a plain click opens the Wardrobe.
   canvas.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
+    wake(60000);
     Object.assign(spin, { dragging: true, moved: false, startX: event.clientX, startY: event.clientY, startYaw: spin.targetYaw, startTilt: spin.targetTilt });
     canvas.setPointerCapture?.(event.pointerId);
     canvas.classList.add('home-player__canvas--grabbing');
@@ -161,14 +174,30 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
     if (!spin.dragging) return;
     spin.dragging = false;
     spin.releasedAt = performance.now();
+    wake(TURN_BACK_MS + 1500);
     canvas.classList.remove('home-player__canvas--grabbing');
     if (!spin.moved && !cancelled) onClick?.();
   };
   canvas.addEventListener('pointerup', (event) => release(event));
   canvas.addEventListener('pointercancel', (event) => release(event, true));
 
-  let disposed = false;
-  canvas.addEventListener('webglcontextlost', () => {
+  /*
+   * Animations off (Windows 7 / 8 and weak computers start that way): nothing moves by itself, so
+   * the picture is drawn only while something changes — the player being turned or turning back,
+   * a new skin — and the GPU rests the rest of the time.
+   */
+  let shown = true;
+  let awakeUntil = performance.now() + 1500;
+  function wake(ms) {
+    awakeUntil = Math.max(awakeUntil, performance.now() + ms);
+    if (shown) viewer.renderPaused = false;
+  }
+  const restTimer = setInterval(() => {
+    if (!shown || !still() || spin.dragging) return;
+    if (performance.now() > awakeUntil) viewer.renderPaused = true;
+  }, 300);
+
+  let disposed = false;  canvas.addEventListener('webglcontextlost', () => {
     // three.js asks for the context back; when it does not come within a moment, start anew.
     setTimeout(() => {
       if (!disposed && viewer.renderer.getContext().isContextLost()) onLost?.();
@@ -178,9 +207,11 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
   return {
     canvas,
     setSkin(source, model = 'classic') {
+      wake(1500);
       viewer.loadSkin(source, { model: model === 'slim' ? 'slim' : 'default' });
     },
     setCape(source) {
+      wake(1500);
       if (source) viewer.loadCape(source).catch?.(() => {});
       else viewer.resetCape();
     },
@@ -191,11 +222,14 @@ export function createHomePlayer({ width = 220, height = 300, onClick, onLost } 
     },
     /** Off-screen: nothing is drawn (saves the GPU while another page is open). */
     setActive(active) {
+      shown = active;
+      wake(1500);
       viewer.renderPaused = !active;
     },
     dispose() {
       disposed = true;
       clearTimeout(idleTimer);
+      clearInterval(restTimer);
       window.removeEventListener('pointermove', onPointer);
       effects?.dispose();
       viewer.dispose();

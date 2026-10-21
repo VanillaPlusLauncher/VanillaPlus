@@ -8,6 +8,12 @@
   #define SourceDir "..\build\Amethyx"
 #endif
 #define SlideCount 5
+; /DLegacy: the build for Windows 7 and 8 (Electron 22), its own file name and minimum Windows.
+#ifdef Legacy
+  #define FileSuffix "-win7"
+#else
+  #define FileSuffix ""
+#endif
 
 [Setup]
 AppId={{6B1F3C2A-8E4D-4C1B-9A57-52C3D0E7A913}
@@ -23,7 +29,7 @@ DisableProgramGroupPage=yes
 DisableReadyPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\build
-OutputBaseFilename=Amethyx-Setup-{#AppVersion}
+OutputBaseFilename=Amethyx-Setup-{#AppVersion}{#FileSuffix}
 SetupIconFile=art\setup.ico
 UninstallDisplayIcon={app}\Amethyx.exe
 UninstallDisplayName={#AppName}
@@ -37,8 +43,13 @@ WizardSmallImageFile=art\wizard-small.bmp
 WizardImageStretch=yes
 Compression=lzma2/fast
 SolidCompression=yes
+#ifdef Legacy
+; Electron 22 runs on Windows 7 SP1, 8 and 8.1 (and newer).
+MinVersion=6.1sp1
+#else
 ; Electron 44 runs on Windows 10 and 11 only; 1803 brings tar.exe, used for world backups.
 MinVersion=10.0.17134
+#endif
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes

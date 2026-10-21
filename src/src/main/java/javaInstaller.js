@@ -1,6 +1,5 @@
 'use strict';
 
-const { spawn } = require('node:child_process');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { fetchJson } = require('../core/http');
@@ -8,6 +7,7 @@ const { downloadFile } = require('../core/fileDownloader');
 const { runWithConcurrency } = require('../core/taskPool');
 const { createLogger } = require('../core/logger');
 const { getAppPaths } = require('../core/paths');
+const { extractArchive } = require('../core/archive');
 const { probeJavaExecutable } = require('./javaDetector');
 const { VENDORS, mojangComponent } = require('./javaVendors');
 const { IS_WINDOWS, IS_MAC, JAVA_BINARY, javaIn, PLATFORM } = require('./javaPlatform');
@@ -19,35 +19,6 @@ const log = createLogger('java-installer');
 /** Adoptium (Eclipse Temurin) redirects to the latest GA JDK archive for the given major version. */
 function adoptiumDownloadUrl(majorVersion) {
   return `https://api.adoptium.net/v3/binary/latest/${majorVersion}/ga/${PLATFORM.os}/${PLATFORM.arch}/jdk/hotspot/normal/eclipse?project=jdk`;
-}
-
-/**
- * Absolute path to the bsdtar that ships with the system (Windows 10+, macOS). A bare "tar.exe"
- * could resolve to GNU tar from Git for Windows, which cannot read zip archives.
- */
-function systemTarPath() {
-  return IS_WINDOWS ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : '/usr/bin/tar';
-}
-
-/**
- * Unpacks the JDK archive (zip or tar.gz: bsdtar tells them apart itself).
- * Runs inside the archive's folder with relative names: bsdtar reads "C:" in a
- * path as a remote host, so absolute Windows paths must not be passed to it.
- */
-function runTarExtract(archivePath, targetDirectory) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      systemTarPath(),
-      ['-xf', path.basename(archivePath), '-C', path.basename(targetDirectory)],
-      { cwd: path.dirname(archivePath), windowsHide: true },
-    );
-    let stderr = '';
-    child.stderr.on('data', (chunk) => {
-      stderr += chunk;
-    });
-    child.on('error', reject);
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`Не удалось распаковать Java: ${stderr.trim()}`))));
-  });
 }
 
 /**
@@ -133,7 +104,7 @@ async function downloadAndUnpack(vendor, majorVersion, { onProgress } = {}) {
 
   await fsp.rm(extractDirectory, { recursive: true, force: true });
   await fsp.mkdir(extractDirectory, { recursive: true });
-  await runTarExtract(archivePath, extractDirectory);
+  await extractArchive(archivePath, extractDirectory);
   const jdkRoot = await findJdkRoot(extractDirectory);
 
   await fsp.rm(targetDirectory, { recursive: true, force: true });

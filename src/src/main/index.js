@@ -1,5 +1,7 @@
 'use strict';
 
+// Electron 22 (the Windows 7 / 8 build): fetch and structuredClone for its older Node.
+require('./core/compat').installCompat();
 const { app, BrowserWindow, net, protocol } = require('electron');
 const { initLogger, createLogger } = require('./core/logger');
 const { getAppPaths, getDefaultGameDirectory } = require('./core/paths');
@@ -16,6 +18,12 @@ const { startUpdateChecks } = require('./updates/updateService');
 const { startVersionWatch } = require('./minecraft/versionWatcher');
 
 const APP_USER_MODEL_ID = 'dev.amethyx.launcher';
+
+// Windows 7 / 8 and computers with 4 GB or less: Chromium's low-memory mode (smaller caches and
+// buffers for the window). Must be set before the app is ready.
+if (require('./core/system').isLightSystem()) {
+  app.commandLine.appendSwitch('enable-low-end-device-mode');
+}
 
 // Must run before the app is ready: lets the renderer load ES modules and fetch assets over app://.
 protocol.registerSchemesAsPrivileged([
