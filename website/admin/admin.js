@@ -4,7 +4,7 @@
   'use strict';
 
   const $ = (id) => document.getElementById(id);
-  const PLATFORMS = { windows: 'Windows', 'mac-arm64': 'macOS · Apple Silicon', 'mac-x64': 'macOS · Intel', linux: 'Linux' };
+  const PLATFORMS = { windows: 'Windows 10 / 11', 'windows-legacy': 'Windows 7 / 8', 'mac-arm64': 'macOS · Apple Silicon', 'mac-x64': 'macOS · Intel', linux: 'Linux' };
   const MESSAGES = {
     wrong: 'Неверный логин или пароль.',
     locked: 'Слишком много попыток. Подождите 15 минут.',

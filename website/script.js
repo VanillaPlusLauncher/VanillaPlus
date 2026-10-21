@@ -110,18 +110,22 @@
   // The big button gives the newest build for the system the visitor is on; "Other versions"
   // opens every build from the admin panel, grouped by system, to go back to a release or try a beta.
   var site = null; // api.php?a=site: { latest: { platform: version }, versions: [newest first] }
-  var SYSTEMS = ['windows', 'mac-arm64', 'mac-x64', 'linux'];
-  var SYSTEM_NAMES = { windows: 'Windows', 'mac-arm64': 'macOS (Apple Silicon)', 'mac-x64': 'macOS (Intel)', linux: 'Linux' };
-  var SYSTEM_SHORT = { windows: 'Windows', 'mac-arm64': 'macOS', 'mac-x64': 'macOS', linux: 'Linux' };
+  // windows-legacy is the Windows 7 / 8 build: the regular installer does not start there.
+  var SYSTEMS = ['windows', 'windows-legacy', 'mac-arm64', 'mac-x64', 'linux'];
+  var SYSTEM_NAMES = { windows: 'Windows', 'windows-legacy': 'Windows 7 / 8', 'mac-arm64': 'macOS (Apple Silicon)', 'mac-x64': 'macOS (Intel)', linux: 'Linux' };
+  var SYSTEM_SHORT = { windows: 'Windows', 'windows-legacy': 'Windows 7 / 8', 'mac-arm64': 'macOS', 'mac-x64': 'macOS', linux: 'Linux' };
   var DL_TEXT = {
     ru: {
       downloadFor: 'Скачать для ', download: 'Скачать', release: 'релиз', beta: 'бета', latest: 'последняя',
       more: 'Другие версии', less: 'Скрыть версии', mb: ' МБ', none: 'Для этой системы версий пока нет.',
-      lead: { windows: 'Установщик для Windows. Дальше лаунчер обновляется сам.', mac: 'Сборка для macOS — пока бета, новые версии ставятся вручную.', linux: 'Сборка для Linux.' },
+      lead: { windows: 'Установщик для Windows. Дальше лаунчер обновляется сам.', 'windows-legacy': 'Установщик для Windows 7 и 8. Дальше лаунчер обновляется сам.', mac: 'Сборка для macOS — пока бета, новые версии ставятся вручную.', linux: 'Сборка для Linux.' },
       mobile: 'Amethyx работает на компьютере с Windows или macOS — скачайте его там.',
       noBuild: 'Для вашей системы сборки пока нет — вот версия для Windows.',
+      noWin7: 'Для Windows 7 и 8 сборки пока нет. Версия ниже — только для Windows 10 и 11.',
+      win10: 'Windows 10 / 11',
       req: {
         windows: 'Windows 10 (1803 и новее) или Windows 11, 64 бита. Java лаунчер скачает сам.',
+        'windows-legacy': 'Windows 7 (SP1), 8 или 8.1. Java лаунчер скачает сам.',
         mac: 'Java лаунчер скачает сам.',
         linux: 'Java лаунчер скачает сам.'
       },
@@ -136,11 +140,14 @@
     en: {
       downloadFor: 'Download for ', download: 'Download', release: 'release', beta: 'beta', latest: 'latest',
       more: 'Other versions', less: 'Hide versions', mb: ' MB', none: 'No versions for this system yet.',
-      lead: { windows: 'An installer for Windows. After that the launcher updates itself.', mac: 'A build for macOS — still a beta, new versions are installed by hand.', linux: 'A build for Linux.' },
+      lead: { windows: 'An installer for Windows. After that the launcher updates itself.', 'windows-legacy': 'An installer for Windows 7 and 8. After that the launcher updates itself.', mac: 'A build for macOS — still a beta, new versions are installed by hand.', linux: 'A build for Linux.' },
       mobile: 'Amethyx runs on a Windows or macOS computer — download it there.',
       noBuild: 'There is no build for your system yet — here is the Windows version.',
+      noWin7: 'There is no build for Windows 7 and 8 yet. The version below is for Windows 10 and 11 only.',
+      win10: 'Windows 10 / 11',
       req: {
         windows: 'Windows 10 (1803 or newer) or Windows 11, 64-bit. The launcher downloads Java by itself.',
+        'windows-legacy': 'Windows 7 (SP1), 8 or 8.1. The launcher downloads Java by itself.',
         mac: 'The launcher downloads Java by itself.',
         linux: 'The launcher downloads Java by itself.'
       },
@@ -191,6 +198,7 @@
     var ua = navigator.userAgent || '';
     var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
     if (/Android|iPhone|iPad|iPod/i.test(ua) || (/Mac/i.test(platform) && navigator.maxTouchPoints > 1)) return 'mobile';
+    if (/Windows NT 6\.[123]/.test(ua)) return 'windows-legacy'; // Windows 7, 8, 8.1
     if (/Win/i.test(platform) || /Windows/i.test(ua)) return 'windows';
     if (/Mac/i.test(platform) || /Mac OS X/i.test(ua)) return macChip();
     if (/Linux|X11/i.test(platform + ua)) return 'linux';
@@ -211,7 +219,7 @@
     return 'mac-arm64';
   }
   var detected = detectSystem();
-  // ?os=mac-arm64 (or windows, mac-x64, linux, mobile) shows the page as on that system.
+  // ?os=mac-arm64 (or windows, windows-legacy, mac-x64, linux, mobile) shows the page as on that system.
   var osParam = /[?&]os=([a-z0-9-]+)/.exec(location.search);
   if (osParam && (SYSTEMS.indexOf(osParam[1]) >= 0 || osParam[1] === 'mobile')) detected = osParam[1];
   // Chrome and Edge on a Mac can name the processor too.
@@ -252,13 +260,15 @@
     var group = /^mac/.test(system) ? 'mac' : system;
     var main = site && site.latest ? site.latest[system] : null;
 
+    var noWin7 = detected === 'windows-legacy' && system !== 'windows-legacy';
     lead.textContent = detected === 'mobile' ? T.mobile
+      : noWin7 ? T.noWin7
       : (site && system !== detected && !(detected === 'mac-arm64' && system === 'mac-x64')) ? T.noBuild
       : T.lead[group];
     document.getElementById('dl-req').textContent = T.req[group];
     var button = document.getElementById('download-second');
     button.href = main ? main.url : 'dl.php?platform=' + system;
-    document.getElementById('dl-label').textContent = T.downloadFor + SYSTEM_SHORT[system];
+    document.getElementById('dl-label').textContent = T.downloadFor + (noWin7 ? T.win10 : SYSTEM_SHORT[system]);
     document.getElementById('dl-version').textContent = main
       ? versionText(main.version) + ' · ' + (main.channel === 'beta' ? T.beta : T.release) + ' · ' + sizeText(main.size, T)
       : '';

@@ -7,7 +7,15 @@ if (!defined('AMX')) { http_response_code(404); exit; }
 
 const AMX_ROOT = __DIR__ . '/..';
 const AMX_DOWNLOADS = AMX_ROOT . '/downloads';
-const AMX_PLATFORMS = ['windows', 'mac-arm64', 'mac-x64', 'linux'];
+// windows-legacy: the Windows 7 / 8 build (an older Electron, Amethyx-Setup-<version>-win7.exe).
+// The regular installer does not start there, so the two are never mixed up.
+const AMX_PLATFORMS = ['windows', 'windows-legacy', 'mac-arm64', 'mac-x64', 'linux'];
+// The launcher's update feeds: file name => [platform, channel]. The Windows 7 / 8 build reads only
+// its own two files, the regular one only latest.json and beta.json.
+const AMX_FEEDS = [
+  'latest' => ['windows', 'release'], 'beta' => ['windows', 'beta'],
+  'latest-win7' => ['windows-legacy', 'release'], 'beta-win7' => ['windows-legacy', 'beta'],
+];
 const AMX_HIT_KINDS = ['view', 'video'];
 const AMX_LOGIN_TRIES = 5;          // failed logins allowed per address...
 const AMX_LOGIN_WINDOW = 15 * 60;   // ...within this many seconds
@@ -199,6 +207,7 @@ function amx_new_token(): string {
 
 function amx_guess_platform(string $file): ?string {
   $name = strtolower($file);
+  if (preg_match('/-win7[.-]/', $name) && preg_match('/\.(exe|msi)$/', $name)) return 'windows-legacy'; // before any .exe
   if (preg_match('/mac.*arm64|arm64.*mac|apple.?silicon/', $name)) return 'mac-arm64';
   if (preg_match('/mac|darwin|\.dmg$/', $name)) return 'mac-x64';
   if (preg_match('/\.(exe|msi|msix)$/', $name)) return 'windows';
@@ -347,9 +356,9 @@ function amx_import_downloads(): array {
 // list. Each takes the Windows build of its channel marked latest, otherwise the newest one.
 // An update the launcher downloads goes through dl.php and counts as a download.
 
-function amx_feed_row(string $channel): ?array {
-  $q = amx_db()->prepare("SELECT * FROM versions WHERE platform = 'windows' AND hidden = 0 AND channel = ?");
-  $q->execute([$channel]);
+function amx_feed_row(string $platform, string $channel): ?array {
+  $q = amx_db()->prepare('SELECT * FROM versions WHERE platform = ? AND hidden = 0 AND channel = ?');
+  $q->execute([$platform, $channel]);
   return amx_pick($q->fetchAll());
 }
 
@@ -379,8 +388,8 @@ function amx_write_feeds(?string $base = null): void {
       . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/') . '/';
     amx_set_setting('site_base', $base);
   }
-  foreach (['latest' => 'release', 'beta' => 'beta'] as $name => $channel) {
-    $row = amx_feed_row($channel);
+  foreach (AMX_FEEDS as $name => [$platform, $channel]) {
+    $row = amx_feed_row($platform, $channel);
     $file = "$dir/$name.json";
     if (!$row) { @unlink($file); continue; }
     $feed = [
@@ -395,11 +404,12 @@ function amx_write_feeds(?string $base = null): void {
 // then the feeds are written again with the address the admin's requests left behind.
 function amx_heal_feeds(): void {
   $dir = AMX_ROOT . '/updates';
-  if (is_file("$dir/beta.json") && is_file("$dir/latest.json")) return;
+  $missing = array_filter(array_keys(AMX_FEEDS), function ($name) use ($dir) { return !is_file("$dir/$name.json"); });
+  if (!$missing) return;
   $base = amx_setting('site_base');
   if (!$base) return;
-  foreach (['latest' => 'release', 'beta' => 'beta'] as $name => $channel) {
-    if (!is_file("$dir/$name.json") && amx_feed_row($channel)) { amx_write_feeds($base); return; }
+  foreach ($missing as $name) {
+    if (amx_feed_row(AMX_FEEDS[$name][0], AMX_FEEDS[$name][1])) { amx_write_feeds($base); return; }
   }
 }
 
