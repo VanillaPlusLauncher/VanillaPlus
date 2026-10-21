@@ -715,7 +715,8 @@ async function tunnelSocket(request, env, url, id) {
  * at most 2 MB, and passing text through costs the worker no CPU), then names them in a "pack";
  * the code carries the pack's id, and the friend's launcher downloads the parts and checks each
  * file's SHA-256. The files live in their own database (FILES), so they never crowd out accounts
- * and friends, and go FILE_DAYS days after the last pack that names them.
+ * and friends. A pack nobody downloads goes FILE_DAYS days after it was made; every download keeps
+ * it (and its files) FILE_DAYS days more, so codes in use stay.
  */
 const PART_BYTES = 1400 * 1000;
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
@@ -723,7 +724,8 @@ const MAX_PACK_FILES = 300;
 // Raw sizes; the database holds a third more as base64 (it has 500 MB on the free plan).
 const USER_BYTES = 150 * 1024 * 1024;
 const STORE_BYTES = 320 * 1024 * 1024;
-const FILE_DAYS = 14;
+const FILE_DAYS = 7;
+const GONE = 'Моды автора уже удалены с сервера.';
 const UPLOAD_MS = 24 * 60 * 60 * 1000;
 const PACK_FOLDERS = ['mods', 'resourcepacks', 'shaderpacks'];
 
@@ -771,7 +773,7 @@ async function startUpload(request, env, user) {
     const hash = String(file?.hash ?? '');
     const size = Number(file?.size);
     if (!HASH.test(hash) || !Number.isInteger(size) || size < 0) throw new Failure(400, 'Неверный список файлов.');
-    if (size > MAX_FILE_BYTES) throw new Failure(413, `Файлы больше ${MAX_FILE_BYTES / 1048576} МБ на сервер не помещаются.`);
+    if (size > MAX_FILE_BYTES) throw new Failure(413, `Моды больше ${MAX_FILE_BYTES / 1048576} МБ на сервер не загружаются.`);
     wanted.set(hash, size);
   }
   const now = Date.now();
@@ -781,7 +783,7 @@ async function startUpload(request, env, user) {
   if (addedBytes) {
     const usage = await db.prepare('SELECT COALESCE(SUM(size), 0) AS total, COALESCE(SUM(CASE WHEN owner_id = ? THEN size END), 0) AS mine FROM blobs').bind(user.id).first();
     if (usage.mine + addedBytes > USER_BYTES) {
-      throw new Failure(507, `На сервере можно держать до ${USER_BYTES / 1048576} МБ своих файлов, они удаляются через ${FILE_DAYS} дней. Пока передайте сборку файлом.`);
+      throw new Failure(507, `На сервере можно держать до ${USER_BYTES / 1048576} МБ своих модов. Пока передайте сборку файлом.`);
     }
     if (usage.total + addedBytes > STORE_BYTES) throw new Failure(507, 'Хранилище сервера сейчас заполнено: попробуйте через несколько дней или передайте сборку файлом.');
   }
@@ -851,11 +853,21 @@ async function createPack(request, env, user) {
   return json({ id, expiresAt, files: clean.length, bytes: clean.reduce((sum, file) => sum + file.size, 0) });
 }
 
-/** GET /packs/<id>: the files of a share code. No sign-in: the random id is the key. */
+/**
+ * GET /packs/<id>: the files of a share code. No sign-in: the random id is the key. Asking for
+ * them is using the code: the pack and its files stay FILE_DAYS days more.
+ */
 async function packInfo(env, id) {
-  const pack = await filesDb(env).prepare('SELECT files, expires_at FROM packs WHERE id = ? AND expires_at > ?').bind(id, Date.now()).first();
-  if (!pack) return json({ error: `Файлы этой сборки уже удалены с сервера: они хранятся ${FILE_DAYS} дней.` }, 404);
-  return json({ files: JSON.parse(pack.files), partBytes: PART_BYTES, expiresAt: pack.expires_at });
+  const db = filesDb(env);
+  const now = Date.now();
+  const pack = await db.prepare('SELECT owner_id, files FROM packs WHERE id = ? AND expires_at > ?').bind(id, now).first();
+  if (!pack) return json({ error: GONE }, 404);
+  const expiresAt = now + FILE_DAYS * 86400000;
+  await db.batch([
+    db.prepare('UPDATE packs SET expires_at = ? WHERE id = ?').bind(expiresAt, id),
+    db.prepare("UPDATE blobs SET expires_at = MAX(expires_at, ?) WHERE owner_id = ? AND hash IN (SELECT json_extract(value, '$.hash') FROM json_each(?))").bind(expiresAt, pack.owner_id, pack.files),
+  ]);
+  return json({ files: JSON.parse(pack.files), partBytes: PART_BYTES, expiresAt });
 }
 
 /** GET /packs/<id>/<hash>/<part>: one part of a file of the pack, as base64 text. */
@@ -866,7 +878,7 @@ async function packPart(env, id, hash, part) {
     )
     .bind(id, Date.now(), hash, part)
     .first();
-  if (!row) return json({ error: `Файлы этой сборки уже удалены с сервера: они хранятся ${FILE_DAYS} дней.` }, 404);
+  if (!row) return json({ error: GONE }, 404);
   return new Response(row.data, { headers: { 'Content-Type': 'text/plain; charset=us-ascii', 'Cache-Control': 'private, max-age=86400' } });
 }
 

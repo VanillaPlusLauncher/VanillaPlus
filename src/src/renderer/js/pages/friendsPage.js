@@ -511,7 +511,7 @@ export function createFriendsPage() {
         let filesError;
         ({ instance, filesError } = await api.share.importCode(invite.code, {}));
         await refreshInstances();
-        if (filesError) toast(`Файлы автора не скачались: ${filesError}`, 'info', 8000);
+        if (filesError) toast(`Моды автора не скачались: ${filesError}`, 'info', 8000);
       } catch (error) {
         toast(errorMessage(error), 'error');
         return;
@@ -546,7 +546,7 @@ export function createFriendsPage() {
       const { instance, failed, filesError } = await api.share.importCode(invite.code, {});
       await refreshInstances();
       if (failed.length) toast(`Не удалось поставить: ${failed.length}`, 'info', 6000);
-      if (filesError) toast(`Файлы автора не скачались: ${filesError}`, 'info', 8000);
+      if (filesError) toast(`Моды автора не скачались: ${filesError}`, 'info', 8000);
       playInstance(instance.id, invite.server ? { server: invite.server } : {});
     } catch (error) {
       toast(errorMessage(error), 'error');

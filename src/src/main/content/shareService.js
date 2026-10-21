@@ -17,8 +17,8 @@ const packFiles = require('./packFiles');
  *  - A share code ("VP1-…"): Minecraft version, loader and the exact versions of the mods, resource
  *    packs and shaders that came from Modrinth or CurseForge, compressed into one line. Pasting it
  *    builds the same instance. Files added by hand travel only when the player agrees: they go to
- *    the Amethyx server for 14 days (packFiles.js) and the code names them; otherwise they are
- *    listed as left out.
+ *    the Amethyx server (packFiles.js; kept while the code is used) and the code names them;
+ *    otherwise they are counted as left out.
  *  - A .mrpack file: Modrinth's modpack format, which Prism and other launchers open too. Modrinth
  *    files are referenced by URL and hash; everything else (CurseForge and local files, and the
  *    config folder when asked) goes into "overrides".
@@ -47,7 +47,7 @@ async function installedItems(settings, instanceId) {
 /**
  * { code, included, skipped: [titles left out], extra: { count, bytes, tooBig: [titles] }, uploaded }.
  * `extra` is what the server could carry; with `upload` those files are uploaded first and the code
- * names them (`uploaded`: { count, bytes, expiresAt }).
+ * names them (`uploaded`: { count, bytes }).
  */
 async function makeShareCode(settings, instanceId, { upload = false } = {}) {
   const instance = await instanceService.getInstance(settings, instanceId);
@@ -65,7 +65,7 @@ async function makeShareCode(settings, instanceId, { upload = false } = {}) {
   const fitting = byHand.filter((item) => item.size <= packFiles.MAX_FILE_BYTES);
   let uploaded = null;
   if (upload && fitting.length) {
-    const reporter = createTaskReporter({ taskId: `share-upload:${crypto.randomBytes(4).toString('hex')}`, kind: 'content', label: `Файлы для кода: ${instance.name}` });
+    const reporter = createTaskReporter({ taskId: `share-upload:${crypto.randomBytes(4).toString('hex')}`, kind: 'content', label: `Моды для кода: ${instance.name}` });
     try {
       const files = fitting.map((item) => {
         const relative = `${contentService.FOLDERS[item.type]}/${item.file}`;
@@ -74,8 +74,8 @@ async function makeShareCode(settings, instanceId, { upload = false } = {}) {
       const pack = await packFiles.uploadPackFiles(files, (sent, total) => reporter.report('Загрузка на сервер', total ? (sent / total) * 100 : 100, `${Math.round(sent / 1048576)}/${Math.round(total / 1048576)} МБ`));
       reporter.finish('done', `${pack.files} шт.`);
       // The server is named only when it is not the built-in one: codes stay short.
-      data.f = { i: pack.id, n: pack.files, b: pack.bytes, e: pack.expiresAt, ...(pack.server !== packFiles.BUILT_IN_SERVER ? { s: pack.server } : {}) };
-      uploaded = { count: pack.files, bytes: pack.bytes, expiresAt: pack.expiresAt };
+      data.f = { i: pack.id, n: pack.files, b: pack.bytes, ...(pack.server !== packFiles.BUILT_IN_SERVER ? { s: pack.server } : {}) };
+      uploaded = { count: pack.files, bytes: pack.bytes };
     } catch (error) {
       reporter.finish('error', error.message);
       throw error;
@@ -94,7 +94,7 @@ async function makeShareCode(settings, instanceId, { upload = false } = {}) {
 
 /**
  * Reads a share code: { name, minecraft, loader, content: [{ type, platform, projectId, versionId, enabled }],
- * files: { id, count, bytes, expiresAt, server } | null — the author's files on the server }.
+ * files: { id, count, bytes, server } | null — the author's files on the server }.
  */
 function parseShareCode(code) {
   const text = String(code ?? '').trim().replace(/\s+/g, '');
@@ -124,7 +124,6 @@ function parseShareCode(code) {
             id: String(data.f.i),
             count: Number(data.f.n) || 0,
             bytes: Number(data.f.b) || 0,
-            expiresAt: Number(data.f.e) || null,
             server: typeof data.f.s === 'string' && /^https?:\/\/[^/]+$/.test(data.f.s) ? data.f.s : null,
           }
         : null,
@@ -165,7 +164,7 @@ async function importShareCode(settings, code, { name, group, withFiles = true }
     if (files) {
       try {
         const result = await packFiles.downloadPackFiles(files, instance.directory, (received, total) =>
-          reporter.report('Файлы автора', 75 + (total ? received / total : 1) * 15, `${Math.round(received / 1048576)}/${Math.round(total / 1048576)} МБ`),
+          reporter.report('Моды автора', 75 + (total ? received / total : 1) * 15, `${Math.round(received / 1048576)}/${Math.round(total / 1048576)} МБ`),
         );
         failed.push(...result.failed);
       } catch (error) {

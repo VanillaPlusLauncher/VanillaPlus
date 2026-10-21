@@ -12,13 +12,13 @@ const { callAs, requireServer, BUILT_IN_SERVER } = require('../cloud/cloudClient
 /*
  * Files that travel with a share code through the Amethyx server (server/src/worker.js, "Files of
  * share codes"): mods, resource packs and shaders added by hand, uploaded only when the player
- * ticks it. The server keeps them FILE_DAYS days; the friend's launcher downloads them by the pack
- * id in the code and checks every file's SHA-256 before putting it into the instance.
+ * ticks it. The server keeps them while the code is used (a week after the last download); the
+ * friend's launcher downloads them by the pack id in the code and checks every file's SHA-256
+ * before putting it into the instance.
  */
 
 // As on the server.
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
-const FILE_DAYS = 14;
 const PACK_FOLDERS = ['mods', 'resourcepacks', 'shaderpacks'];
 const PART_TIMEOUT_MS = 120000;
 const PART_TRIES = 3;
@@ -160,4 +160,4 @@ async function downloadPackFiles(ref, directory, onProgress = () => {}) {
   return { done: files.length - failed.length, failed };
 }
 
-module.exports = { uploadPackFiles, downloadPackFiles, MAX_FILE_BYTES, FILE_DAYS, BUILT_IN_SERVER };
+module.exports = { uploadPackFiles, downloadPackFiles, MAX_FILE_BYTES, BUILT_IN_SERVER };

@@ -1,6 +1,6 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
-import { errorMessage, formatReleaseDate } from '../core/format.js';
+import { errorMessage } from '../core/format.js';
 import { LOADER_LABELS, formatBytes } from '../core/content.js';
 import { refreshInstances } from '../state/actions.js';
 import { openInstance } from '../core/nav.js';
@@ -135,21 +135,17 @@ export function openShareDialog(instance) {
     },
   });
 
+  /** Counts only: what is in the code, what is not on Modrinth or CurseForge, what is too big for the server. */
   function showCode(result) {
     codeArea.value = result.code;
     copyButton.disabled = false;
-    if (result.uploaded) {
-      const until = formatReleaseDate(new Date(result.uploaded.expiresAt).toISOString());
-      // Two sentences in their own text nodes: each is translated by itself.
-      codeInfo.replaceChildren(
-        h('span', null, `В коде: ${result.included} с Modrinth и CurseForge и ${result.uploaded.count} с сервера Amethyx (${formatBytes(result.uploaded.bytes)}, хранятся до ${until}).`),
-        ...(result.skipped.length ? [' ', h('span', null, `Не поместились (больше 64 МБ): ${result.skipped.join(', ')} — их можно передать файлом .mrpack.`)] : []),
-      );
-    } else {
-      codeInfo.textContent = result.skipped.length
-        ? `В коде: ${result.included}. Не попали (добавлены вручную, не с Modrinth или CurseForge): ${result.skipped.join(', ')} — их можно передать файлом .mrpack.`
-        : `В код попало всё — ${result.included} шт.`;
-    }
+    const { count, tooBig } = result.extra;
+    let first = `В код попало всё — ${result.included} шт.`;
+    if (result.uploaded) first = `В коде всё: ${result.included + result.uploaded.count} шт., из них ${result.uploaded.count} — с сервера Amethyx.`;
+    else if (count) first = `В коде: ${result.included} шт. Нет на Modrinth и CurseForge: ${count} шт.`;
+    else if (tooBig.length) first = `В коде: ${result.included} шт.`;
+    // Sentences in their own text nodes: each is translated by itself.
+    codeInfo.replaceChildren(h('span', null, first), ...(tooBig.length ? [' ', h('span', null, `Больше 64 МБ, на сервер не загрузятся: ${tooBig.length} шт. Такую сборку передайте файлом.`)] : []));
   }
 
   async function makeCode() {
@@ -157,7 +153,7 @@ export function openShareDialog(instance) {
       plainCode = await api.share.makeCode(instance.id);
       showCode(plainCode);
       if (plainCode.extra.count) {
-        uploadText.textContent = `Загрузить на сервер Amethyx то, чего нет на Modrinth и CurseForge (${plainCode.extra.count} шт., ${formatBytes(plainCode.extra.bytes)}), чтобы друг получил это вместе с кодом. Через 14 дней файлы удалятся с сервера.`;
+        uploadText.textContent = `Загрузить эти моды на сервер Amethyx (${plainCode.extra.count} шт., ${formatBytes(plainCode.extra.bytes)}), чтобы они передались вместе с кодом`;
         uploadBox.hidden = false;
       }
     } catch (error) {
@@ -168,7 +164,7 @@ export function openShareDialog(instance) {
   async function toggleUpload() {
     const upload = uploadCheck.checked;
     for (const control of [uploadCheck, copyButton, sendButton]) control.disabled = true;
-    if (upload) codeInfo.textContent = 'Загружаем файлы на сервер Amethyx…';
+    if (upload) codeInfo.textContent = 'Загружаем моды на сервер Amethyx…';
     try {
       showCode(upload ? await api.share.makeCode(instance.id, { upload: true }) : plainCode);
     } catch (error) {
@@ -244,10 +240,8 @@ export function openImportCodeDialog() {
         h('b', null, parsed.name),
         ` — ${`Minecraft ${parsed.minecraft}, ${LOADER_LABELS[parsed.loader.type] ?? parsed.loader.type}${parsed.loader.version ? ` ${parsed.loader.version}` : ''}`}. Модов: ${counts.mod}, ресурспаков: ${counts.resourcepack}, шейдеров: ${counts.shader}.`,
       );
-      if (parsed.files && parsed.files.expiresAt && parsed.files.expiresAt < Date.now()) {
-        preview.append(h('br'), h('span', null, 'Файлы автора уже удалены с сервера (они хранятся 14 дней): сборка соберётся без них.'));
-      } else if (parsed.files) {
-        filesText.textContent = `Скачать файлы автора с сервера Amethyx: ${parsed.files.count} шт., ${formatBytes(parsed.files.bytes)}. Их нет на Modrinth и CurseForge — ставьте, если доверяете тому, кто прислал код.`;
+      if (parsed.files) {
+        filesText.textContent = `Скачать моды автора с сервера Amethyx (${parsed.files.count} шт., ${formatBytes(parsed.files.bytes)}). Их нет на Modrinth и CurseForge.`;
         filesBox.hidden = false;
       }
       nameInput.placeholder = parsed.name;
@@ -265,7 +259,7 @@ export function openImportCodeDialog() {
       await refreshInstances();
       modal.close();
       toast(failed.length ? `Сборка «${instance.name}» готова, не удалось поставить: ${failed.length}` : `Сборка «${instance.name}» готова`, failed.length ? 'info' : 'success', 6000);
-      if (filesError) toast(`Файлы автора не скачались: ${filesError}`, 'info', 8000);
+      if (filesError) toast(`Моды автора не скачались: ${filesError}`, 'info', 8000);
       openInstance(instance.id);
     } catch (error) {
       toast(errorMessage(error), 'error');

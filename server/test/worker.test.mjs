@@ -275,9 +275,14 @@ r = await call('POST', '/v1/files/start', { files: [{ hash: sha(big), size: big.
 assert.deepEqual(r.body.need, [], 'uploaded files are not sent twice');
 r = await call('POST', '/v1/files/start', { files: [{ hash: sha(big), size: 65 * 1024 * 1024 }] }, steve);
 assert.equal(r.status, 413);
+// A pack about to expire: downloading it is using the code, it stays a week more (its files too).
+filesDb.prepare('UPDATE packs SET expires_at = ? WHERE id = ?').run(Date.now() + 60000, packId);
 r = await call('GET', `/packs/${packId}`);
 assert.equal(r.status, 200);
 assert.deepEqual(r.body.files, packFiles);
+const week = Date.now() + 6.9 * 86400000;
+assert.ok(filesDb.prepare('SELECT expires_at FROM packs WHERE id = ?').get(packId).expires_at > week, 'the pack stays a week after a download');
+assert.ok(filesDb.prepare('SELECT MIN(expires_at) AS at FROM blobs WHERE owner_id = ?').get('offline:steve').at > week, 'so do its files');
 const parts = [];
 for (let part = 0; part < 3; part += 1) {
   r = await call('GET', `/packs/${packId}/${sha(big)}/${part}`);
