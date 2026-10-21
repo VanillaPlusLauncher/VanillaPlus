@@ -7,12 +7,15 @@ attributes; only these change:
   Contents/Info.plist (the app's own)    -> name, bundle id and version of Amethyx
   Contents/Resources/electron.icns       -> the Amethyx icon
   Contents/Resources/default_app.asar    -> removed; Contents/Resources/app.asar is added
+  Contents/Frameworks/<helper>.app/Contents/Info.plist -> CFBundleExecutable written out (Electron
+                                            leaves it to the bundle name; signing needs it, see mac_sign.py)
 Files next to the app in Electron's zip (licenses, version) are left out.
 
 Usage: python -I mac_bundle.py <electron-darwin.zip> <app.asar> <icon.icns> <version> <out.zip>
 """
 
 import plistlib
+import re
 import sys
 import time
 import zipfile
@@ -20,6 +23,7 @@ import zipfile
 OLD = "Electron.app/"
 NEW = "Amethyx.app/"
 BUNDLE_ID = "com.amethyx.launcher"
+HELPER_PLIST = re.compile(r"^Contents/Frameworks/([^/]+)\.app/Contents/Info\.plist$")
 
 
 def new_entry(name, mode=0o100644):
@@ -48,6 +52,10 @@ def main(electron_zip, asar, icns, version, out):
                 plist["CFBundleShortVersionString"] = version
                 plist["CFBundleVersion"] = version
                 plist["NSHumanReadableCopyright"] = "GPL-3.0"
+                data = plistlib.dumps(plist)
+            elif HELPER_PLIST.match(inner):
+                plist = plistlib.loads(data)
+                plist.setdefault("CFBundleExecutable", HELPER_PLIST.match(inner).group(1))
                 data = plistlib.dumps(plist)
             elif inner == "Contents/Resources/electron.icns":
                 with open(icns, "rb") as handle:

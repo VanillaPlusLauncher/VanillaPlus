@@ -2,9 +2,10 @@
 # Amethyx-<version>-mac-x64.zip (Intel), each with Amethyx.app inside.
 #   1. downloads Electron for macOS from its GitHub releases and checks it,
 #   2. packs src\ into app.asar (with the version and the keys, like build.ps1),
-#   3. draws the icon (.icns) and rewrites Electron.app into Amethyx.app (tools\mac_bundle.py).
-# The app is not signed by Apple: on the first start macOS needs one command in Terminal (see
-# the CHANGELOG / the message with the build).
+#   3. draws the icon (.icns) and rewrites Electron.app into Amethyx.app (tools\mac_bundle.py),
+#   4. signs it ad hoc with rcodesign (tools\mac_sign.py).
+# The app is not signed by Apple: on the first start macOS refuses it once, then System Settings →
+# Privacy & Security → "Open Anyway" opens it (no Terminal).
 #
 # Without -Version the build is numbered like build.ps1's (version.ps1: "-beta.N"; -Release: plain).
 #
@@ -99,6 +100,22 @@ $mark.Dispose()
 $icns = Join-Path $iconWork 'amethyx.icns'
 python -I (Join-Path $PSScriptRoot 'tools\make_icns.py') $icns @pngs
 
+# 4. rcodesign (apple-codesign, open source) signs the app ad hoc: without it macOS calls the
+#    changed app "damaged" and only Terminal opens it; signed, "Open Anyway" in Privacy & Security does.
+$rcVersion = '0.29.0'
+$rcZipName = "apple-codesign-$rcVersion-x86_64-pc-windows-msvc.zip"
+$rcSha = '54bb500e2da7a8de02fcae0f331d1cac6e6d7173b4281042ff9c528ba3159aaa'
+$rcCache = Join-Path $env:TEMP "amethyx-rcodesign-$rcVersion"
+$rcodesign = Join-Path $rcCache "apple-codesign-$rcVersion-x86_64-pc-windows-msvc\rcodesign.exe"
+if (-not (Test-Path $rcodesign)) {
+  New-Item -ItemType Directory -Force $rcCache | Out-Null
+  $rcZip = Join-Path $rcCache $rcZipName
+  Invoke-WebRequest "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign/$rcVersion/$rcZipName" -OutFile $rcZip -UseBasicParsing
+  $actual = (Get-FileHash $rcZip -Algorithm SHA256).Hash.ToLower()
+  if ($actual -ne $rcSha) { throw "Контрольная сумма rcodesign не совпала ($actual)." }
+  Expand-Archive $rcZip $rcCache -Force
+}
+
 foreach ($a in $Arch) {
   $zipName = "electron-v$electronVersion-darwin-$a.zip"
   $download = Join-Path $cache $zipName
@@ -112,6 +129,9 @@ foreach ($a in $Arch) {
   $out = Join-Path $Output "Amethyx-$Version-mac-$a.zip"
   python -I (Join-Path $PSScriptRoot 'tools\mac_bundle.py') $download $asar $icns $Version $out
   if ($LASTEXITCODE -ne 0) { throw "mac_bundle.py завершился с кодом $LASTEXITCODE" }
+  # A short work folder: the paths inside Electron.app are long.
+  python -I (Join-Path $PSScriptRoot 'tools\mac_sign.py') $rcodesign $out (Join-Path $env:TEMP "amxs-$a")
+  if ($LASTEXITCODE -ne 0) { throw "mac_sign.py завершился с кодом $LASTEXITCODE" }
   Write-Output $out
   if ($Publish) { & (Join-Path $PSScriptRoot 'publish-site.ps1') -File $out -Latest -Notes $Notes }
 }
