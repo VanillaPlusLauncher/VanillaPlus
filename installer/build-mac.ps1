@@ -29,8 +29,10 @@ if (-not (Test-Path (Join-Path $root 'src\node_modules\adm-zip'))) { throw 'Не
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw 'Нужен Python 3.' }
 New-Item -ItemType Directory -Force $Output | Out-Null
 
-# 1. Electron for macOS (the same version as the Windows build), checked against SHASUMS256.txt.
-$electronVersion = '44.9.0'
+# 1. Electron for macOS, checked against SHASUMS256.txt. 43 is the last that runs on macOS 12
+#    Monterey (LSMinimumSystemVersion 12.0; 44 and newer need macOS 13), so one build serves
+#    macOS 12 and everything newer, a version behind the Windows build.
+$electronVersion = '43.8.3'
 $base = "https://github.com/electron/electron/releases/download/v$electronVersion"
 $cache = Join-Path $env:TEMP "amethyx-electron-mac-$electronVersion"
 New-Item -ItemType Directory -Force $cache | Out-Null
