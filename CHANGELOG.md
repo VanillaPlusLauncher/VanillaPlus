@@ -91,6 +91,7 @@
 - Friends' chat: "Поделиться сборкой" sends any instance in one click. Invites always carry the instance; "Собрать и играть" / "Собрать и зайти" builds it right in the chat without questions and starts the game, and once built the button just says "Играть". Sharing the same instance again gives the same code, so a friend does not get copies
 - Hand-drawn pixel icons (10 × 10, shown at whole sizes so every pixel stays square) instead of the smooth outline ones — the instance settings gear among them; pixel ticks everywhere instead of Windows' checkboxes; no rounded corners left anywhere; a slider like the game's
 - Fixed: "nullnull" under the update status in Settings → Updates
+- Fixed: the panorama sometimes stayed black after a start (for example the first one after an update): when the background was drawn twice in a row, the two copies removed each other
 
 ### Fixes
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")

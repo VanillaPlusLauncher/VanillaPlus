@@ -171,7 +171,8 @@ export function createSettingsPage() {
       }
     };
     if (panoramaList) fillPanoramas(panoramaList);
-    else api.app.panoramas().then((list) => { panoramaList = list; fillPanoramas(list); }).catch(() => {});    const font = createSegmented({ options: [{ value: 'pixel', label: 'Пиксельный' }, { value: 'clean', label: 'Обычный' }], value: ui.font, onChange: (value) => save({ ui: { font: value } }) });
+    else api.app.panoramas().then((list) => { panoramaList = list; fillPanoramas(list); }).catch(() => {});
+    const font = createSegmented({ options: [{ value: 'pixel', label: 'Пиксельный' }, { value: 'clean', label: 'Обычный' }], value: ui.font, onChange: (value) => save({ ui: { font: value } }) });
     const sidebar = createSegmented({
       options: [{ value: 'labels', label: 'С подписями' }, { value: 'hotbar', label: 'Хотбар' }, { value: 'icons', label: 'Только иконки' }],
       value: ui.sidebar ?? 'labels',

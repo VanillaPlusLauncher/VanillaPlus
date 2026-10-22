@@ -50,8 +50,12 @@ export function createBackground(element) {
         return;
       }
       wrapper.classList.add('panorama--visible');
-      // The old cube fades out under the new one, then goes.
-      setTimeout(() => [...element.children].filter((child) => child !== wrapper).forEach((child) => child.remove()), 900);
+      // The old cube fades out under the new one, then goes. When a newer cube came meanwhile, that
+      // one clears up instead: two cleanups would remove each other's cube and leave the window black.
+      setTimeout(() => {
+        if (current !== token) return;
+        [...element.children].filter((child) => child !== wrapper).forEach((child) => child.remove());
+      }, 900);
     });
   }
 
