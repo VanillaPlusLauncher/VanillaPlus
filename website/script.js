@@ -61,8 +61,8 @@
 
   var STORE_KEY = 'amethyx.site.lang';
   var version = '1.7'; // replaced by the latest Windows build from the admin panel (api.php)
-  // "1.7-beta.28" reads as "1.7 beta 28".
-  function versionText(raw) { return String(raw).replace(/-beta\.(\d+)$/, ' beta $1'); }
+  // "1.7.1-beta" reads as "1.7.1 beta", "1.7.1-beta.1" as "1.7.1 beta 1" (and the old "1.7-beta.28" as "1.7 beta 28").
+  function versionText(raw) { return String(raw).replace(/-beta(?:\.(\d+))?$/, function (m, n) { return ' beta' + (n ? ' ' + n : ''); }); }
   var nodes = Array.prototype.slice.call(document.querySelectorAll('[data-i18n]'));
   var russian = {};
   nodes.forEach(function (node) { russian[node.getAttribute('data-i18n')] = node.textContent; });
