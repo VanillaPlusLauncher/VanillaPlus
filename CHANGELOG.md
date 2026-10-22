@@ -15,7 +15,7 @@
 - An invite in the chat is a card with the instance's picture, name and version. "Join" builds the instance if needed, starts it and joins at once; "Only build" just builds it; while it builds, "Stop" stops it and removes the half-built instance. If the friend already has the instance, it simply starts
 - Settings → "Friends and skins" → "Friend invites": whether the instance goes with an invite, whether mods not from Modrinth or CurseForge are uploaded (always, ask, never), and what the main button of a friend's invite does (join at once or only build)
 - A friend joining shows a small card over the game; when a friend's world is closed, the launcher says so instead of a silent "connection lost"
-- A panel over the game: while you play, press Shift+Tab and the Amethyx panel slides in from the right — invite a friend to your world or to your own server, reply in the chat, send your latest screenshot. Nothing goes into the game, so it works in every version and with every loader. A message card over the game says which keys answer it. The keys (Shift+Tab, Alt+X or F9) and the panel itself are in Settings → "Friends and skins"
+- A panel over the game: while you play, press Shift+Tab and the Amethyx panel slides in from the right — invite a friend to your world or to your own server, reply in the chat, send your latest screenshot. The keys work only while the game's window is in front, so in other programs Shift+Tab does what it always does. Nothing goes into the game, so it works in every version and with every loader. A message card over the game says which keys answer it. The keys (Shift+Tab, Alt+X or F9) and the panel itself are in Settings → "Friends and skins"
 - Export → "Send to a friend": the instance goes straight into the chat
 - Friends, chat and shared skins work through the Amethyx server (the `server` folder, Cloudflare Workers); all of it can be turned off in Settings → "Friends and skins"
 
@@ -99,7 +99,7 @@
 - Hand-drawn pixel icons (10 × 10, shown at whole sizes so every pixel stays square) instead of the smooth outline ones — the instance settings gear among them; pixel ticks everywhere instead of Windows' checkboxes; no rounded corners left anywhere; a slider like the game's
 - Fixed: "nullnull" under the update status in Settings → Updates
 - Buttons in the Amethyx style "Резонанс" (picked on the style page): a dark plate with a glowing line in the theme colour; a pixel shine runs across it under the pointer, a press visibly pushes the button in, letting go springs it back. Pixel sparks fly from a pressed button (Settings → "Оформление" → "Искры при нажатии"), drawn on one canvas so they never stutter
-- The start screen is plain now: the X, the name and a loading bar that grows like an amethyst crystal, with a glint running over it and sparkles at its tip; no game textures any more
+- The start screen simply says "Loading…" under the amethyst plate, instead of naming every step
 - The frame of every pixel-cut button, panel, card and field now goes round the cut corners too (it used to stop at each step); "Shaders for this computer" in "Optimization" and packs without a picture show the Amethyx X
 - Fixed: the panorama sometimes stayed black after a start (for example the first one after an update): when the background was drawn twice in a row, the two copies removed each other
 

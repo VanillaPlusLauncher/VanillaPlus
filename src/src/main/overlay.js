@@ -10,8 +10,8 @@ const { CHANNELS } = require('../shared/channels');
 const { getSettings } = require('./settings/settingsService');
 
 /*
- * The Amethyx panel over the game, like Steam's overlay: while a game runs, a key combination
- * (Shift+Tab by default, Settings → "Друзья и скины") slides a panel in over it — call a friend
+ * The Amethyx panel over the game, like Steam's overlay: while the game's window is in front, a key
+ * combination (Shift+Tab by default, Settings → "Друзья и скины") slides a panel in over it — call a friend
  * into the world, chat, send a screenshot — and the same keys, Esc or a click outside take it away.
  * Nothing is installed in the game, so it works with every version and loader, vanilla too.
  *
@@ -26,10 +26,15 @@ const PAGE = appUrl('src/renderer/overlay.html');
 const log = createLogger('overlay');
 
 let window = null;
+/** The keys while a game runs, and whether they are taken right now (only while the game is in front). */
 let shortcut = null;
+let registered = false;
+let warned = false;
 let gamePid = null;
 let shownAt = 0;
 let focuser = null;
+let watcher = null;
+let foregroundPid = null;
 
 function createWindow() {
   const panel = new BrowserWindow({
@@ -67,6 +72,8 @@ function isOpen() {
 
 function show() {
   if (!window || window.isDestroyed()) window = createWindow();
+  // The same keys close it again, wherever the focus is now.
+  takeKeys(true);
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   window.setBounds(display.bounds);
   shownAt = Date.now();
@@ -89,6 +96,7 @@ function hide() {
   setTimeout(() => {
     if (!panel.isDestroyed()) panel.hide();
     focusGame();
+    updateKeys();
   }, 160);
 }
 
@@ -129,33 +137,100 @@ function focusGame() {
 /** The key combination from the settings, as Electron writes it. */
 const KEYS = { 'shift-tab': 'Shift+Tab', 'alt-x': 'Alt+X', f9: 'F9' };
 
-/** A game started: the panel answers its keys (unless turned off in the settings). */
+/** Takes the keys from the system (on) or gives them back (off). */
+function takeKeys(on) {
+  if (!shortcut || on === registered) return;
+  if (!on) {
+    globalShortcut.unregister(shortcut);
+    registered = false;
+    return;
+  }
+  try {
+    registered = globalShortcut.register(shortcut, toggle);
+  } catch (error) {
+    registered = false;
+    log.warn(`Панель поверх игры не включена: ${error.message}`);
+  }
+  if (!registered && !warned) {
+    warned = true;
+    log.warn(`Сочетание ${shortcut} занято другой программой: панель поверх игры не откроется`);
+    broadcast(CHANNELS.events.overlay, { open: false, keyBusy: shortcut });
+  }
+}
+
+/**
+ * The keys are the panel's only while the game is in front or the panel is open: in every other
+ * program Shift+Tab keeps its usual job. Without a watcher (not Windows) they stay taken while the game runs.
+ */
+function updateKeys() {
+  if (!shortcut) return;
+  takeKeys(!watcher || isOpen() || (gamePid !== null && foregroundPid === gamePid));
+}
+
+/**
+ * Windows: one PowerShell tells which process owns the window in front whenever that changes
+ * (checked 5 times a second, a few user32 calls).
+ */
+function watchForeground() {
+  if (process.platform !== 'win32' || !gamePid) return;
+  const script = [
+    'Add-Type -Namespace Amethyx -Name Front -MemberDefinition @"',
+    '[DllImport("user32.dll")] public static extern System.IntPtr GetForegroundWindow();',
+    '[DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(System.IntPtr h, out uint id);',
+    '"@',
+    '$last = -1',
+    'while ($true) { $id = [uint32]0; [void][Amethyx.Front]::GetWindowThreadProcessId([Amethyx.Front]::GetForegroundWindow(), [ref]$id); if ($id -ne $last) { $last = $id; [Console]::Out.WriteLine($id); [Console]::Out.Flush() }; Start-Sleep -Milliseconds 200 }',
+  ].join('\r\n');
+  try {
+    const helper = spawn('powershell.exe', ['-NoProfile', '-NoLogo', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+    watcher = helper;
+    let buffer = '';
+    helper.stdout.setEncoding('utf8');
+    helper.stdout.on('data', (chunk) => {
+      buffer += chunk;
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop();
+      const last = lines.filter(Boolean).pop();
+      if (last === undefined || watcher !== helper) return;
+      foregroundPid = Number(last);
+      updateKeys();
+    });
+    // No watcher after all: the keys simply stay taken while the game runs.
+    const lost = () => {
+      if (watcher !== helper) return;
+      watcher = null;
+      updateKeys();
+    };
+    helper.on('error', lost);
+    helper.on('exit', lost);
+  } catch (error) {
+    watcher = null;
+    log.warn(`Окно впереди не отслеживается: ${error.message}`);
+  }
+}
+
+/** A game started: the panel answers its keys while the game is in front (unless turned off in the settings). */
 async function startOverlay(pid) {
   stopOverlay();
   const settings = await getSettings().catch(() => null);
   if (settings?.social?.overlay === false) return;
   gamePid = pid ?? null;
-  const accelerator = KEYS[settings?.social?.overlayKey] ?? KEYS['shift-tab'];
-  try {
-    if (globalShortcut.register(accelerator, toggle)) {
-      shortcut = accelerator;
-      log.info(`Панель поверх игры: ${accelerator}`);
-    } else {
-      log.warn(`Сочетание ${accelerator} занято другой программой: панель поверх игры не откроется`);
-      broadcast(CHANNELS.events.overlay, { open: false, keyBusy: accelerator });
-    }
-  } catch (error) {
-    log.warn(`Панель поверх игры не включена: ${error.message}`);
-  }
+  shortcut = KEYS[settings?.social?.overlayKey] ?? KEYS['shift-tab'];
+  warned = false;
+  log.info(`Панель поверх игры: ${shortcut}`);
+  watchForeground();
+  updateKeys();
 }
 
-/** The game closed: keys free again, the panel and its helper go. */
+/** The game closed: keys free again, the panel and its helpers go. */
 function stopOverlay() {
-  if (shortcut) {
-    globalShortcut.unregister(shortcut);
-    shortcut = null;
-  }
+  takeKeys(false);
+  shortcut = null;
   gamePid = null;
+  foregroundPid = null;
+  const helper = watcher;
+  watcher = null;
+  if (helper && helper.exitCode === null) helper.kill();
   if (window && !window.isDestroyed()) window.destroy();
   window = null;
   if (focuser && focuser.exitCode === null) focuser.kill();
