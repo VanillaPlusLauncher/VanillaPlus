@@ -279,6 +279,8 @@ async function launch(requestedInstanceId, { server = null } = {}) {
   instanceService.updateInstance(settings, instance.id, { lastPlayedAt: startedAt.toISOString() }).catch(() => {});
   broadcastStatus();
   require('../cloud/cloudFriends').reportPresence();
+  // The Amethyx panel over the game answers its keys while the game runs (main/overlay.js).
+  require('../overlay').startOverlay(child.pid).catch(() => {});
   if (afterLaunch !== 'keep') {
     setLauncherVisible(false, afterLaunch);
   }
@@ -303,6 +305,7 @@ function finish(exitCode) {
   current = null;
   skinAgent?.stop().catch(() => {});
   require('../cloud/tunnel').onGameExit();
+  require('../overlay').stopOverlay();
   require('../cloud/cloudFriends').reportPresence();
   const finishedRun = runLog;
   runLog = null;

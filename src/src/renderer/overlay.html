@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru" data-accent="amethyst" data-font="pixel">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' app:; img-src 'self' app: data: https:; media-src 'self' app:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' app: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' app:"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Amethyx</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Tiny5&display=swap" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/mc.css" />
+    <link rel="stylesheet" href="css/features.css" />
+    <link rel="stylesheet" href="css/overlay.css" />
+  </head>
+  <body class="overlay">
+    <!-- The Amethyx panel over the game (main/overlay.js, js/overlay/overlay.js). -->
+    <div class="overlay__dim" id="overlay-dim"></div>
+    <aside class="surface ov-panel" id="overlay-panel" aria-label="Amethyx"></aside>
+    <script type="module" src="js/overlay/overlay.js"></script>
+  </body>
+</html>

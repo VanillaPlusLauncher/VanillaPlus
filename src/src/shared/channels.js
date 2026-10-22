@@ -183,6 +183,11 @@ const CHANNELS = Object.freeze({
     /** A local port into a friend's world or server (the tunnel): { address, port }. */
     joinTunnel: 'friends:join-tunnel',
   }),
+  /** The Amethyx panel over the game (main/overlay.js). */
+  overlay: Object.freeze({
+    state: 'overlay:state',
+    close: 'overlay:close',
+  }),
   updates: Object.freeze({
     status: 'updates:status',
     check: 'updates:check',
@@ -209,6 +214,8 @@ const CHANNELS = Object.freeze({
     minecraftReleased: 'event:minecraft-released',
     friendEvent: 'event:friend-event',
     skinImported: 'event:skin-imported',
+    /** The panel over the game opens ({ open: true }) or goes ({ open: false }). */
+    overlay: 'event:overlay',
   }),
 });
 

@@ -50,6 +50,29 @@ function registerFriendsHandlers(handle) {
     return { ...world, address: e4mc?.kind === 'ready' ? e4mc.address : null };
   });
   handle(CHANNELS.friends.joinTunnel, (_event, tunnelId, name) => tunnel.joinTunnel(String(tunnelId), { name: String(name ?? '').slice(0, 64) }));
+
+  // The panel over the game (main/overlay.js): what is being played and what can be shared now.
+  handle(CHANNELS.overlay.state, async () => {
+    const settings = await getSettings();
+    const gameService = require('../minecraft/gameService');
+    const status = gameService.getStatus();
+    const activity = gameService.getActivity();
+    let ownServer = null;
+    if (status.instanceId) {
+      const server = await require('../minecraft/serverService').getServer(settings, status.instanceId).catch(() => null);
+      if (server?.exists) ownServer = { running: server.running, tunnel: server.tunnel };
+    }
+    return {
+      instanceId: status.state === 'running' ? status.instanceId : null,
+      activity,
+      world: tunnel.worldStatus(),
+      ownServer,
+      key: require('../overlay').overlayKey(),
+      ui: { language: settings.ui?.language ?? null, accent: settings.ui?.accent ?? 'amethyst', font: settings.ui?.font ?? 'pixel', animations: settings.ui?.animations !== false },
+      social: { inviteWithPack: settings.social?.inviteWithPack !== false, inviteUpload: settings.social?.inviteUpload ?? 'always' },
+    };
+  });
+  handle(CHANNELS.overlay.close, () => require('../overlay').hide());
   handle(CHANNELS.friends.markRead, (_event, friendId) => messages.markRead(String(friendId)));
   handle(CHANNELS.friends.image, (_event, imageId) => messages.imageData(String(imageId)));
   handle(CHANNELS.friends.screenshots, () => messages.recentScreenshots());

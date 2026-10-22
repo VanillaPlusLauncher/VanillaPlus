@@ -314,6 +314,15 @@ export function createSettingsPage() {
           onChange: (value) => update({ acceptInvite: value }),
         }).element)),
       ),
+      // The panel over the game (main/overlay.js): takes effect from the next game start.
+      card('Панель поверх игры', 'Во время игры нажмите сочетание клавиш — справа выедет панель Amethyx: позвать друга в мир, ответить в чате, отправить скриншот. В игру ничего не ставится, работает в любой версии. Изменения — со следующего запуска игры.',
+        row('Панель поверх игры', null, toggle(social.overlay !== false, (value) => update({ overlay: value }), 'Панель поверх игры')),
+        row('Открывать сочетанием', 'Если другая программа уже заняла сочетание, выберите другое.', nowrap(createSegmented({
+          options: [{ value: 'shift-tab', label: 'Shift+Tab' }, { value: 'alt-x', label: 'Alt+X' }, { value: 'f9', label: 'F9' }],
+          value: social.overlayKey ?? 'shift-tab',
+          onChange: (value) => update({ overlayKey: value }),
+        }).element)),
+      ),
     ];
   }
 

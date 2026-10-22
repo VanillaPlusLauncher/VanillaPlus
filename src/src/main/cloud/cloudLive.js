@@ -46,11 +46,19 @@ function onEvent(event) {
   if (event.type !== 'message') return;
   const window = mainWindow();
   if (window?.isFocused()) return;
+  // During a game the panel over it answers (main/overlay.js): the card says which keys open it.
+  const overlay = require('../overlay');
+  if (overlay.isOpen()) return;
+  const key = overlay.overlayKey();
   // Amethyx's own card in the corner of the screen (main/notice.js), not a Windows toast.
   showNotice({
-    title: event.from?.name ?? 'Amethyx',
+    title: key ? `${event.from?.name ?? 'Amethyx'} · ${key} — ответить` : event.from?.name ?? 'Amethyx',
     text: preview(event.message),
     onClick: () => {
+      if (key) {
+        overlay.show();
+        return;
+      }
       if (!window || window.isDestroyed()) return;
       showWindow(window);
       broadcast(CHANNELS.events.friendEvent, { type: 'open-chat', with: event.message.from });

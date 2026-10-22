@@ -168,6 +168,10 @@ const bridge = {
     hostStatus: () => invoke(CHANNELS.friends.hostStatus),
     joinTunnel: (tunnelId, name) => invoke(CHANNELS.friends.joinTunnel, tunnelId, name ?? ''),
   },
+  overlay: {
+    state: () => invoke(CHANNELS.overlay.state),
+    close: () => invoke(CHANNELS.overlay.close),
+  },
   java: {
     runtimes: () => invoke(CHANNELS.java.runtimes),
     install: (majorVersion, vendor) => invoke(CHANNELS.java.install, majorVersion, vendor),
@@ -237,6 +241,7 @@ const bridge = {
     onMinecraftReleased: (listener) => subscribe(CHANNELS.events.minecraftReleased, listener),
     onFriendEvent: (listener) => subscribe(CHANNELS.events.friendEvent, listener),
     onSkinImported: (listener) => subscribe(CHANNELS.events.skinImported, listener),
+    onOverlay: (listener) => subscribe(CHANNELS.events.overlay, listener),
   },
 };
 

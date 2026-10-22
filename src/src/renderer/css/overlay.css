@@ -1,0 +1,250 @@
+/* The Amethyx panel over the game (overlay.html): the game shows through a light shade, the panel
+   slides in from the right with a little spring and slides back out when it goes. */
+html,
+body.overlay {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+.overlay__dim {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 4, 10, 0.5);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.overlay.is-open .overlay__dim {
+  opacity: 1;
+}
+
+.ov-panel {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(400px, calc(100vw - 48px));
+  padding: 18px;
+  background: rgba(17, 12, 26, 0.97);
+  transform: translateX(calc(100% + 40px));
+  transition: transform 160ms ease-in;
+}
+
+.overlay.is-open .ov-panel {
+  transform: translateX(0);
+  transition: transform 420ms cubic-bezier(0.34, 1.45, 0.5, 1);
+}
+
+/* --- Head ------------------------------------------------------------------------------------- */
+.ov-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ov-head__mark {
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+  animation: mark-bob 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.ov-head__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ov-head__text b {
+  font-family: var(--font-pixel);
+  font-size: 20px;
+}
+
+.ov-head__text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.ov-key {
+  padding: 4px 7px 5px;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  color: var(--color-text-soft);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* --- The world ---------------------------------------------------------------------------------- */
+.ov-world {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: linear-gradient(rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0.04));
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.28);
+}
+
+.ov-world p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ov-world__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-pixel);
+  font-size: 17px;
+}
+
+.ov-world .btn {
+  justify-self: stretch;
+}
+
+/* A green square that breathes: the world is open right now. */
+.ov-live {
+  width: 8px;
+  height: 8px;
+  background: #6ee07a;
+  box-shadow: 0 0 8px rgba(110, 224, 122, 0.8);
+  animation: ov-live 1.6s ease-in-out infinite;
+}
+
+@keyframes ov-live {
+  50% { opacity: 0.45; }
+}
+
+/* --- Friends ---------------------------------------------------------------------------------- */
+.ov-friends {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.ov-section-title {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-soft);
+}
+
+.ov-friends__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.ov-friend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.ov-friend__name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* --- Chat ----------------------------------------------------------------------------------- */
+.ov-chat {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.ov-chat__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ov-back .icon {
+  transform: rotate(90deg);
+}
+
+.ov-chat__log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.ov-chat__empty {
+  margin: auto;
+  text-align: center;
+}
+
+.ov-msg {
+  align-self: flex-start;
+  max-width: 82%;
+  padding: 7px 10px 8px;
+  background: #241b33;
+  font-size: 13.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ov-msg--mine {
+  align-self: flex-end;
+  background: rgba(var(--accent-rgb), 0.28);
+}
+
+.ov-msg--special {
+  font-family: var(--font-pixel);
+  font-size: 12.5px;
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.35);
+}
+
+.ov-chat__tools {
+  display: flex;
+  gap: 8px;
+}
+
+.ov-chat__composer {
+  display: flex;
+  gap: 8px;
+}
+
+.ov-chat__composer .input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- A short note at the bottom (an error, a hint) ----------------------------------------------- */
+.ov-note {
+  padding: 8px 10px;
+  font-size: 13px;
+  background: rgba(255, 107, 94, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(255, 107, 94, 0.35);
+}

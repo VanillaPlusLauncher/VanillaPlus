@@ -131,6 +131,9 @@ function buildDefaults() {
       inviteUpload: 'always',
       /** A friend's invite, clicked: 'join' builds and joins at once, 'build' only builds the instance. */
       acceptInvite: 'join',
+      /** The Amethyx panel over the game (main/overlay.js) and the keys that open it. */
+      overlay: true,
+      overlayKey: 'shift-tab',
     },
   };
 }
@@ -274,6 +277,8 @@ function sanitize(input, defaults) {
     inviteWithPack: typeof input.social?.inviteWithPack === 'boolean' ? input.social.inviteWithPack : defaults.social.inviteWithPack,
     inviteUpload: ['always', 'never', 'ask'].includes(input.social?.inviteUpload) ? input.social.inviteUpload : defaults.social.inviteUpload,
     acceptInvite: ['join', 'build'].includes(input.social?.acceptInvite) ? input.social.acceptInvite : defaults.social.acceptInvite,
+    overlay: typeof input.social?.overlay === 'boolean' ? input.social.overlay : defaults.social.overlay,
+    overlayKey: ['shift-tab', 'alt-x', 'f9'].includes(input.social?.overlayKey) ? input.social.overlayKey : defaults.social.overlayKey,
   };
   result.downloads = {
     parallel: Number.isFinite(input.downloads?.parallel) ? clampInt(input.downloads.parallel, 1, 32) : defaults.downloads.parallel,
