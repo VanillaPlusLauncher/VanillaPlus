@@ -234,6 +234,10 @@ async function start() {
   setupLogsButton();
   setupDragAndDrop(router);
   installGlobalSounds();
+  // A hidden or minimised window (the game is running, the launcher is in the tray) plays no animations.
+  const markHidden = () => document.documentElement.classList.toggle('is-hidden', document.hidden);
+  document.addEventListener('visibilitychange', markHidden);
+  markHidden();
   installDropdowns();
   installTooltips();
   installAliveUi();

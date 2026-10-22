@@ -21,6 +21,7 @@ const { broadcast } = require('../core/broadcast');
 const updateService = require('../updates/updateService');
 const shareService = require('../content/shareService');
 const optimizer = require('../content/optimizer');
+const shaderService = require('../content/shaderService');
 const serverService = require('../minecraft/serverService');
 
 const MAX_WORLD_ICON_BYTES = 64 * 1024;
@@ -292,6 +293,17 @@ function registerDomainHandlers(handle) {
   });
   handle(CHANNELS.content.optimizeUndo, async (_event, instanceId) => {
     const result = await optimizer.undo(await settings(), String(instanceId));
+    instancesChanged(String(instanceId));
+    return result;
+  });
+  handle(CHANNELS.content.shaderPlan, async (_event, instanceId) => shaderService.plan(await settings(), String(instanceId)));
+  handle(CHANNELS.content.shaderApply, async (_event, instanceId, choices) => {
+    const result = await shaderService.apply(await settings(), String(instanceId), {
+      enabled: choices?.enabled !== false,
+      auto: choices?.auto !== false,
+      level: String(choices?.level ?? 'balance'),
+      pack: choices?.pack ? String(choices.pack).slice(0, 300) : null,
+    });
     instancesChanged(String(instanceId));
     return result;
   });

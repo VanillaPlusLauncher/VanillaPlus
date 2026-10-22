@@ -27,6 +27,11 @@ const { isLegacyBuild } = require('../core/system');
  * a small window of its own and opens the launcher again. "Later" leaves it for the next start,
  * which installs it before the window opens. Worlds, instances and settings live elsewhere and
  * are not touched.
+ *
+ * macOS: the site's public list (api.php?a=site) names the newest zip for this Mac's processor
+ * with its SHA-256. The zip is downloaded and checked the same way and unpacked with ditto (which
+ * keeps the app's links and permissions); then the launcher closes and a small shell script puts
+ * the new Amethyx.app where the old one was and opens it.
  */
 
 /** The built-in address of latest.json: the asset of the newest release on GitHub. */
@@ -44,7 +49,9 @@ const SITE_BETA_FEED_URL = 'https://launcher.x-world.plus/updates/beta.json';
  */
 const SITE_LEGACY_FEED_URL = 'https://launcher.x-world.plus/updates/latest-win7.json';
 const SITE_LEGACY_BETA_FEED_URL = 'https://launcher.x-world.plus/updates/beta-win7.json';
-const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+/** macOS: the site's public list, with the newest build of each platform. */
+const SITE_LIST_URL = 'https://launcher.x-world.plus/api.php?a=site';
+const CHECK_INTERVAL_MS = 10 * 60 * 1000;
 const FIRST_CHECK_DELAY_MS = 8000;
 /** How long "the launcher restarts to update" is shown before it does, and how often a busy launcher is asked again. */
 const RESTART_NOTICE_MS = 6000;
@@ -123,8 +130,26 @@ function feedUrls(settings) {
   const custom = settings.updates?.feedUrl || process.env.AMETHYX_UPDATE_FEED;
   if (custom) return [custom];
   const beta = /-beta\b/i.test(app.getVersion());
+  if (process.platform === 'darwin') return [SITE_LIST_URL];
   if (isLegacyBuild()) return [SITE_LEGACY_FEED_URL, ...(beta ? [SITE_LEGACY_BETA_FEED_URL] : [])];
   return [SITE_FEED_URL, ...(beta ? [SITE_BETA_FEED_URL] : []), DEFAULT_FEED_URL];
+}
+
+/**
+ * macOS: the newest zip for this Mac (Apple Silicon or Intel) from the site's list, as a feed
+ * entry. A release launcher takes released builds only.
+ */
+async function readMacFeed(url) {
+  const list = await fetchJson(url, { headers: { 'Cache-Control': 'no-cache' } });
+  const entry = list?.latest?.[process.arch === 'arm64' ? 'mac-arm64' : 'mac-x64'];
+  if (!entry) throw new Error('На сайте нет сборки для этого Mac.');
+  if (entry.channel === 'beta' && !/-beta\b/i.test(app.getVersion())) throw new Error('Для Mac пока есть только тестовая сборка.');
+  return {
+    version: String(entry.version ?? ''),
+    date: entry.date ?? null,
+    notes: entry.notes ?? '',
+    installer: { url: new URL(String(entry.url ?? ''), url).href, sha256: entry.sha256, size: entry.size },
+  };
 }
 
 /** The newest version any feed offers; fails only when every feed failed. */
@@ -143,7 +168,8 @@ function updatesDirectory() {
 }
 
 function installerPathFor(version) {
-  return path.join(updatesDirectory(), `Amethyx-Setup-${String(version).replace(/[^\w.-]/g, '')}.exe`);
+  const clean = String(version).replace(/[^\w.-]/g, '');
+  return path.join(updatesDirectory(), process.platform === 'darwin' ? `Amethyx-${clean}-mac.zip` : `Amethyx-Setup-${clean}.exe`);
 }
 
 /**
@@ -172,14 +198,14 @@ async function alreadyTried(version) {
   return (await readUpdateFile(ATTEMPT_FILE))?.version === version;
 }
 
-/** Whether this run may update itself: a packaged Windows launcher, not a test or screenshot run. */
+/** Whether this run may update itself: a packaged Windows or macOS launcher, not a test or screenshot run. */
 function selfUpdating() {
-  return process.platform === 'win32' && (app.isPackaged || Boolean(process.env.AMETHYX_UPDATE_FEED)) && !process.env.AMETHYX_SCREENSHOT && !process.env.AMETHYX_MAIN_SCRIPT;
+  return ['win32', 'darwin'].includes(process.platform) && (app.isPackaged || Boolean(process.env.AMETHYX_UPDATE_FEED)) && !process.env.AMETHYX_SCREENSHOT && !process.env.AMETHYX_MAIN_SCRIPT;
 }
 
-/** Reads latest.json and checks what it describes. */
+/** Reads latest.json (on macOS the site's list) and checks what it describes. */
 async function readFeed(url) {
-  const feed = await fetchJson(url, { headers: { 'Cache-Control': 'no-cache' } });
+  const feed = url === SITE_LIST_URL ? await readMacFeed(url) : await fetchJson(url, { headers: { 'Cache-Control': 'no-cache' } });
   const version = String(feed?.version ?? '').trim();
   const installer = feed?.installer ?? {};
   if (!/^\d+\.\d+(\.\d+)?([.+-][\w.]+)?$/.test(version)) {
@@ -216,8 +242,8 @@ function sha256File(filePath) {
 async function checkForUpdates({ manual = false } = {}) {
   const settings = await getSettings();
   const urls = feedUrls(settings);
-  // Updates come as a Windows installer: other systems update by hand for now.
-  if (urls.length === 0 || process.platform !== 'win32') {
+  // Windows (installer) and macOS (zip) update themselves; Linux by hand for now.
+  if (urls.length === 0 || !['win32', 'darwin'].includes(process.platform)) {
     setStatus({ state: 'disabled', error: null });
     return publicStatus();
   }
@@ -323,6 +349,7 @@ async function installUpdate({ isGameRunning = () => false } = {}) {
   }
   clearTimeout(autoTimer);
   autoTimer = null;
+  if (process.platform === 'darwin') return installMacUpdate();
   await writeUpdateFile(ATTEMPT_FILE, { version: status.latest.version, at: new Date().toISOString() }).catch(() => {});
   log.info(`Запуск установщика ${status.latest.version}`);
   const child = spawn(status.installerPath, ['/SILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CLOSEAPPLICATIONS', '/relaunch=1'], {
@@ -331,6 +358,67 @@ async function installUpdate({ isGameRunning = () => false } = {}) {
     windowsHide: false,
   });
   child.unref();
+  setTimeout(() => app.quit(), 300);
+  return { installing: true };
+}
+
+const quote = (text) => `'${String(text).replace(/'/g, `'\\''`)}'`;
+
+function run(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    let errors = '';
+    child.stderr.on('data', (chunk) => {
+      errors += chunk;
+    });
+    child.on('error', reject);
+    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(errors.trim() || `${command}: код ${code}`))));
+  });
+}
+
+/**
+ * macOS: the checked zip is unpacked next to it (ditto keeps the app's links and permissions); a
+ * shell script waits for this launcher to close, swaps the old Amethyx.app for the new one in the
+ * same place (the old one comes back if the swap fails) and opens it. An app run straight from
+ * the download (macOS keeps it in a read-only copy) or from a folder it may not write to cannot
+ * be replaced: the player is told to move it into Applications.
+ */
+async function installMacUpdate() {
+  const bundle = path.resolve(process.execPath, '..', '..', '..');
+  if (!bundle.endsWith('.app')) throw new Error('Не удалось найти Amethyx.app.');
+  if (bundle.includes('/AppTranslocation/')) {
+    throw new Error('Перенесите Amethyx в папку «Программы» и откройте его оттуда: так он сможет обновляться сам.');
+  }
+  try {
+    await fsp.access(path.dirname(bundle), fs.constants.W_OK);
+    await fsp.access(bundle, fs.constants.W_OK);
+  } catch {
+    throw new Error('Нет прав заменить Amethyx в этой папке: скачайте новую версию с сайта или перенесите Amethyx в «Программы».');
+  }
+  const unpacked = path.join(updatesDirectory(), 'mac-new');
+  await fsp.rm(unpacked, { recursive: true, force: true });
+  await fsp.mkdir(unpacked, { recursive: true });
+  await run('/usr/bin/ditto', ['-x', '-k', status.installerPath, unpacked]);
+  const fresh = path.join(unpacked, 'Amethyx.app');
+  if (!(await fsp.stat(path.join(fresh, 'Contents', 'Info.plist')).catch(() => null))) throw new Error('В скачанном архиве нет Amethyx.app.');
+  await writeUpdateFile(ATTEMPT_FILE, { version: status.latest.version, at: new Date().toISOString() }).catch(() => {});
+  const old = `${bundle}.old`;
+  const script = path.join(updatesDirectory(), 'install-mac.sh');
+  await fsp.writeFile(
+    script,
+    [
+      '#!/bin/sh',
+      `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done`,
+      `rm -rf ${quote(old)}`,
+      `if mv ${quote(bundle)} ${quote(old)} && mv ${quote(fresh)} ${quote(bundle)}; then rm -rf ${quote(old)}; else [ -d ${quote(old)} ] && [ ! -d ${quote(bundle)} ] && mv ${quote(old)} ${quote(bundle)}; fi`,
+      `xattr -cr ${quote(bundle)} 2>/dev/null`,
+      `open ${quote(bundle)}`,
+      '',
+    ].join('\n'),
+    { mode: 0o755 },
+  );
+  log.info(`Mac: обновление до ${status.latest.version}, Amethyx.app заменится после закрытия`);
+  spawn('/bin/sh', [script], { detached: true, stdio: 'ignore' }).unref();
   setTimeout(() => app.quit(), 300);
   return { installing: true };
 }

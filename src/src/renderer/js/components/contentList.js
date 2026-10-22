@@ -9,6 +9,7 @@ import { confirmDialog, openModal } from './modal.js';
 import { createSegmented } from './controls.js';
 import { confirmCompatibility } from './compatDialog.js';
 import { openOptimizeDialog } from './optimizeDialog.js';
+import { openShaderDialog } from './shaderDialog.js';
 import { toast } from './toast.js';
 import { updateInstance } from '../state/actions.js';
 import { projectIcon } from '../core/projectIcon.js';
@@ -33,6 +34,37 @@ function projectPage(item) {
   return null;
 }
 
+/** How the list looks and is ordered: the viewer's own choice, remembered on this computer. */
+const VIEWS = [
+  { value: 'list', title: 'Подробно' },
+  { value: 'compact', title: 'Компактно' },
+  { value: 'grid', title: 'Плитка' },
+];
+const SORTS = [
+  { value: 'az', label: 'По имени А–Я' },
+  { value: 'za', label: 'По имени Я–А' },
+  { value: 'new', label: 'Сначала новые' },
+  { value: 'enabled', label: 'Сначала включённые' },
+  { value: 'size', label: 'Сначала большие' },
+];
+const VIEW_KEY = 'content.view';
+const SORT_KEY = 'content.sort';
+const remembered = (key, fallback, allowed) => {
+  try {
+    const value = localStorage.getItem(key);
+    return allowed.some((entry) => entry.value === value) ? value : fallback;
+  } catch {
+    return fallback;
+  }
+};
+const remember = (key, value) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Not remembered: the default comes back next time.
+  }
+};
+
 const LABELS = {
   mod: { title: 'Моды', empty: 'Модов пока нет.', add: 'Найти моды', picker: [{ name: 'Моды', extensions: ['jar', 'zip'] }] },
   resourcepack: { title: 'Ресурспаки', empty: 'Ресурспаков пока нет.', add: 'Найти ресурспаки', picker: [{ name: 'Ресурспаки', extensions: ['zip'] }] },
@@ -45,7 +77,31 @@ const LABELS = {
  */
 export function createContentList(getInstance, type) {
   const labels = LABELS[type];
-  const state = { items: [], updates: new Map(), selected: new Set(), query: '', side: '', identified: false, sidesResolved: false, loading: false, token: 0 };
+  const state = {
+    items: [],
+    updates: new Map(),
+    selected: new Set(),
+    query: '',
+    side: '',
+    identified: false,
+    sidesResolved: false,
+    loading: false,
+    token: 0,
+    view: remembered(VIEW_KEY, 'list', VIEWS),
+    sort: remembered(SORT_KEY, 'az', SORTS),
+  };
+  const sortSelect = h('select', { class: 'select select--compact', 'aria-label': 'Порядок', onchange: (event) => { state.sort = event.target.value; remember(SORT_KEY, state.sort); renderRows(); } }, SORTS.map((entry) => h('option', { value: entry.value }, entry.label)));
+  sortSelect.value = state.sort;
+  const viewButtons = VIEWS.map((entry) =>
+    h('button', { class: 'icon-button view-toggle', type: 'button', title: entry.title, 'data-view': entry.value, 'aria-pressed': String(entry.value === state.view), onclick: () => setView(entry.value) }, h('span', { class: `view-icon view-icon--${entry.value}` })),
+  );
+  function setView(view) {
+    state.view = view;
+    remember(VIEW_KEY, view);
+    viewButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
+    rows.classList.remove('content-rows--enter');
+    renderRows();
+  }
 
   const filterInput = h('input', {
     class: 'input',
@@ -90,7 +146,8 @@ export function createContentList(getInstance, type) {
       { class: 'content-toolbar' },
       h('div', { class: 'input-with-icon content-toolbar__filter' }, icon('search'), filterInput),
       sideSelect,
-      counter,
+      sortSelect,
+      h('div', { class: 'view-switch view-switch--inline' }, viewButtons),
       h('span', { class: 'content-toolbar__spacer' }),
       h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => addFiles() }, icon('folder'), 'Из файла'),
       h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => browseFor(getInstance().id, type) }, icon('download'), labels.add),
@@ -99,9 +156,11 @@ export function createContentList(getInstance, type) {
       'div',
       { class: 'content-toolbar content-toolbar--secondary' },
       h('label', { class: 'select-all' }, selectAll, h('span', null, 'Все')),
+      counter,
       autoUpdateToggle,
       h('span', { class: 'content-toolbar__spacer' }),
       isMods ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Память и моды для скорости под этот компьютер', onclick: () => openOptimizeDialog(getInstance(), () => load({ quiet: true })) }, icon('bolt'), 'Оптимизация') : null,
+      type === 'shader' ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Включить шейдеры и подобрать их под этот компьютер', onclick: () => openShaderDialog(getInstance(), () => load({ quiet: true })) }, icon('bolt'), 'Оптимизация') : null,
       h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Открыть папку в проводнике', onclick: () => openFolder(FOLDERS[type]) }, icon('folder'), 'Папка'),
       isMods ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Настройки модов (папка config)', onclick: () => openFolder('config') }, 'Конфиги') : null,
       h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Сохранить список в файл', onclick: () => exportList() }, 'Экспорт списка'),
@@ -177,11 +236,23 @@ export function createContentList(getInstance, type) {
     rowElements.clear();
     const enabled = state.items.filter((item) => item.enabled).length;
     counter.textContent = state.items.length ? `${enabled} из ${state.items.length} включено` : '';
-    const visible = state.items.filter(
-      (item) =>
-        (!state.query || [item.title, item.file, item.description].some((value) => String(value ?? '').toLowerCase().includes(state.query))) &&
-        (!state.side || (state.side === 'unknown' ? !item.side : item.side === state.side)),
-    );
+    const byName = (a, b) => a.title.localeCompare(b.title, locale());
+    const sorters = {
+      az: byName,
+      za: (a, b) => byName(b, a),
+      new: (a, b) => String(b.modifiedAt ?? '').localeCompare(String(a.modifiedAt ?? '')) || byName(a, b),
+      enabled: (a, b) => Number(b.enabled) - Number(a.enabled) || byName(a, b),
+      size: (a, b) => (b.size ?? 0) - (a.size ?? 0) || byName(a, b),
+    };
+    const visible = state.items
+      .filter(
+        (item) =>
+          (!state.query || [item.title, item.file, item.description].some((value) => String(value ?? '').toLowerCase().includes(state.query))) &&
+          (!state.side || (state.side === 'unknown' ? !item.side : item.side === state.side)),
+      )
+      .sort(sorters[state.sort] ?? byName);
+    rows.classList.remove('content-rows--list', 'content-rows--compact', 'content-rows--grid');
+    rows.classList.add(`content-rows--${state.view}`);
     if (state.items.length === 0) {
       rows.replaceChildren(
         h('div', { class: 'empty-state' }, icon('cube'), h('p', null, labels.empty), h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => browseFor(getInstance().id, type) }, labels.add)),
@@ -206,7 +277,7 @@ export function createContentList(getInstance, type) {
     const check = h('input', { type: 'checkbox', class: 'content-check', checked: selected, title: 'Выбрать', onchange: (event) => { if (event.target.checked) state.selected.add(item.file); else state.selected.delete(item.file); syncSelection(); } });
     const element = h(
       'div',
-      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) } },
+      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) }, title: state.view === 'grid' ? item.title : null },
       check,
       toggle,
       // Folders (unpacked packs) are only named on disk; everything else may find its picture elsewhere.

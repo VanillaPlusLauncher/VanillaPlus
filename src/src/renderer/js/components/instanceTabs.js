@@ -300,23 +300,23 @@ export function createFilesTab(getInstance) {
 // --- "Серверы" tab -------------------------------------------------------------------------------
 
 /**
- * "Серверы": three parts, switched on top —
- *  "Мой сервер"     a server made from the instance, run by the launcher;
- *  "Для хостинга"   the instance as a server pack (zip or folder) with what you tick;
- *  "Другие серверы" the game's own multiplayer list: status, players, ping, Play, add / edit.
+ * "Серверы": three parts, switched on top; the list comes first, as that is what most open the tab for —
+ *  "Серверы"       the game's own multiplayer list: status, players, ping, Play, add / edit;
+ *  "Свой сервер"   a server made from the instance, run by the launcher;
+ *  "Для хостинга"  the instance as a server pack (zip or folder) with what you tick.
  */
 export function createServersTab(getInstance, { onPlay } = {}) {
   const own = createOwnServerCard(getInstance, { onChange: () => own.load() });
   const exporter = createServerExportCard(getInstance);
   const others = createServerListCard(getInstance, { onPlay });
   const parts = { own, export: exporter, list: others };
-  let current = 'own';
+  let current = 'list';
   const host = h('div', { class: 'servers-tab__part' });
   const switcher = createSegmented({
     options: [
-      { value: 'own', label: 'Мой сервер' },
+      { value: 'list', label: 'Серверы' },
+      { value: 'own', label: 'Свой сервер' },
       { value: 'export', label: 'Для хостинга' },
-      { value: 'list', label: 'Другие серверы' },
     ],
     value: current,
     onChange: (value) => show(value),
@@ -329,7 +329,7 @@ export function createServersTab(getInstance, { onPlay } = {}) {
     host.classList.add('servers-tab__part--in');
     parts[value].load();
   }
-  host.append(own.element);
+  host.append(others.element);
   return {
     element: h('div', { class: 'instance-panel servers-tab' }, h('div', { class: 'servers-tab__switch' }, switcher.element), host),
     load: () => parts[current].load(),

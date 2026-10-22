@@ -6841,3 +6841,374 @@ input[type="checkbox"]:not(.toggle input):disabled {
 .pack-picker + .share-upload {
   margin-top: 12px;
 }
+
+/* "Оптимизация": sections and rows come in as a short wave; "Готово" pops. Pixel steps, transform
+   and opacity only, so it costs the computer nothing. */
+.optimize-in {
+  animation: optimize-in 260ms steps(6, end) both;
+  animation-delay: calc(min(var(--i, 0), 24) * 28ms);
+}
+
+@keyframes optimize-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+.optimize__row {
+  transition: background 120ms steps(2, end), transform 120ms steps(2, end);
+}
+
+.optimize__row:hover:not(.optimize__row--off) {
+  background: rgba(var(--accent-rgb), 0.08);
+  transform: translateX(2px);
+}
+
+.optimize__row input:checked + .optimize__icon,
+.optimize__row input:checked ~ .optimize__row-text b {
+  color: var(--color-text);
+}
+
+.optimize-pop {
+  animation: optimize-pop 360ms steps(6, end) both;
+}
+
+@keyframes optimize-pop {
+  0% { opacity: 0; transform: scale(0.94); }
+  60% { opacity: 1; transform: scale(1.02); }
+}
+
+/* Nothing moves while the window is hidden or minimised (the game is running, the launcher sits in the tray). */
+.is-hidden *,
+.is-hidden *::before,
+.is-hidden *::after {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .optimize-in,
+  .optimize-pop {
+    animation: none;
+  }
+}
+
+/* The instance's "Версия" tab: the same version list as "Новая сборка", a little lower. */
+.version-picker--page {
+  height: 300px;
+}
+
+/* --- "Шейдеры": shader optimization (shaderDialog.js) --------------------------------------------- */
+.shaders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 200px;
+}
+
+.shaders:not(.shaders--enter) .optimize-in {
+  animation: none;
+}
+
+.shaders__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.shaders__label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.shaders__label b {
+  font-size: 14px;
+}
+
+.shaders__auto {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shaders__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.shader-card {
+  --c: 3px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 2px var(--color-border), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  color: var(--color-text);
+  text-align: left;
+  cursor: var(--cursor-hand);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+  transition: background 120ms steps(2, end), transform 120ms steps(2, end);
+}
+
+.shader-card:not(:disabled):hover {
+  background: rgba(var(--accent-rgb), 0.1);
+  transform: translateY(-2px);
+}
+
+.shader-card--chosen,
+.shaders__auto .shader-card {
+  background: rgba(var(--accent-rgb), 0.14);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.8), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.shaders__auto .shader-card:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.shader-card--off {
+  opacity: 0.5;
+}
+
+.shader-card__icon {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  image-rendering: auto;
+}
+
+.shader-card__icon--empty {
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.shader-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.shader-card__text b {
+  font-size: 14px;
+}
+
+.shader-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.shader-tag {
+  padding: 1px 6px 2px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-soft);
+  font-size: 11px;
+}
+
+.shader-tag--light {
+  background: rgba(98, 214, 140, 0.16);
+  color: #8ef0b0;
+}
+
+.shader-tag--mid {
+  background: rgba(255, 207, 74, 0.14);
+  color: #ffd979;
+}
+
+.shader-tag--heavy {
+  background: rgba(255, 110, 96, 0.16);
+  color: #ffab9f;
+}
+
+.shader-tag--best {
+  background: rgba(var(--accent-rgb), 0.24);
+  color: var(--color-accent);
+}
+
+/* --- Mods / packs / shaders: three looks (contentList.js) -------------------------------------------- */
+.view-switch--inline {
+  margin-left: 0;
+}
+
+/* The mod toolbar holds the filter, the side and order lists and the three looks on one line. */
+.content-toolbar__filter {
+  width: auto;
+  flex: 0 1 200px;
+  min-width: 120px;
+}
+
+.view-icon--compact {
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 4px / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 8px / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 12px / 100% 2px no-repeat;
+}
+
+/* Compact: one short line a mod, small icon, no file line. */
+.content-rows--compact {
+  gap: 2px;
+}
+
+.content-rows--compact .content-row {
+  gap: 10px;
+  padding: 4px 10px;
+  contain-intrinsic-size: auto 36px;
+}
+
+.content-rows--compact .content-row__icon {
+  width: 24px;
+  height: 24px;
+}
+
+.content-rows--compact .content-row__sub,
+.content-rows--compact .badge {
+  display: none;
+}
+
+.content-rows--compact .content-row__title {
+  font-size: 13.5px;
+}
+
+/* Tiles, like CurseForge's icons: the picture, the name under it, the switch and the menu on top. */
+.content-rows--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.content-rows--grid .content-row {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 34px 10px 12px;
+  text-align: center;
+  contain-intrinsic-size: auto 150px;
+}
+
+.content-rows--grid .content-row__icon {
+  width: 64px;
+  height: 64px;
+}
+
+.content-rows--grid .content-row__meta {
+  width: 100%;
+}
+
+.content-rows--grid .content-row__title {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+}
+
+.content-rows--grid .content-row__version,
+.content-rows--grid .content-row__sub,
+.content-rows--grid .side-tag,
+.content-rows--grid .badge,
+.content-rows--grid .content-row__update {
+  display: none;
+}
+
+.content-rows--grid .content-row > .content-check {
+  position: absolute !important;
+  top: 8px;
+  left: 8px;
+  margin: 0;
+}
+
+.content-rows--grid .content-row > .toggle {
+  position: absolute !important;
+  top: 8px;
+  right: 8px;
+}
+
+/* The menu and delete buttons sit at the bottom corners, shown on hover. */
+.content-rows--grid .content-row > .icon-button {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  opacity: 0;
+  transition: opacity 120ms steps(2, end);
+}
+
+.content-rows--grid .content-row > .content-row__more {
+  right: auto;
+  left: 4px;
+}
+
+.content-rows--grid .content-row {
+  padding-bottom: 36px;
+}
+
+.content-rows--grid .content-row:hover > .icon-button,
+.content-rows--grid .content-row:focus-within > .icon-button {
+  opacity: 1;
+}
+
+.content-rows--grid .content-row:hover .content-row__icon {
+  transform: translateY(-3px) scale(1.06);
+}
+
+/* "Новая группа": the instances to put in it at once. */
+.group-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.group-pick__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: var(--cursor-hand);
+  transition: background 120ms steps(2, end);
+}
+
+.group-pick__item:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.group-pick__item:has(input:checked) {
+  background: rgba(var(--accent-rgb), 0.16);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5);
+}
+
+.group-pick__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.group-pick__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.group-pick__text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}

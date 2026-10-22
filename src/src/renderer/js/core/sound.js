@@ -311,11 +311,12 @@ export function installGlobalSounds() {
   document.addEventListener(
     'click',
     (event) => {
-      const target = event.target instanceof Element ? event.target.closest('button, [role="button"], .toggle input') : null;
+      const target = event.target instanceof Element ? event.target.closest('button, [role="button"], .toggle input, input[type="checkbox"]') : null;
       if (!target || target.disabled || target.dataset.sound === 'none') {
         return;
       }
-      if (target.matches('.toggle input')) {
+      // A switch or a tick (its new state is already set when the click comes).
+      if (target.matches('.toggle input, input[type="checkbox"]')) {
         sfx(target.checked ? 'toggleOn' : 'toggleOff');
       } else if (target.matches('.tabs__button, .segmented button')) {
         sfx('tab');

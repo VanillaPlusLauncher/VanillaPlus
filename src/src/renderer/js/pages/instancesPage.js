@@ -72,7 +72,7 @@ export function createInstancesPage() {
     h(
       'header',
       { class: 'page-header' },
-      h('div', null, h('h1', { class: 'page-title' }, 'Сборки'), h('p', { class: 'page-subtitle' }, 'У каждой сборки свои моды, миры и настройки. Группы — как папки, их можно сворачивать.')),
+      h('div', null, h('h1', { class: 'page-title' }, 'Сборки'), h('p', { class: 'page-subtitle' }, 'У каждой сборки свои моды, миры и настройки. Группы — как папки: правой кнопкой по пустому месту → «Новая группа».')),
       h(
         'div',
         { class: 'page-header__actions' },
@@ -86,6 +86,13 @@ export function createInstancesPage() {
     h('div', { class: 'toolbar' }, h('div', { class: 'input-with-icon toolbar__search' }, icon('search'), searchInput), loaderSelect, sortSelect, h('div', { class: 'view-switch' }, viewButtons)),
     content,
   );
+
+  // A card and a group header have menus of their own; anywhere else on the page shows this one.
+  element.addEventListener('contextmenu', (event) => {
+    if (event.target.closest('.instance-card, .group-header, input, select, textarea, .context-menu')) return;
+    event.preventDefault();
+    openPageMenu(event);
+  });
 
   async function importPack() {
     const paths = await api.app.pickFiles({ title: 'Файл модпака', filters: [{ name: 'Модпаки', extensions: ['mrpack', 'zip'] }] });
@@ -261,16 +268,88 @@ export function createInstancesPage() {
     return section;
   }
 
-  /** "Новая группа": an empty group that stays until it is deleted, ready for cards to be dropped in. */
-  async function createGroup() {
-    const name = await promptText({ title: 'Новая группа', label: 'Название группы', value: '', confirmLabel: 'Создать' });
-    if (!name) return;
-    const groups = store.get().settings?.instanceGroups ?? [];
-    if (groups.includes(name) || store.get().instances.some((instance) => instance.group === name)) {
-      toast('Такая группа уже есть', 'info');
-      return;
+  /**
+   * "Новая группа": a name and, if wanted, the instances to put in it at once (ticks). The group
+   * stays even when empty, until it is deleted, ready for cards to be dropped in.
+   */
+  function createGroup() {
+    const { instances } = store.get();
+    const nameInput = h('input', { class: 'input', type: 'text', maxlength: '40', placeholder: 'Например: Выживание', onkeydown: (event) => event.key === 'Enter' && done() });
+    const ticks = new Map();
+    const list = h(
+      'div',
+      { class: 'group-pick' },
+      ...instances.map((instance) => {
+        const box = h('input', { type: 'checkbox' });
+        ticks.set(instance.id, box);
+        return h(
+          'label',
+          { class: 'group-pick__item' },
+          box,
+          iconImage(instance.icon, 'group-pick__icon'),
+          h('span', { class: 'group-pick__text' }, h('b', { 'data-i18n': 'off' }, instance.name), h('span', { class: 'text-muted' }, instance.group ? `Сейчас в «${instance.group}»` : 'Без группы')),
+        );
+      }),
+    );
+    async function done() {
+      const name = nameInput.value.trim();
+      if (!name) {
+        nameInput.focus();
+        return;
+      }
+      const groups = store.get().settings?.instanceGroups ?? [];
+      if (groups.includes(name) || store.get().instances.some((instance) => instance.group === name)) {
+        toast('Такая группа уже есть', 'info');
+        return;
+      }
+      modal.close();
+      try {
+        await saveSettings({ instanceGroups: [...groups, name] });
+        const chosen = [...ticks].filter(([, box]) => box.checked).map(([id]) => id);
+        for (const id of chosen) await updateInstance(id, { group: name });
+        if (chosen.length) sfx('page');
+      } catch (error) {
+        toast(errorMessage(error), 'error');
+      }
     }
-    saveSettings({ instanceGroups: [...groups, name] }).catch((error) => toast(errorMessage(error), 'error'));
+    const modal = openModal({
+      title: 'Новая группа',
+      content: h(
+        'div',
+        { class: 'modal__section' },
+        h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Название'), nameInput),
+        instances.length ? h('div', { class: 'field' }, h('span', { class: 'field__label' }, 'Сразу положить в группу'), list) : null,
+        h('p', { class: 'field__hint' }, 'Сборки можно и потом перетаскивать в группу мышкой.'),
+      ),
+      footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => done() }, 'Создать')],
+    });
+    requestAnimationFrame(() => nameInput.focus());
+  }
+
+  /** Right click on an empty place of the page: what can be made here. */
+  function openPageMenu(pointerEvent) {
+    document.querySelector('.context-menu')?.remove();
+    const item = (label, action) => h('button', { class: 'context-menu__item', type: 'button', onclick: () => { menu.remove(); action(); } }, label);
+    const menu = h(
+      'div',
+      { class: 'context-menu', role: 'menu' },
+      item('Новая сборка…', () => openCreateInstanceModal()),
+      item('Новая группа…', () => createGroup()),
+      h('div', { class: 'context-menu__divider' }),
+      item('Вставить код…', () => openImportCodeDialog()),
+      item('Импорт файла…', () => importPack()),
+      item('Из других лаунчеров…', () => openLauncherImportDialog()),
+    );
+    document.body.append(menu);
+    menu.style.left = `${Math.min(pointerEvent.clientX, window.innerWidth - menu.offsetWidth - 12)}px`;
+    menu.style.top = `${Math.min(pointerEvent.clientY, window.innerHeight - menu.offsetHeight - 12)}px`;
+    const close = (event) => {
+      if (!menu.contains(event.target)) {
+        menu.remove();
+        document.removeEventListener('pointerdown', close, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('pointerdown', close, true));
   }
 
   function openGroupMenu(name, pointerEvent) {

@@ -1,6 +1,7 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
-import { errorMessage, formatGigabytes } from '../core/format.js';
+import { errorMessage, formatGigabytes, formatReleaseDate, VERSION_TYPE_LABELS } from '../core/format.js';
+import { sfx } from '../core/sound.js';
 import { describeInstance, formatAgo, formatPlayTime, LOADER_LABELS } from '../core/content.js';
 import { iconImage } from '../core/mc.js';
 import { go, setDropHandler } from '../core/nav.js';
@@ -484,21 +485,48 @@ export function createInstancePage() {
   function renderVersion() {
     const current = instance();
     if (!current) return;
-    const minecraftSelect = h('select', { class: 'select' });
+    // The same picker as in "Новая сборка": a searchable list of versions and the loaders as cards.
+    const minecraftSelect = { value: current.minecraft };
+    const loaderSelect = { value: current.loader.type };
+    let query = '';
+    const versionList = h('div', { class: 'version-picker version-picker--page', role: 'listbox', 'aria-label': 'Версии Minecraft' });
+    const versionSearch = h('input', { class: 'input', type: 'search', placeholder: 'Поиск версии', oninput: (event) => { query = event.target.value.trim().toLowerCase(); fillMinecraft(); } });
     const showSnapshots = createToggle({ checked: false, label: 'Снапшоты', onChange: () => fillMinecraft() });
     function fillMinecraft() {
       const withSnapshots = showSnapshots.querySelector('input').checked;
-      const versions = store.get().catalog.filter((version) => version.type === 'release' || (withSnapshots && version.type === 'snapshot') || version.id === current.minecraft);
-      const selected = minecraftSelect.value || current.minecraft;
-      minecraftSelect.replaceChildren(...versions.map((version) => h('option', { value: version.id }, version.type === 'snapshot' ? `${version.id} (снапшот)` : version.id)));
-      if (!versions.some((version) => version.id === current.minecraft)) {
-        minecraftSelect.prepend(h('option', { value: current.minecraft }, current.minecraft));
-      }
-      minecraftSelect.value = versions.some((version) => version.id === selected) ? selected : current.minecraft;
+      const versions = store.get().catalog
+        .filter((version) => version.type === 'release' || (withSnapshots && version.type === 'snapshot') || version.id === current.minecraft)
+        .filter((version) => !query || version.id.toLowerCase().includes(query))
+        .slice(0, 400);
+      versionList.replaceChildren(
+        ...versions.map((version) =>
+          h(
+            'button',
+            { class: 'version-picker__item', type: 'button', role: 'option', 'aria-selected': String(version.id === minecraftSelect.value), 'data-version': version.id, onclick: () => pickMinecraft(version.id) },
+            h('span', { class: 'version-picker__id' }, version.id),
+            h('span', { class: 'version-picker__type' }, version.id === current.minecraft ? 'Сейчас' : VERSION_TYPE_LABELS[version.type] ?? version.type),
+            version.installed ? h('span', { class: 'badge' }, 'Скачана') : null,
+            h('span', { class: 'version-picker__date' }, formatReleaseDate(version.releaseTime)),
+          ),
+        ),
+      );
+      versionList.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+    }
+    function pickMinecraft(id) {
+      minecraftSelect.value = id;
+      for (const item of versionList.children) item.setAttribute('aria-selected', String(item.dataset.version === id));
+      sfx('click');
+      loadLoaderVersions();
+    }
+    const loaderButtons = Object.entries(LOADER_LABELS).map(([value, label]) =>
+      h('button', { class: `loader-button loader-button--${value}`, type: 'button', 'aria-pressed': String(value === loaderSelect.value), 'data-loader': value, onclick: () => pickLoader(value) }, label),
+    );
+    function pickLoader(value) {
+      loaderSelect.value = value;
+      loaderButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.loader === value)));
+      loadLoaderVersions();
     }
     fillMinecraft();
-    const loaderSelect = h('select', { class: 'select' }, Object.entries(LOADER_LABELS).map(([value, label]) => h('option', { value }, label)));
-    loaderSelect.value = current.loader.type;
     const loaderVersionSelect = h('select', { class: 'select' });
     let token = 0;
 
@@ -529,8 +557,6 @@ export function createInstancePage() {
       }
     }
 
-    minecraftSelect.addEventListener('change', loadLoaderVersions);
-    loaderSelect.addEventListener('change', loadLoaderVersions);
     loadLoaderVersions();
 
     async function apply() {
@@ -583,8 +609,13 @@ export function createInstancePage() {
     const installedText = current.installed ? `Установлено: ${current.versionId}` : 'Ещё не установлена — скачается при запуске.';
     formHost.replaceChildren(
       card('Версия и загрузчик', 'Перейти на другую версию Minecraft или поменять загрузчик модов. Если загрузчик не ставится — попробуйте другую его версию.',
-        h('div', { class: 'field-row field-row--3' }, field('Minecraft', minecraftSelect), field('Загрузчик', loaderSelect), field('Версия загрузчика', loaderVersionSelect)),
-        h('div', { class: 'settings-row' }, h('div', { class: 'settings-row__text' }, h('span', { class: 'text-muted' }, 'Показывать снапшоты')), showSnapshots),
+        h('div', { class: 'field' }, h('span', { class: 'field__label' }, 'Загрузчик модов'), h('div', { class: 'loader-grid' }, loaderButtons)),
+        field('Версия загрузчика', loaderVersionSelect),
+        h('div', { class: 'field' },
+          h('span', { class: 'field__label' }, 'Minecraft'),
+          h('div', { class: 'create-custom__version-tools' }, h('div', { class: 'input-with-icon', style: { flex: '1' } }, icon('search'), versionSearch), h('div', { class: 'settings-row' }, h('span', { class: 'text-muted' }, 'Снапшоты'), showSnapshots)),
+          versionList,
+        ),
         h('div', null, h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: apply }, 'Применить')),
       ),
       card('Файлы игры', installedText,

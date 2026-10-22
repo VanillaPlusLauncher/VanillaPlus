@@ -84,6 +84,8 @@ const CHANNELS = Object.freeze({
     optimize: 'content:optimize',
     optimizeApply: 'content:optimize-apply',
     optimizeUndo: 'content:optimize-undo',
+    shaderPlan: 'content:shader-plan',
+    shaderApply: 'content:shader-apply',
     scanLaunchers: 'content:scan-launchers',
     importFromLauncher: 'content:import-from-launcher',
     installModpack: 'content:install-modpack',

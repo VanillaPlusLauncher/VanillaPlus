@@ -1,8 +1,11 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage, formatGigabytes } from '../core/format.js';
+import { pixelBurst } from '../core/effects.js';
+import { sfx } from '../core/sound.js';
 import { refreshInstances } from '../state/actions.js';
 import { openModal } from './modal.js';
+import { openShaderDialog } from './shaderDialog.js';
 import { toast } from './toast.js';
 
 const TIER_LABELS = { low: 'слабый', mid: 'средний', high: 'мощный' };
@@ -22,14 +25,16 @@ export function openOptimizeDialog(instance, onDone) {
 
   const chip = (label, value) => h('div', { class: 'optimize__chip' }, h('span', { class: 'text-muted' }, label), h('b', { title: value }, value));
 
+  // Sections and rows come in one after another, a short wave (index → delay, see features.css).
+  let wave = 0;
   function section(title, ...rows) {
-    return h('section', { class: 'optimize__section' }, h('div', { class: 'optimize__title' }, title), ...rows);
+    return h('section', { class: 'optimize__section optimize-in', style: { '--i': wave++ } }, h('div', { class: 'optimize__title' }, title), ...rows);
   }
 
   function row({ box, iconElement = null, title, text, tag = null, off = false, extra = null }) {
     return h(
       'label',
-      { class: `optimize__row${off ? ' optimize__row--off' : ''}` },
+      { class: `optimize__row optimize-in${off ? ' optimize__row--off' : ''}`, style: { '--i': wave++ } },
       box,
       iconElement,
       h('span', { class: 'optimize__row-text' }, h('b', null, title, tag), h('span', { class: 'text-muted' }, text), extra),
@@ -41,6 +46,7 @@ export function openOptimizeDialog(instance, onDone) {
   function render() {
     const { system } = plan;
     const parts = [];
+    wave = 0;
     // "NVIDIA GeForce GTX 1650 with Max-Q Design" → "GTX 1650 Max-Q": the model is what matters.
     const gpuName = system.gpu?.name.replace(/\b(NVIDIA|GeForce|AMD|Radeon\(TM\)|Intel\(R\)|with|Design)\b|\((R|TM)\)/gi, '').replace(/\s+/g, ' ').trim();
     const gpu = system.gpu ? `${gpuName || system.gpu.name}${system.gpu.vramMb ? ` · ${formatGigabytes(system.gpu.vramMb)}` : ''}${system.gpu.integrated ? ' (встроенная)' : ''}` : 'не определена';
@@ -117,6 +123,19 @@ export function openOptimizeDialog(instance, onDone) {
       ),
     );
 
+    // Shaders have a window of their own: switched on, auto or own choice, how heavy.
+    if (plan.loader !== 'vanilla') {
+      parts.push(
+        section('Шейдеры',
+          h('div', { class: 'optimize__row optimize-in', style: { '--i': wave++ } },
+            h('span', { class: 'optimize__icon' }, icon('image')),
+            h('span', { class: 'optimize__row-text' }, h('b', null, 'Шейдеры под этот компьютер'), h('span', { class: 'text-muted' }, 'Включить, подобрать самый лёгкий подходящий шейдер или выбрать свой и настроить, что важнее: скорость или красота.')),
+            h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => openShaderDialog(instance, onDone) }, 'Настроить'),
+          ),
+        ),
+      );
+    }
+
     const video = plan.video.changes;
     boxes.video = checkbox(video.length > 0, video.length === 0);
     parts.push(
@@ -169,8 +188,10 @@ export function openOptimizeDialog(instance, onDone) {
       const result = await api.content.optimizeApply(instance.id, choices);
       await refreshInstances().catch(() => {});
       onDone?.();
+      sfx('success');
+      pixelBurst(applyButton, { count: 18 });
       body.replaceChildren(
-        h('div', { class: 'optimize__done' },
+        h('div', { class: 'optimize__done optimize-pop' },
           h('div', { class: 'optimize__title' }, 'Готово'),
           ...result.summary.map((line) => h('p', null, line)),
           result.failed.length ? h('p', { class: 'text-danger' }, `Не получилось: ${result.failed.join('; ')}`) : null,

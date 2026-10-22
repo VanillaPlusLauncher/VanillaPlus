@@ -30,6 +30,8 @@ const OVERRIDE_KEYS = [
   'postExitCommand',
   'afterLaunch',
   'autoUpdateMods',
+  // Shader optimization's choices: { enabled, auto, level, pack } (content/shaderService.js).
+  'shaders',
 ];
 const writeQueue = new SerialQueue();
 const log = createLogger('instances');
