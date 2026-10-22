@@ -80,6 +80,8 @@ function buildDefaults() {
       sidebar: 'labels',
       cards: 'tile',
       animations: !light,
+      /** Pixel sparks fly from a button when it is pressed. */
+      sparks: !light,
       scale: 100,
       blur: !light,
     },
@@ -148,6 +150,7 @@ function sanitizeUi(input, defaults) {
   if (SIDEBARS.includes(input.sidebar)) ui.sidebar = input.sidebar;
   if (CARD_STYLES.includes(input.cards)) ui.cards = input.cards;
   if (typeof input.animations === 'boolean') ui.animations = input.animations;
+  if (typeof input.sparks === 'boolean') ui.sparks = input.sparks;
   if (typeof input.blur === 'boolean') ui.blur = input.blur;
   if (UI_SCALES.includes(input.scale)) ui.scale = input.scale;
   if (LANGUAGES.includes(input.language)) ui.language = input.language;

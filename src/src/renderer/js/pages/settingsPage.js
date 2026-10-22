@@ -197,6 +197,7 @@ export function createSettingsPage() {
         row('Карточки сборок', 'Как выглядят сборки в сетке.', cards.element),
         row('Масштаб', 'Размер всего интерфейса.', scale.element),
         row('Анимации', 'Плавные переходы, частицы, вращение панорамы.', toggle(ui.animations, (value) => save({ ui: { animations: value } }), 'Анимации')),
+        row('Искры при нажатии', 'Пиксельные искры вылетают из кнопки, когда её нажимаешь.', toggle(ui.sparks !== false, (value) => save({ ui: { sparks: value } }), 'Искры при нажатии')),
         row('Размытие под панелями', 'Выключите, если лаунчер тормозит на слабом ПК.', toggle(ui.blur, (value) => save({ ui: { blur: value } }), 'Размытие')),
       ),
     ];

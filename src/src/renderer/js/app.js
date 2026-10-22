@@ -26,6 +26,7 @@ import { showCrashDialog } from './components/crashDialog.js';
 import { errorMessage } from './core/format.js';
 import { initMc, onMcReady } from './core/mc.js';
 import { configureSound, installGlobalSounds } from './core/sound.js';
+import { installClickSparks } from './core/effects.js';
 import { dropHandlerFor, setNavigator } from './core/nav.js';
 
 const MAX_PARALLAX_PX = { x: 18, y: 12 };
@@ -237,6 +238,7 @@ async function start() {
   setupLogsButton();
   setupDragAndDrop(router);
   installGlobalSounds();
+  installClickSparks(() => store.get().settings?.ui?.sparks !== false);
   // A hidden or minimised window (the game is running, the launcher is in the tray) plays no animations.
   const markHidden = () => document.documentElement.classList.toggle('is-hidden', document.hidden);
   document.addEventListener('visibilitychange', markHidden);
@@ -251,7 +253,7 @@ async function start() {
   await runSplash({
     tasks: [
       // The game's textures, panorama and sounds (fetched from Mojang on the very first start).
-      { label: 'Текстуры Minecraft', run: () => initMc().then((ready) => ready || waitForMc(14000)) },
+      { label: 'Оформление', run: () => initMc().then((ready) => ready || waitForMc(14000)) },
       { label: 'Сборки и аккаунты', run: () => loadInitialData().catch((error) => { dataError = error; }) },
       { label: 'Шрифты', run: () => Promise.all([document.fonts.load('16px Tiny5'), document.fonts.load('16px Inter')]) },
       { label: 'Новости Minecraft', run: () => api.minecraft.news() },

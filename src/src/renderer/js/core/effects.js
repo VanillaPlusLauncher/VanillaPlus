@@ -1,4 +1,4 @@
-/** Small visual effects: pixel bursts on Play and floating sparks behind the home screen. */
+/** Small visual effects: pixel bursts on Play, sparks from pressed buttons, floating sparks behind the home screen. */
 
 const BURST_COLORS = ['var(--color-accent)', 'var(--color-accent-strong)', '#ffffff', '#ffc4e6'];
 
@@ -52,6 +52,100 @@ export function createSparks(count = 18) {
     container.append(spark);
   }
   return container;
+}
+
+/*
+ * Sparks from a pressed button: one canvas over the window, drawn only while sparks are in the air
+ * (60 frames a second, smooth, each spark a square on whole pixels so it stays pixel-art). No DOM
+ * element per spark, so a burst never makes the window stutter.
+ */
+const CLICK_TARGETS = '.btn:not(:disabled), .icon-button:not(.icon-button--window):not(:disabled)';
+const GRAVITY = 520;
+let sparkCanvas = null;
+let sparkContext = null;
+let sparkList = [];
+let sparkFrame = 0;
+let sparkLast = 0;
+
+function sparkColors() {
+  const style = getComputedStyle(document.documentElement);
+  const accent = style.getPropertyValue('--color-accent').trim() || '#b48cff';
+  const strong = style.getPropertyValue('--color-accent-strong').trim() || '#8a5cf0';
+  return [accent, strong, '#ffffff', '#f1e4ff', accent];
+}
+
+function fitSparkCanvas() {
+  const ratio = window.devicePixelRatio || 1;
+  sparkCanvas.width = Math.round(window.innerWidth * ratio);
+  sparkCanvas.height = Math.round(window.innerHeight * ratio);
+  sparkContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+
+function drawSparks(now) {
+  const seconds = Math.min(0.05, (now - sparkLast) / 1000);
+  sparkLast = now;
+  sparkContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  sparkList = sparkList.filter((spark) => (spark.age += seconds) < spark.life);
+  for (const spark of sparkList) {
+    spark.vy += GRAVITY * seconds;
+    spark.x += spark.vx * seconds;
+    spark.y += spark.vy * seconds;
+    const left = 1 - spark.age / spark.life;
+    const size = Math.max(1, Math.round(spark.size * (0.5 + left * 0.5)));
+    sparkContext.globalAlpha = Math.min(1, left * 1.6);
+    sparkContext.fillStyle = spark.color;
+    sparkContext.fillRect(Math.round(spark.x - size / 2), Math.round(spark.y - size / 2), size, size);
+  }
+  sparkContext.globalAlpha = 1;
+  sparkFrame = sparkList.length ? requestAnimationFrame(drawSparks) : 0;
+  if (!sparkFrame) sparkContext.clearRect(0, 0, window.innerWidth, window.innerHeight);
+}
+
+/** Throws sparks out of a point (a click, or the middle of an element pressed with the keyboard). */
+export function clickSparks(x, y, { count = 10 } = {}) {
+  if (!animationsEnabled() || !sparkCanvas) return;
+  const colors = sparkColors();
+  for (let index = 0; index < count; index += 1) {
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.5;
+    const speed = 90 + Math.random() * 170;
+    sparkList.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 2 + Math.round(Math.random() * 2),
+      color: colors[index % colors.length],
+      age: 0,
+      life: 0.42 + Math.random() * 0.32,
+    });
+  }
+  if (!sparkFrame) {
+    sparkLast = performance.now();
+    sparkFrame = requestAnimationFrame(drawSparks);
+  }
+}
+
+/** Sparks for every pressed button, while Settings → "Оформление" → "Искры при нажатии" is on. */
+export function installClickSparks(isOn) {
+  sparkCanvas = document.createElement('canvas');
+  sparkCanvas.className = 'click-sparks';
+  sparkCanvas.setAttribute('aria-hidden', 'true');
+  sparkContext = sparkCanvas.getContext('2d');
+  document.body.append(sparkCanvas);
+  fitSparkCanvas();
+  window.addEventListener('resize', fitSparkCanvas);
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest?.(CLICK_TARGETS);
+    if (!button || !isOn()) return;
+    let { clientX: x, clientY: y } = event;
+    // Enter or Space: the click has no point, so the sparks come from the button's middle.
+    if (!x && !y) {
+      const box = button.getBoundingClientRect();
+      x = box.left + box.width / 2;
+      y = box.top + box.height / 2;
+    }
+    clickSparks(x, y, { count: button.classList.contains('btn--primary') ? 14 : 8 });
+  });
 }
 
 /** Counts a number up with an ease-out, for statistics. */

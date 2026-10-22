@@ -6061,144 +6061,90 @@ button:disabled {
   animation: fadeIn 600ms 200ms both;
 }
 
-/* A plate of budding amethyst turning slowly in the air (components/splash.js builds its faces):
-   crystals grow on it like a snake, from the edge round into the middle, with a little pop at
-   every stage; sparkles blink around it. Until all of the game's textures are loaded the plate is
-   not shown at all (.splash__blocks--waiting); then it fades in whole. */
-.splash__blocks {
+/* The loading bar is an amethyst crystal growing along it (components/splash.js): faceted, the
+   facets drift, a glint runs over it, a crystal tip at its end throws off little sparkles. Our own
+   pixels, no game textures. */
+.splash__track {
   position: relative;
-  width: 240px;
-  height: 200px;
+  width: 300px;
+  height: 16px;
+  margin-top: 6px;
+  padding: 3px;
+  background: #0d0915;
+  box-shadow: 0 -2px 0 #2b2140, 0 2px 0 #2b2140, -2px 0 0 #2b2140, 2px 0 0 #2b2140, inset 0 3px 0 rgba(0, 0, 0, 0.55);
 }
 
-.geode__float,
-.geode__shadow {
-  transition: opacity 420ms ease-out, scale 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.splash__blocks--waiting .geode__float,
-.splash__blocks--waiting .geode__shadow {
-  opacity: 0;
-  scale: 0.85;
-}
-
-.geode__float {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  animation: geode-float 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-@keyframes geode-float {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -7px, 0); }
-}
-
-.geode__shadow {
-  position: absolute;
-  left: 50%;
-  bottom: 14px;
-  width: 130px;
-  height: 22px;
-  margin-left: -65px;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(150, 112, 245, 0.32), rgba(150, 112, 245, 0.08) 60%, transparent);
-  animation: geode-shadow 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-@keyframes geode-shadow {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.88); opacity: 0.7; }
-}
-
-.geode__slab {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -14%;
-  transform-style: preserve-3d;
-  animation: geode-spin 16s linear infinite;
-}
-
-@keyframes geode-spin {
-  from { transform: rotateX(60deg) rotateZ(0deg); }
-  to { transform: rotateX(60deg) rotateZ(-360deg); }
-}
-
-.geode__face {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: var(--cell);
-  height: var(--cell);
-  transform-origin: 0 0;
-  background-size: 100% 100%;
-  image-rendering: pixelated;
-  backface-visibility: hidden;
-  filter: brightness(var(--shade, 1));
-}
-
-.geode__crystal,
-.geode__grow {
-  position: absolute;
-  left: 0;
-  top: 0;
+.splash__bar {
+  position: relative;
+  display: block;
   width: 0;
-  height: 0;
-  transform-style: preserve-3d;
+  height: 100%;
+  background: repeating-linear-gradient(135deg, #c8a6ff 0 4px, #a57bff 4px 8px, #8b5cf2 8px 12px) 0 0 / 17px 17px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), inset 0 -2px 0 rgba(58, 20, 138, 0.7), 0 0 14px rgba(180, 140, 255, 0.55);
+  animation: crystal-facets 1.4s linear infinite;
+  transition: width 520ms cubic-bezier(0.34, 1.35, 0.5, 1);
 }
 
-.geode__grow {
-  transform-origin: 0 0;
-  transition: transform 260ms cubic-bezier(0.5, 0, 0.75, 0), opacity 260ms;
+@keyframes crystal-facets {
+  to { background-position: 17px 0; }
 }
 
-.geode__grow--pop {
-  animation: geode-pop 340ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes geode-pop {
-  from { transform: scale3d(0.7, 0.7, 0.7); }
-}
-
-.geode__grow--gone {
-  transform: scale3d(0.2, 0.2, 0.2);
-  opacity: 0;
-  animation: none;
-}
-
-.geode__sprite {
+/* The glint: two bright pixel stripes running from the root of the crystal to its tip. */
+.splash__bar::after {
+  content: "";
   position: absolute;
-  left: calc(var(--cell) * -0.65);
-  top: calc(var(--cell) * -1.3);
-  width: calc(var(--cell) * 1.3);
-  height: calc(var(--cell) * 1.3);
-  transform-origin: 50% 100%;
-  background-size: 100% 100%;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 0 3px rgba(214, 170, 255, 0.55));
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 18px;
+  background: linear-gradient(105deg, transparent 0 25%, rgba(255, 255, 255, 0.9) 25% 50%, transparent 50% 62%, rgba(255, 255, 255, 0.55) 62% 74%, transparent 74%);
+  animation: crystal-glint 1.8s cubic-bezier(0.45, 0, 0.3, 1) infinite;
 }
 
-/* A four-pointed sparkle drawn with pixels (one square and four arms), blinking once. */
-.geode__spark {
-  --size: 2px;
+/* By `left`, so the glint stays on the crystal however far it has grown. */
+@keyframes crystal-glint {
+  0% { left: 0; opacity: 0; }
+  10% { opacity: 1; }
+  70% { opacity: 1; }
+  80%, 100% { left: calc(100% - 18px); opacity: 0; }
+}
+
+/* The crystal's tip at the end of the bar: a small shard in steps, glowing. */
+.splash__bar::before {
+  content: "";
   position: absolute;
-  width: var(--size);
-  height: var(--size);
-  background: #fbe9ff;
-  box-shadow:
-    0 calc(var(--size) * -1) 0 #e4c4ff,
-    0 var(--size) 0 #e4c4ff,
-    calc(var(--size) * -1) 0 0 #e4c4ff,
-    var(--size) 0 0 #e4c4ff;
+  top: -5px;
+  right: -9px;
+  width: 12px;
+  height: 20px;
+  background: linear-gradient(90deg, #f3e8ff 0 50%, #c9a8ff 50%);
+  clip-path: polygon(0 20%, 33% 20%, 33% 0, 67% 0, 67% 20%, 100% 20%, 100% 80%, 67% 80%, 67% 100%, 33% 100%, 33% 80%, 0 80%);
+  filter: drop-shadow(0 0 6px rgba(214, 186, 255, 0.95));
+  animation: crystal-tip 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes crystal-tip {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+/* Sparkles thrown off the tip: a pixel cross that flies up and fades. */
+.splash__spark {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 2px;
+  margin-top: -1px;
+  background: #fbf3ff;
+  box-shadow: 0 -2px 0 #dcc4ff, 0 2px 0 #dcc4ff, -2px 0 0 #dcc4ff, 2px 0 0 #dcc4ff;
   pointer-events: none;
-  animation: geode-spark 1100ms cubic-bezier(0.45, 0, 0.55, 1) both;
+  animation: crystal-spark 900ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
 }
 
-@keyframes geode-spark {
-  0% { transform: scale(0) rotate(0deg); opacity: 0; }
-  35% { transform: scale(1.4) rotate(45deg); opacity: 1; }
-  100% { transform: scale(0) rotate(90deg) translateY(-6px); opacity: 0; }
+@keyframes crystal-spark {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+  20% { transform: translate(calc(var(--fly-x) * 0.3), calc(var(--fly-y) * 0.3)) scale(1.3); opacity: 1; }
+  100% { transform: translate(var(--fly-x), var(--fly-y)) scale(0.2); opacity: 0; }
 }
 
 .splash__status {
@@ -6208,22 +6154,13 @@ button:disabled {
   font-size: 14px;
 }
 
-.splash__track {
-  width: 260px;
-  height: 6px;
-  overflow: hidden;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.splash__bar {
-  display: block;
-  width: 0;
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--color-accent-strong), var(--color-accent));
-  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.6);
-  transition: width 420ms var(--ease-out);
+@media (prefers-reduced-motion: reduce) {
+  .splash__bar,
+  .splash__bar::after,
+  .splash__bar::before,
+  .splash__spark {
+    animation: none;
+  }
 }
 
 /* Friends: why an offline player has a code after the name. */
@@ -7593,4 +7530,181 @@ input[type="checkbox"]:not(.toggle input):disabled {
 
 .segmented--nowrap button {
   white-space: nowrap;
+}
+
+/* ======================================================================================================
+   Buttons: "Резонанс", picked on the style page. A dark plate with a glowing line in the theme colour
+   (the main action) or a quiet one (the rest); under the pointer a pixel shine runs across it, and a
+   press visibly pushes it in: it sinks by its thickness and the dark edge moves from the bottom to the
+   top. Pressing is quick, letting go springs back. The line goes round the cut corners too (border-image
+   is the pixel-frame worklet, set again here because older rules gave buttons picture borders).
+   ====================================================================================================== */
+:root {
+  --press-spring: cubic-bezier(0.34, 1.7, 0.5, 1);
+}
+
+.btn,
+.btn:hover:not(:disabled),
+.btn:active:not(:disabled),
+.btn:disabled {
+  border: 0;
+  border-image: paint(pixel-frame) 0 fill / 0;
+  filter: none;
+}
+
+.btn {
+  --ring: rgba(255, 255, 255, 0.13);
+  position: relative;
+  overflow: hidden;
+  background: #1a1424;
+  color: var(--color-text);
+  text-shadow: none;
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 -5px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 360ms var(--press-spring), scale 360ms var(--press-spring), background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  --ring: rgba(var(--accent-rgb), 0.55);
+  background: #221a30;
+  color: var(--color-text);
+  transform: translateY(-2px);
+}
+
+/* Pushed in: down by the plate's thickness, the dark edge now on top, the plate in shadow. */
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  scale: 0.97;
+  background: #120d1a;
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 6px 0 rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  transition-duration: 60ms;
+  transition-timing-function: ease-out;
+}
+
+.btn:disabled {
+  --ring: rgba(255, 255, 255, 0.08);
+  background: #17131f;
+  color: #7f7790;
+}
+
+.btn--primary {
+  --ring: var(--color-accent);
+  background: linear-gradient(rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.2)), #160f24;
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -5px 0 rgba(0, 0, 0, 0.55);
+}
+
+.btn--primary:hover:not(:disabled) {
+  --ring: var(--color-accent);
+  background: linear-gradient(rgba(var(--accent-rgb), 0.32), rgba(var(--accent-rgb), 0.32)), #160f24;
+  color: #fff;
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -5px 0 rgba(0, 0, 0, 0.55), inset 0 0 14px rgba(var(--accent-rgb), 0.35);
+}
+
+.btn--primary:active:not(:disabled) {
+  background: linear-gradient(rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.12)), #0d0816;
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 6px 0 rgba(0, 0, 0, 0.65), inset 0 0 10px rgba(var(--accent-rgb), 0.25);
+}
+
+.btn--primary:disabled {
+  --ring: rgba(255, 255, 255, 0.1);
+  background: #1b1724;
+  color: #8f879f;
+  text-shadow: none;
+}
+
+.btn--ghost {
+  --ring: transparent;
+  background: transparent;
+  color: var(--color-text-soft);
+  box-shadow: none;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  --ring: rgba(var(--accent-rgb), 0.38);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 2px var(--ring);
+}
+
+.btn--ghost:active:not(:disabled) {
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.btn--danger {
+  color: #ff9b91;
+}
+
+.btn--danger:hover:not(:disabled) {
+  --ring: rgba(255, 107, 94, 0.6);
+  background: #2a1519;
+  color: #ffc2bb;
+}
+
+/* The shine: two bright pixel stripes cross the plate once each time the pointer comes. */
+.btn::after,
+.btn--primary::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 70%;
+  background: linear-gradient(105deg, transparent 0 34%, rgba(255, 255, 255, 0.32) 34% 44%, transparent 44% 52%, rgba(255, 255, 255, 0.18) 52% 56%, transparent 56%);
+  transform: translateX(-110%) skewX(0deg);
+  opacity: 1;
+  pointer-events: none;
+  animation: none;
+}
+
+.btn--primary::after {
+  background: linear-gradient(105deg, transparent 0 34%, rgba(255, 255, 255, 0.5) 34% 44%, transparent 44% 52%, rgba(255, 255, 255, 0.3) 52% 56%, transparent 56%);
+}
+
+.btn:hover:not(:disabled)::after,
+.btn--primary:hover:not(:disabled)::after {
+  animation: btn-shine 620ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
+}
+
+.btn--ghost::after {
+  display: none;
+}
+
+@keyframes btn-shine {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(160%); }
+}
+
+/* Square icon buttons: the same plate, smaller. */
+.icon-button:not(.icon-button--window) {
+  border: 0;
+  background: #1a1424;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1), inset 0 -3px 0 rgba(0, 0, 0, 0.45);
+  transition: transform 360ms var(--press-spring), scale 360ms var(--press-spring), background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.icon-button:not(.icon-button--window):hover {
+  background: #221a30;
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.icon-button:not(.icon-button--window):active:not(:disabled) {
+  transform: translateY(2px);
+  scale: 0.96;
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5), inset 0 3px 0 rgba(0, 0, 0, 0.5);
+  transition-duration: 70ms;
+  transition-timing-function: ease-out;
+}
+
+:root[data-animations="off"] .btn::after {
+  display: none;
+}
+
+/* Sparks from pressed buttons (core/effects.js installClickSparks): one canvas over everything. */
+.click-sparks {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3000;
+  pointer-events: none;
 }
