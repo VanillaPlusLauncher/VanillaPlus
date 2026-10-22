@@ -140,11 +140,26 @@ const CHANNELS = Object.freeze({
     list: 'server:list',
     saveList: 'server:save-list',
     ping: 'server:ping',
+    /** Mods on neither Modrinth nor CurseForge, to ask whether they go on the server; the answers. */
+    unknownMods: 'server:unknown-mods',
+    setModSides: 'server:set-mod-sides',
+    /** The settings window: server.properties, memory, players, worlds, picture. */
+    settings: 'server:settings',
+    saveSettings: 'server:save-settings',
+    player: 'server:player',
+    importWorld: 'server:import-world',
+    newWorld: 'server:new-world',
+    deleteWorld: 'server:delete-world',
+    setIcon: 'server:set-icon',
+    /** "Доступ из интернета": the server's tunnel on or off. */
+    setTunnel: 'server:set-tunnel',
   }),
   share: Object.freeze({
     makeCode: 'share:make-code',
     parseCode: 'share:parse-code',
     importCode: 'share:import-code',
+    /** "Прервать": stops a build from a code (its job id). */
+    cancelImport: 'share:cancel-import',
     exportPack: 'share:export-pack',
     listFiles: 'share:list-files',
     folderSizes: 'share:folder-sizes',
@@ -165,6 +180,8 @@ const CHANNELS = Object.freeze({
     image: 'friends:image',
     screenshots: 'friends:screenshots',
     hostStatus: 'friends:host-status',
+    /** A local port into a friend's world or server (the tunnel): { address, port }. */
+    joinTunnel: 'friends:join-tunnel',
   }),
   updates: Object.freeze({
     status: 'updates:status',

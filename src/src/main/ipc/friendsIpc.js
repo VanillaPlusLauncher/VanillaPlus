@@ -8,6 +8,7 @@ const messages = require('../cloud/cloudMessages');
 const { followAccount } = require('../cloud/cloudLive');
 const { syncAccount } = require('../cloud/cloudSkins');
 const worldShare = require('../minecraft/worldShare');
+const tunnel = require('../cloud/tunnel');
 
 /** Friends, messages and Amethyx skins on the Amethyx server. */
 function registerFriendsHandlers(handle) {
@@ -35,11 +36,20 @@ function registerFriendsHandlers(handle) {
       withPack: invite?.withPack !== false,
       upload: invite?.upload === true,
       world: invite?.world === true,
+      // An own server of that instance, through its tunnel.
+      ownServer: invite?.ownServer === true,
       // The code from the export dialog, when it already carries the author's files.
       code: typeof invite?.code === 'string' ? invite.code.slice(0, 60000) : null,
     }),
   );
-  handle(CHANNELS.friends.hostStatus, () => worldShare.hostStatus());
+  // The world opened to LAN (the Amethyx tunnel takes it), and e4mc's public address when that mod is there.
+  handle(CHANNELS.friends.hostStatus, () => {
+    const world = tunnel.worldStatus();
+    if (!world) return null;
+    const e4mc = worldShare.hostStatus();
+    return { ...world, address: e4mc?.kind === 'ready' ? e4mc.address : null };
+  });
+  handle(CHANNELS.friends.joinTunnel, (_event, tunnelId, name) => tunnel.joinTunnel(String(tunnelId), { name: String(name ?? '').slice(0, 64) }));
   handle(CHANNELS.friends.markRead, (_event, friendId) => messages.markRead(String(friendId)));
   handle(CHANNELS.friends.image, (_event, imageId) => messages.imageData(String(imageId)));
   handle(CHANNELS.friends.screenshots, () => messages.recentScreenshots());

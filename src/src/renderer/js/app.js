@@ -30,6 +30,9 @@ import { dropHandlerFor, setNavigator } from './core/nav.js';
 
 const MAX_PARALLAX_PX = { x: 18, y: 12 };
 
+// Frames that follow the cut corners (features.css → border-image: paint(pixel-frame)).
+CSS.paintWorklet?.addModule(new URL('./core/pixelFrame.worklet.js', import.meta.url)).catch(() => {});
+
 /**
  * Moves picture backgrounds slightly with the pointer for depth: at most once per frame, and not
  * for the panorama (it moves by itself). Disabled for reduced motion.
@@ -191,11 +194,11 @@ async function start() {
   api.events.onGameLog(appendLogLine);
   api.events.onInstancesChanged(() => refreshInstances().catch(() => {}));
   api.events.onGameCrash((report) => showCrashDialog(report));
-  // The world opened to LAN, and the address e4mc gives it for friends (main/minecraft/worldShare.js).
+  // The world opened to LAN: friends come in through the Amethyx tunnel (main/cloud/tunnel.js).
   api.events.onFriendEvent((event) => {
-    if (event.type === 'lan-open' && !event.shared) toast('Мир открыт для сети. В сборке без модов друг зайдёт, только если вы в одной сети (Wi-Fi, Radmin VPN).', 'info', 8000);
-    else if (event.type === 'world-shared') toast('Мир доступен друзьям. Позвать: «Друзья» → ▶ в чате.', 'success', 7000);
-    else if (event.type === 'world-closed') toast('Мир больше не открыт для друзей.', 'info', 5000);
+    if (event.type === 'lan-open') toast('Мир открыт. Позвать друга: «Друзья» → ▶ в чате — он зайдёт из любого города.', 'success', 8000);
+    else if (event.type === 'tunnel-join' && event.from) toast(`${event.from} заходит к вам`, 'info', 5000);
+    else if (event.type === 'tunnel-error') toast(event.message, 'error', 7000);
   });
   // New Minecraft versions: the list refreshes by itself, a new release is announced.
   api.events.onVersionsChanged(() => loadCatalog({ quiet: true }).catch(() => {}));

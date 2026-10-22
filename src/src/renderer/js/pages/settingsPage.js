@@ -275,6 +275,11 @@ export function createSettingsPage() {
 
   function onlineSection(settings) {
     const social = settings.social ?? {};
+    // Switches whose labels must stay on one line.
+    const nowrap = (element) => {
+      element.classList.add('segmented--nowrap');
+      return element;
+    };
     const update = (patch) => save({ social: { ...social, ...patch } });
     const serverInput = h('input', { class: 'input', type: 'text', placeholder: 'https://… (пусто — сервер Amethyx)', value: social.serverUrl ?? '', spellcheck: 'false', 'data-i18n': 'off' });
     serverInput.addEventListener('change', () => {
@@ -293,6 +298,20 @@ export function createSettingsPage() {
         row('Друзья и общие скины', null, toggle(social.online !== false, (value) => update({ online: value }), 'Онлайн-функции')),
         row('Показывать друзьям, во что я играю', 'Сборку, версию игры и сервер.', toggle(social.shareActivity !== false, (value) => update({ shareActivity: value }), 'Показывать активность')),
         h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Свой сервер Amethyx (необязательно)'), serverInput),
+      ),
+      // How invites go out and what a click on a friend's invite does.
+      card('Приглашения друзей', 'Друг заходит в ваш мир или на ваш сервер через туннель Amethyx: без белого IP, настройки роутера и модов. Вместе с приглашением уходит сборка — друг соберёт её одной кнопкой.',
+        row('Отправлять сборку с приглашением', 'Друг получит те же версию, загрузчик и моды. Если сборка у него уже есть, она не собирается заново.', toggle(social.inviteWithPack !== false, (value) => update({ inviteWithPack: value }), 'Сборка с приглашением')),
+        row('Моды не с Modrinth и CurseForge', 'Свои моды и моды из файлов загружаются на сервер Amethyx, чтобы друг их получил.', nowrap(createSegmented({
+          options: [{ value: 'always', label: 'Загружать' }, { value: 'ask', label: 'Спрашивать' }, { value: 'never', label: 'Нет' }],
+          value: social.inviteUpload ?? 'always',
+          onChange: (value) => update({ inviteUpload: value }),
+        }).element)),
+        row('Когда друг зовёт', 'Что делает главная кнопка в приглашении: собирает сборку и сразу заходит к другу, или только собирает.', nowrap(createSegmented({
+          options: [{ value: 'join', label: 'Сразу зайти' }, { value: 'build', label: 'Только собрать' }],
+          value: social.acceptInvite ?? 'join',
+          onChange: (value) => update({ acceptInvite: value }),
+        }).element)),
       ),
     ];
   }

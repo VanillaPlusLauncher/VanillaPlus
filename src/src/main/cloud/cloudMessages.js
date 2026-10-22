@@ -55,27 +55,44 @@ async function sendScreenshot(friendId, instanceId, name, caption = '') {
   return callAs(await me(), 'POST', '/v1/messages', { to: String(friendId), kind: 'image', image: data, caption: String(caption).slice(0, 200), width, height });
 }
 
+/** The instance's picture for the invite card: a block or item of the game, or a modpack's icon. */
+function inviteIcon(icon) {
+  const value = String(icon ?? '');
+  if (/^[a-z0-9_]{1,48}$/.test(value)) return `block:${value}`;
+  return /^(block:[a-z0-9_]{1,48}|item:[a-z0-9_]{1,48}|https:\/\/[^\s"'<>]{1,280})$/.test(value) ? value : null;
+}
+
 /**
- * An invite: the instance (name, version, loader), the server when there is one, and the share
- * code when `withPack` is on, so the friend can build the same instance. With `upload` the mods
- * that are on neither Modrinth nor CurseForge go to the server and into the code; when that fails
- * the invite still goes, without them, and `uploadError` says why. A ready `code` (the export
- * dialog's, perhaps with the author's files) is sent as it is.
+ * An invite: the instance (name, version, loader, picture), where to join, and the share code
+ * when `withPack` is on, so the friend can build the same instance. Where to join:
+ *  world     — the world opened to LAN now, through the Amethyx tunnel (and e4mc's address too,
+ *              when that mod is in the instance: friends on older launchers use it);
+ *  ownServer — the own server of the instance, through its tunnel (switched on if it was off);
+ *  server    — an address typed by the player.
+ * With `upload` the mods that are on neither Modrinth nor CurseForge go to the server and into the
+ * code; when that fails the invite still goes, without them, and `uploadError` says why. A ready
+ * `code` (the export dialog's, perhaps with the author's files) is sent as it is.
  */
-async function sendInvite(friendId, { instanceId, server = '', withPack = true, upload = false, world = false, code: readyCode = null } = {}) {
+async function sendInvite(friendId, { instanceId, server = '', withPack = true, upload = false, world = false, ownServer = false, code: readyCode = null } = {}) {
   const settings = await getSettings();
   const instanceService = require('../minecraft/instanceService');
-  // "Into my world": the instance that is running now, and the address e4mc gave its world.
+  const tunnel = require('./tunnel');
   let address = String(server ?? '').trim() || null;
   let id = String(instanceId);
+  let tunnelId = null;
   if (world) {
-    const status = require('../minecraft/worldShare').hostStatus();
+    const status = tunnel.worldStatus();
     if (status?.kind !== 'ready') {
-      throw new Error('Мир ещё не открыт для друзей: в игре нажмите Esc → «Открыть для сети» и подождите адрес в чате игры.');
+      throw new Error('Мир ещё не открыт для друзей: в игре нажмите Esc → «Открыть для сети» → «Открыть мир для сети».');
     }
-    address = status.address;
+    tunnelId = (await tunnel.hostWorld()).id;
+    const e4mc = require('../minecraft/worldShare').hostStatus();
+    address = e4mc?.kind === 'ready' ? e4mc.address : null;
     const running = require('../minecraft/gameService').getStatus();
     if (running.state === 'running' && running.instanceId) id = running.instanceId;
+  } else if (ownServer) {
+    tunnelId = (await require('../minecraft/serverService').serverInvite(settings, id)).id;
+    address = null;
   }
   const instance = await instanceService.getInstance(settings, id);
   let code = null;
@@ -92,7 +109,18 @@ async function sendInvite(friendId, { instanceId, server = '', withPack = true, 
       code = (await makeShareCode(settings, instance.id)).code;
     }
   }
-  const invite = { instance: instance.name, minecraft: instance.minecraft, loader: instance.loader?.type ?? 'vanilla', server: address, world: world ? instance.name : null, code };
+  const kind = world ? 'world' : ownServer ? 'server' : address ? 'play' : 'pack';
+  const invite = {
+    instance: instance.name,
+    minecraft: instance.minecraft,
+    loader: instance.loader?.type ?? 'vanilla',
+    server: address,
+    world: world || ownServer ? instance.name : null,
+    code,
+    tunnel: tunnelId,
+    icon: inviteIcon(instance.icon),
+    kind,
+  };
   return { ...(await callAs(await me(), 'POST', '/v1/messages', { to: String(friendId), kind: 'invite', invite })), uploadError };
 }
 

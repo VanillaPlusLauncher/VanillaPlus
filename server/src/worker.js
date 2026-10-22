@@ -424,7 +424,10 @@ async function sendMessage(request, env, user) {
       const owned = await env.DB.prepare('SELECT 1 FROM tunnels WHERE id = ? AND owner_id = ?').bind(tunnel, user.id).first();
       if (!owned) throw new Failure(400, 'Туннель к миру не найден.');
     }
-    const clean = { instance: text(invite.instance, 64), minecraft: text(invite.minecraft, 32), loader: text(invite.loader, 16), server: text(invite.server, 128), world: text(invite.world, 64), code, tunnel };
+    // The instance's picture: a block or item of the game, or a modpack's icon on the web.
+    const icon = typeof invite.icon === 'string' && /^(block:[a-z0-9_]{1,48}|item:[a-z0-9_]{1,48}|https:\/\/[^\s"'<>]{1,280})$/.test(invite.icon) ? invite.icon : null;
+    const kind = ['world', 'server', 'pack', 'play'].includes(invite.kind) ? invite.kind : null;
+    const clean = { instance: text(invite.instance, 64), minecraft: text(invite.minecraft, 32), loader: text(invite.loader, 16), server: text(invite.server, 128), world: text(invite.world, 64), code, tunnel, icon, kind };
     if (!clean.server && !clean.code && !clean.world && !clean.tunnel) throw new Failure(400, 'В приглашении нет ни сервера, ни сборки.');
     return storeMessage(env, user, to, 'invite', JSON.stringify(clean));
   }
@@ -596,10 +599,12 @@ export class TunnelRoom {
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1], [tag]);
     if (tag.startsWith('host:')) {
-      // What the guest's game sent before the host answered (its handshake).
+      // What the guest's game sent before the host answered (its handshake), then "ready": the
+      // guest's launcher holds the rest until then.
       const id = tag.slice(5);
       for (const chunk of this.pending.get(id)?.chunks ?? []) pair[1].send(chunk);
       this.pending.delete(id);
+      for (const guest of this.ctx.getWebSockets(`guest:${id}`)) guest.send('ready');
     }
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
@@ -615,11 +620,16 @@ export class TunnelRoom {
     if (tag.startsWith('guest:')) {
       const waiting = this.pending.get(tag.slice(6)) ?? { chunks: [], bytes: 0 };
       const size = typeof message === 'string' ? message.length : message.byteLength;
-      if (waiting.bytes + size <= MAX_PENDING_BYTES) {
-        waiting.chunks.push(message);
-        waiting.bytes += size;
-        this.pending.set(tag.slice(6), waiting);
+      if (waiting.bytes + size > MAX_PENDING_BYTES) {
+        // Too much before the host answered: dropping bytes would break the game's stream, so the
+        // connection ends (the game simply tries again).
+        socket.close(1009, 'too much before the host answered');
+        this.pending.delete(tag.slice(6));
+        return;
       }
+      waiting.chunks.push(message);
+      waiting.bytes += size;
+      this.pending.set(tag.slice(6), waiting);
     }
   }
 
@@ -680,6 +690,16 @@ async function createTunnel(env, user) {
   return json({ id });
 }
 
+/**
+ * GET /v1/tunnels/<id>: is this tunnel still mine? A tunnel in use lives on: asking for it (the
+ * launcher does before hosting) counts as use, like the host's connection does.
+ */
+async function getTunnel(env, user, id) {
+  const result = await env.DB.prepare('UPDATE tunnels SET created_at = ? WHERE id = ? AND owner_id = ?').bind(Date.now(), id, user.id).run();
+  if (!(result.meta?.changes ?? result.changes)) throw new Failure(404, 'Туннель не найден.');
+  return json({ id });
+}
+
 async function deleteTunnel(env, user, id) {
   await env.DB.prepare('DELETE FROM tunnels WHERE id = ? AND owner_id = ?').bind(id, user.id).run();
   return json({ ok: true });
@@ -698,6 +718,9 @@ async function tunnelSocket(request, env, url, id) {
     if (tunnel.owner_id !== user.id && !(await areFriends(env, tunnel.owner_id, user.id))) throw new Failure(403, 'Заходить в мир могут только друзья.');
   } else if (tunnel.owner_id !== user.id) {
     throw new Failure(403, 'Это не ваш мир.');
+  } else if (role === 'control') {
+    // The host is there: the tunnel stays as long as it is used.
+    await env.DB.prepare('UPDATE tunnels SET created_at = ? WHERE id = ?').bind(Date.now(), id).run();
   }
   const target = new URL('https://tunnel/');
   target.searchParams.set('role', role ?? '');
@@ -954,6 +977,7 @@ async function route(request, env) {
     if (pathname === '/v1/files/start' && method === 'POST') return startUpload(request, env, user);
     if (pathname === '/v1/packs' && method === 'POST') return createPack(request, env, user);
     match = /^\/v1\/tunnels\/([0-9a-f]{32})$/.exec(pathname);
+    if (match && method === 'GET') return getTunnel(env, user, match[1]);
     if (match && method === 'DELETE') return deleteTunnel(env, user, match[1]);
     match = /^\/v1\/images\/([0-9a-f]{32})$/.exec(pathname);
     if (match && method === 'GET') return image(env, user, match[1]);

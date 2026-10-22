@@ -130,16 +130,32 @@ function parseShareCode(code) {
   };
 }
 
+/** Builds the player stopped ("Прервать" on an invite): job id → true. */
+const stoppedJobs = new Set();
+const STOPPED = 'Сборка остановлена.';
+
+/** Stops the build `jobId` between two files; the half-built instance is removed. */
+function cancelImport(jobId) {
+  stoppedJobs.add(String(jobId));
+}
+
 /**
  * Builds a new instance from a share code. Content that fails is listed, the rest is installed.
  * The author's files on the server come too unless `withFiles` is false; when they are gone
- * already, `filesError` says so. Resolves with { instance, failed, filesError }.
+ * already, `filesError` says so. `icon` is the instance's picture from the invite. With `jobId`
+ * the build can be stopped (cancelImport). Resolves with { instance, failed, filesError }.
  */
-async function importShareCode(settings, code, { name, group, withFiles = true } = {}) {
+async function importShareCode(settings, code, { name, group, withFiles = true, icon = null, jobId = null } = {}) {
   const pack = parseShareCode(code);
   const reporter = createTaskReporter({ taskId: `share:${crypto.randomBytes(4).toString('hex')}`, kind: 'modpack', label: name || pack.name });
+  const job = jobId ? String(jobId) : null;
+  const checkStopped = () => {
+    if (job && stoppedJobs.has(job)) throw new Error(STOPPED);
+  };
+  let instance = null;
   try {
-    const instance = await instanceService.createInstance(settings, { name: name || pack.name, group, minecraft: pack.minecraft, loader: pack.loader, icon: 'block:grass_block' });
+    const picture = typeof icon === 'string' && /^(block:[a-z0-9_]{1,48}|item:[a-z0-9_]{1,48}|https:\/\/\S{1,280})$/.test(icon) ? icon : 'block:grass_block';
+    instance = await instanceService.createInstance(settings, { name: name || pack.name, group, minecraft: pack.minecraft, loader: pack.loader, icon: picture });
     const failed = [];
     const files = withFiles ? pack.files : null;
     // Progress: mods and packs, then the author's files, then the game.
@@ -147,6 +163,7 @@ async function importShareCode(settings, code, { name, group, withFiles = true }
     let filesError = null;
     let done = 0;
     for (const entry of pack.content) {
+      checkStopped();
       try {
         await contentService.installProject(settings, { instanceId: instance.id, platform: entry.platform, projectId: entry.projectId, versionId: entry.versionId, type: entry.type });
         if (!entry.enabled) {
@@ -161,6 +178,7 @@ async function importShareCode(settings, code, { name, group, withFiles = true }
       done += 1;
       reporter.report('Моды и ресурсы', 5 + (done / Math.max(1, pack.content.length)) * contentShare, `${done}/${pack.content.length}`);
     }
+    checkStopped();
     if (files) {
       try {
         const result = await packFiles.downloadPackFiles(files, instance.directory, (received, total) =>
@@ -172,13 +190,23 @@ async function importShareCode(settings, code, { name, group, withFiles = true }
         log.warn(`Файлы автора кода не скачаны: ${error.message}`);
       }
     }
+    checkStopped();
     reporter.report('Minecraft и загрузчик', 92, pack.minecraft);
     await instanceService.ensureInstanceReady(settings, instance.id).catch((error) => log.warn(`Сборка по коду создана, игра не установлена: ${error.message}`));
+    checkStopped();
     reporter.finish('done', instance.name);
     return { instance, failed, filesError };
   } catch (error) {
-    reporter.finish('error', error.message);
+    if (error.message === STOPPED && instance) {
+      // Nothing half-built is left behind.
+      await instanceService.deleteInstance(settings, instance.id).catch((cleanup) => log.warn(`Остановленная сборка не удалена: ${cleanup.message}`));
+      reporter.finish('done', STOPPED);
+    } else {
+      reporter.finish('error', error.message);
+    }
     throw error;
+  } finally {
+    if (job) stoppedJobs.delete(job);
   }
 }
 
@@ -409,4 +437,4 @@ async function exportInstanceZip(settings, instanceId, target, { includeConfigs 
   return { path: target, size };
 }
 
-module.exports = { makeShareCode, parseShareCode, importShareCode, exportMrpack, exportCurseForge, exportInstanceZip, listInstanceFiles, folderSizes };
+module.exports = { makeShareCode, parseShareCode, importShareCode, cancelImport, exportMrpack, exportCurseForge, exportInstanceZip, listInstanceFiles, folderSizes };

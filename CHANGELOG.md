@@ -10,7 +10,11 @@
 - Friends in the sidebar: add by name, requests, who is online and what they play, "Join" a friend's server
 - Offline accounts with a popular name (Steve, Alex…) are no longer turned away: when the name is taken, the account gets a short code and friends add it as "Steve#3fa1"
 - Chat like in Essential: text, in-game screenshots (kept for 30 days), clickable links, an invite to play with an instance your friend builds in one click ("Build and play"). Messages arrive instantly
-- Friends join your world: the launcher installs the e4mc mod into modded instances. Open the world to LAN (Esc → "Open to LAN"), the world gets an address for friends, press ▶ → "Into my world" in the chat. Your friend gets a "Join world" button: the launcher picks or builds the right instance and joins the address — no public IP or router setup. In an instance without mods friends can only join on the same network (Wi-Fi, Radmin VPN)
+- Friends join your world through the Amethyx tunnel, in every instance — vanilla too, no mod needed: open the world to LAN (Esc → "Open to LAN") and press ▶ → "Into my world" in the chat. Your friend's launcher opens a local port into your world, so their game joins from any city — no public IP or router setup. An invite stays good: whenever your world is open again, the friend gets in (the launcher keeps one tunnel for your worlds). The launcher no longer puts e4mc into instances; when you have it anyway, its address goes into the invite for friends with another launcher
+- Own server → "Access from the internet": one switch, and friends with Amethyx join your server from anywhere by an invite ("Invite a friend" on the server card). The tunnel opens whenever the server runs; up to 5 tunnels free
+- An invite in the chat is a card with the instance's picture, name and version. "Join" builds the instance if needed, starts it and joins at once; "Only build" just builds it; while it builds, "Stop" stops it and removes the half-built instance. If the friend already has the instance, it simply starts
+- Settings → "Friends and skins" → "Friend invites": whether the instance goes with an invite, whether mods not from Modrinth or CurseForge are uploaded (always, ask, never), and what the main button of a friend's invite does (join at once or only build)
+- A friend joining shows a small card over the game; when a friend's world is closed, the launcher says so instead of a silent "connection lost"
 - Export → "Send to a friend": the instance goes straight into the chat
 - Friends, chat and shared skins work through the Amethyx server (the `server` folder, Cloudflare Workers); all of it can be turned off in Settings → "Friends and skins"
 
@@ -84,6 +88,8 @@
 - Instances: right-click an empty spot for "Новая группа…", "Новая сборка…" and imports; "Новая группа" can put instances in at once
 - The instance's "Версия" tab picks the version from the same searchable list as "Новая сборка" and the loader from cards
 - "Серверы" opens on the server list; "Свой сервер" and "Для хостинга" come after it
+- Own server → "Settings": all of server.properties in five parts — General (description, players, port, licence only, white list, PvP), Game (mode, difficulty, hardcore, flight, Nether, mobs, spawn protection, command blocks), World (the worlds on the server, a world moved over from the instance, a new one with a seed and type, view and simulation distance), Players (white list, operators, banned — by command while the server runs, written with the right UUIDs while it is stopped), More (memory, Java arguments, the server icon from the instance, resource pack, chat signatures, watchdog and every other key). Everything saves itself; a running server takes it on the next start ("Restart")
+- Mods on neither Modrinth nor CurseForge (your own, a friend's): before a server gets its mods the launcher asks whether each one goes on the server or stays with the players, and remembers. Until answered such a mod stays off the server, so a client-only mod can no longer stop it from starting; "Для хостинга" marks them too
 - Ticks make a sound like switches; "Оптимизация" comes in with a short animation; animations pause while the window is hidden or minimised
 - Updates are checked every 10 minutes; macOS updates itself too (downloads the zip, checks it, swaps Amethyx.app and opens it again)
 - Mac: runs on macOS 12 Monterey too (the Mac build is on Electron 43, the last for macOS 12; 44 needs macOS 13)
@@ -91,6 +97,7 @@
 - Friends' chat: "Поделиться сборкой" sends any instance in one click. Invites always carry the instance; "Собрать и играть" / "Собрать и зайти" builds it right in the chat without questions and starts the game, and once built the button just says "Играть". Sharing the same instance again gives the same code, so a friend does not get copies
 - Hand-drawn pixel icons (10 × 10, shown at whole sizes so every pixel stays square) instead of the smooth outline ones — the instance settings gear among them; pixel ticks everywhere instead of Windows' checkboxes; no rounded corners left anywhere; a slider like the game's
 - Fixed: "nullnull" under the update status in Settings → Updates
+- The frame of every pixel-cut button, panel, card and field now goes round the cut corners too (it used to stop at each step); "Shaders for this computer" in "Optimization" and packs without a picture show the Amethyx X
 - Fixed: the panorama sometimes stayed black after a start (for example the first one after an update): when the background was drawn twice in a row, the two copies removed each other
 
 ### Fixes

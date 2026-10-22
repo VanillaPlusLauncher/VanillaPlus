@@ -1,5 +1,6 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
+import { assetUrl } from '../core/assets.js';
 import { errorMessage } from '../core/format.js';
 import { pixelBurst } from '../core/effects.js';
 import { sfx } from '../core/sound.js';
@@ -46,7 +47,7 @@ export function openShaderDialog(instance, onDone) {
           render();
         },
       },
-      pack.iconUrl ? h('img', { class: 'shader-card__icon', src: pack.iconUrl, alt: '', loading: 'lazy' }) : h('span', { class: 'shader-card__icon shader-card__icon--empty' }, icon('image')),
+      pack.iconUrl ? h('img', { class: 'shader-card__icon', src: pack.iconUrl, alt: '', loading: 'lazy' }) : h('img', { class: 'shader-card__icon shader-card__icon--empty', src: assetUrl('branding/amethyx-mark.png'), alt: '' }),
       h(
         'span',
         { class: 'shader-card__text' },

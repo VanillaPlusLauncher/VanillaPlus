@@ -7,6 +7,9 @@ import { store } from '../state/appStore.js';
 import { openModal, confirmDialog } from './modal.js';
 import { toast } from './toast.js';
 import { createSegmented, loadingState } from './controls.js';
+import { askUnknownMods } from './unknownModsDialog.js';
+import { openServerSettings, setServerIconFromInstance } from './serverSettingsDialog.js';
+import { openFriendPicker } from './friendPicker.js';
 
 /*
  * Instance page tabs that show the instance folder: Screenshots, Files and the Journal (logs with
@@ -338,7 +341,7 @@ export function createServersTab(getInstance, { onPlay } = {}) {
 
 // --- "Для хостинга": the instance as a server pack --------------------------------------------
 
-const SIDE_LABELS = { client: 'Клиент', server: 'Сервер', both: 'Оба' };
+const SIDE_LABELS = { client: 'Клиент', server: 'Сервер', both: 'Оба', unknown: 'Неизвестный' };
 
 function createServerExportCard(getInstance) {
   const element = h('div', { class: 'surface server-export' });
@@ -357,7 +360,7 @@ function createServerExportCard(getInstance) {
       element.replaceChildren(h('p', { class: 'text-danger' }, errorMessage(error)));
       return;
     }
-    chosen = new Set(mods.filter((mod) => mod.enabled && mod.side !== 'client').map((mod) => mod.file));
+    chosen = new Set(mods.filter((mod) => mod.enabled && mod.side !== 'client' && mod.side !== 'unknown').map((mod) => mod.file));
     render();
   }
 
@@ -391,7 +394,9 @@ function createServerExportCard(getInstance) {
         box,
         mod.icon ? h('img', { class: 'server-mod__icon', src: mod.icon, alt: '', loading: 'lazy' }) : h('span', { class: 'server-mod__icon server-mod__icon--empty' }, icon('cube')),
         h('span', { class: 'server-mod__name', 'data-i18n': 'off' }, mod.title),
-        mod.side ? h('span', { class: `server-mod__side server-mod__side--${mod.side}` }, SIDE_LABELS[mod.side] ?? mod.side) : h('span', { class: 'server-mod__side', title: 'Не удалось узнать: мод не с Modrinth и сам не сообщает' }, '?'),
+        mod.side
+          ? h('span', { class: `server-mod__side server-mod__side--${mod.side}`, title: mod.side === 'unknown' ? 'Мода нет на Modrinth и CurseForge: ответьте, нужен ли он серверу' : '' }, SIDE_LABELS[mod.side] ?? mod.side)
+          : h('span', { class: 'server-mod__side', title: 'Не удалось узнать: мод не с Modrinth и сам не сообщает' }, '?'),
         mod.enabled ? null : h('span', { class: 'text-muted server-mod__off' }, 'выключен'),
       );
       return row;
@@ -434,10 +439,23 @@ function createServerExportCard(getInstance) {
         ),
         h('div', { class: 'server-export__mods' },
           h('div', { class: 'server-export__mods-head' }, h('h3', { class: 'section-title' }, 'Моды на сервер'), counter),
-          h('div', { class: 'chip-row' }, allButton('Как советует лаунчер', (mod) => mod.enabled && mod.side !== 'client'), allButton('Все', () => true), allButton('Ничего', () => false)),
+          h('div', { class: 'chip-row' }, allButton('Как советует лаунчер', (mod) => mod.enabled && mod.side !== 'client' && mod.side !== 'unknown'), allButton('Все', () => true), allButton('Ничего', () => false)),
+          unknownNote(),
           mods.length ? h('div', { class: 'server-export__list' }, rows) : h('p', { class: 'text-muted' }, 'В сборке нет модов.'),
         ),
       ),
+    );
+  }
+
+  /** Mods the launcher does not know: the same question as before a server of one's own. */
+  function unknownNote() {
+    const count = mods.filter((mod) => mod.side === 'unknown' && mod.enabled).length;
+    if (!count) return null;
+    return h(
+      'div',
+      { class: 'share-upload server-export__unknown' },
+      h('span', null, `Незнакомых модов: ${count}. Их нет на Modrinth и CurseForge — скажите, нужны ли они серверу.`),
+      h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: async () => { if (await askUnknownMods(getInstance())) load(); } }, 'Ответить'),
     );
   }
 
@@ -649,6 +667,10 @@ function createServerListCard(getInstance, { onPlay } = {}) {
 const RAM_CHOICES = [2048, 3072, 4096, 6144, 8192];
 /** Tunnels a player can have for free (the Amethyx server, server/src/worker.js, has the same limit). */
 const FREE_TUNNELS = 5;
+// How invites go (Settings → "Друзья и скины"): with the instance's code, and with the author's own mods.
+const social = () => store.get().settings?.social ?? {};
+const inviteWithPack = () => social().inviteWithPack !== false;
+const inviteUpload = () => social().inviteUpload !== 'never';
 const serverLogListeners = new Set();
 const serverStateListeners = new Set();
 let serverEventsReady = false;
@@ -712,6 +734,7 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
         ? h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: (event) => stop(event.currentTarget) }, 'Остановить')
         : h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => start() }, icon('play'), 'Запустить'),
       h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => openConsole(instance, state) }, 'Консоль'),
+      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => openServerSettings(instance, { onRestart: () => restart() }) }, icon('gear'), 'Настройки'),
       h('button', { class: 'btn btn--ghost btn--compact', type: 'button', disabled: state.running, title: 'Перенести на сервер текущие моды и настройки сборки', onclick: () => sync() }, 'Обновить моды'),
       h('button', { class: 'icon-button', type: 'button', title: 'Папка сервера', onclick: () => api.app.openFolder(state.directory).catch((error) => toast(errorMessage(error), 'error')) }, icon('folder')),
       h('button', { class: 'icon-button', type: 'button', title: 'Удалить сервер', disabled: state.running, onclick: () => remove() }, icon('close')),
@@ -720,18 +743,50 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
   }
 
   /**
-   * "Доступ из интернета": a tunnel gives the server an address friends anywhere can join, without
-   * a public IP or router setup. Being prepared: up to FREE_TUNNELS free, more with a subscription
-   * (the Amethyx server keeps the same limit).
+   * "Доступ из интернета": the server's tunnel through the Amethyx server (cloud/tunnel.js). Friends
+   * with Amethyx join from anywhere by an invite in the chat — no public IP, no router setup. It
+   * opens whenever the server runs. Up to FREE_TUNNELS free (the Amethyx server keeps the limit).
    */
   function tunnelBlock() {
-    return h('div', { class: 'own-server__tunnel' },
+    const instance = getInstance();
+    const tunnel = state.tunnel ?? {};
+    let text;
+    if (!tunnel.enabled) text = `Включите — и друзья с Amethyx зайдут к вам из любого города по приглашению в чате, без белого IP и настройки роутера. Бесплатно — до ${FREE_TUNNELS} туннелей.`;
+    else if (state.running && tunnel.hosting) text = 'Открыт: друзья заходят по приглашению. Позовите их кнопкой справа.';
+    else if (state.running) text = 'Открывается…';
+    else text = 'Откроется вместе с сервером. Приглашение можно отправить заранее: друг зайдёт, как только сервер запустится.';
+    const invite = () =>
+      openFriendPicker({
+        title: `Позвать на сервер «${instance.name}»`,
+        intro: 'Друг получит в чате карточку сборки: одна кнопка — и сборка соберётся, запустится и зайдёт к вам на сервер.',
+        send: (friendId) => api.friends.sendInvite(friendId, { instanceId: instance.id, ownServer: true, withPack: inviteWithPack(), upload: inviteUpload() }),
+      });
+    return h(
+      'div',
+      { class: `own-server__tunnel${tunnel.enabled ? ' own-server__tunnel--on' : ''}` },
       h('div', { class: 'own-server__text' },
-        h('b', null, icon('globe'), ' Доступ из интернета ', h('span', { class: 'badge' }, 'Скоро')),
-        h('span', { class: 'text-muted' }, `Туннель даст серверу адрес, по которому зайдут друзья из любого города — без белого IP и настройки роутера. Бесплатно — до ${FREE_TUNNELS} туннелей, больше — по подписке.`),
+        h('b', null, icon('globe'), ' Доступ из интернета ', tunnel.enabled ? h('span', { class: `badge${state.running && tunnel.hosting ? ' badge--ok' : ''}` }, state.running && tunnel.hosting ? 'открыт' : 'включён') : null),
+        h('span', { class: 'text-muted' }, text),
       ),
-      h('button', { class: 'btn btn--secondary btn--compact', type: 'button', disabled: true }, 'Создать туннель'),
+      tunnel.enabled ? h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: invite }, icon('play'), 'Пригласить друга') : null,
+      h('button', { class: `btn ${tunnel.enabled ? 'btn--ghost' : 'btn--primary'} btn--compact`, type: 'button', onclick: (event) => setTunnel(!tunnel.enabled, event.currentTarget) }, tunnel.enabled ? 'Выключить' : 'Включить'),
     );
+  }
+
+  async function setTunnel(enabled, button) {
+    button.disabled = true;
+    try {
+      state = await api.server.setTunnel(getInstance().id, enabled);
+      render();
+    } catch (error) {
+      toast(errorMessage(error), 'error', 8000);
+      button.disabled = false;
+    }
+  }
+
+  async function restart() {
+    await api.server.stop(getInstance().id).catch(() => {});
+    await start();
   }
 
   async function start() {
@@ -753,6 +808,7 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
 
   async function sync() {
     try {
+      if (!(await askUnknownMods(getInstance()))) return;
       const result = await api.server.sync(getInstance().id);
       toast(`На сервер перенесено модов: ${result.copied.length}${result.skipped.length ? `, клиентских пропущено: ${result.skipped.length}` : ''}`, 'success', 6000);
     } catch (error) {
@@ -786,11 +842,19 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
 
     async function create() {
       createButton.disabled = true;
-      createButton.textContent = 'Создаём… (прогресс вверху)';
+      createButton.textContent = 'Смотрим моды…';
       try {
+        // Mods the launcher does not know: the player says whether the server needs them.
+        if (!(await askUnknownMods(instance))) {
+          createButton.disabled = !eula.checked;
+          createButton.textContent = 'Создать сервер';
+          return;
+        }
+        createButton.textContent = 'Создаём… (прогресс вверху)';
         const result = await api.server.create(instance.id, { port: Number(portInput.value), motd: motdInput.value, ramMb: Number(ramSelect.value), onlineMode: online.checked, acceptEula: eula.checked });
         modal.close();
-        toast(`Сервер готов. Модов на сервере: ${result.copied}${result.skipped.length ? `, клиентских пропущено: ${result.skipped.length}` : ''}`, 'success', 7000);
+        await setServerIconFromInstance(instance);
+        toast(`Сервер готов. Модов на сервере: ${result.copied}${result.skipped.length ? `, не для сервера: ${result.skipped.length}` : ''}`, 'success', 7000);
         onChange?.();
       } catch (error) {
         toast(errorMessage(error), 'error');
@@ -812,7 +876,7 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
         ),
         h('label', { class: 'compat-dialog__remember' }, online, h('span', null, 'Только лицензия (online-mode): без этого заходят и офлайн-аккаунты')),
         h('label', { class: 'compat-dialog__remember' }, eula, h('span', null, 'Я принимаю ', h('button', { class: 'link-button', type: 'button', onclick: (event) => { event.preventDefault(); api.app.openExternal('https://aka.ms/MinecraftEULA'); } }, 'EULA Minecraft'), ' (без этого сервер Mojang не запускается)')),
-        h('p', { class: 'text-muted server-create__hint' }, 'Друзья в той же сети заходят по адресу из карточки сервера. Чтобы зашли из интернета, нужно открыть порт на роутере или использовать сервис-туннель.'),
+        h('p', { class: 'text-muted server-create__hint' }, 'Друзья в той же сети заходят по адресу из карточки сервера, из интернета — через «Доступ из интернета» (туннель Amethyx). Остальные настройки — кнопкой «Настройки» после создания.'),
       ),
       footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), createButton],
     });

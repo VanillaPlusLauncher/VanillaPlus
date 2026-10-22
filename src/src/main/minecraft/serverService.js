@@ -71,6 +71,8 @@ async function getServer(settings, instanceId) {
     loader: meta?.loader ?? null,
     minecraft: meta?.minecraft ?? null,
     createdAt: meta?.createdAt ?? null,
+    // "Доступ из интернета": friends with Amethyx come in through the tunnel (cloud/tunnel.js).
+    tunnel: { enabled: Boolean(meta?.tunnel?.enabled), hosting: require('../cloud/tunnel').isHostingServer(instanceId) },
     lines: [...(consoles.get(instanceId) ?? [])],
   };
 }
@@ -138,10 +140,43 @@ async function installCore({ instance, directory, java, report }) {
   throw new Error(`Сервер для загрузчика ${type} не поддерживается.`);
 }
 
+// --- Mods the launcher does not know --------------------------------------------------------
+
+/**
+ * Where a mod goes, with the player's answer for mods on neither Modrinth nor CurseForge (their own
+ * or a friend's): 'server' puts it on the server, 'client' keeps it in the game only. An unknown mod
+ * nobody answered for stays off the server: a client-only mod there would stop it from starting.
+ */
+function serverSide(mod, choices) {
+  const choice = choices?.[mod.file] ?? choices?.[String(mod.file).replace(/\.disabled$/i, '')];
+  if (choice === 'server') return 'both';
+  if (choice === 'client') return 'client';
+  if (!mod.platform && mod.side !== 'client' && mod.side !== 'server') return 'unknown';
+  return mod.side;
+}
+
+/** Mods the launcher cannot place by itself, to ask about: [{ file, title, version, icon, side }]. */
+async function unknownMods(settings, instanceId) {
+  const mods = await modsForServer(settings, instanceId);
+  return mods.filter((mod) => mod.enabled && mod.side === 'unknown').map(({ file, title, version, icon, guess }) => ({ file, title, version, icon, guess }));
+}
+
+/** Saves the answers: { file: 'server' | 'client' }. */
+async function setModSides(settings, instanceId, answers) {
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const choices = { ...(instance.overrides?.serverMods ?? {}) };
+  for (const [file, side] of Object.entries(answers ?? {})) {
+    if (typeof file === 'string' && file.length <= 255 && ['server', 'client'].includes(side)) choices[file] = side;
+  }
+  await instanceService.updateInstance(settings, instanceId, { overrides: { serverMods: choices } });
+  return choices;
+}
+
 /** Copies the instance's mods (without client-only ones) and configs to the server. */
 async function syncContent(settings, instance, directory) {
   const contentService = require('../content/contentService');
-  const mods = await contentService.listContent(settings, instance.id, 'mod');
+  const choices = instance.overrides?.serverMods ?? {};
+  const mods = (await contentService.listContent(settings, instance.id, 'mod')).map((mod) => ({ ...mod, side: serverSide(mod, choices) }));
   const target = path.join(directory, 'mods');
   // Mods the launcher put there before are replaced; files the user added to the server stay.
   const meta = (await readMeta(directory)) ?? {};
@@ -153,7 +188,7 @@ async function syncContent(settings, instance, directory) {
   const skipped = [];
   for (const mod of mods) {
     if (!mod.enabled || mod.folder) continue;
-    if (mod.side === 'client') {
+    if (mod.side === 'client' || mod.side === 'unknown') {
       skipped.push(mod.title);
       continue;
     }
@@ -201,7 +236,9 @@ async function createServer(settings, instanceId, options = {}) {
     properties.set('motd', String(options.motd || `Сервер ${instance.name}`).replace(/[\r\n]/g, ' ').slice(0, 59));
     await fsp.writeFile(propertiesFile, `#Minecraft server properties\n${[...properties].map(([key, value]) => `${key}=${value}`).join('\n')}\n`);
     const ramMb = Math.max(1024, Number(options.ramMb) || 4096);
-    const meta = { instanceId, minecraft: instance.minecraft, loader: instance.loader.type, java: java.path, ramMb, port, start, createdAt: new Date().toISOString(), copiedMods: copied };
+    // Made again: its tunnel (invites already sent) and Java arguments stay.
+    const previous = (await readMeta(directory)) ?? {};
+    const meta = { instanceId, minecraft: instance.minecraft, loader: instance.loader.type, java: java.path, ramMb, port, start, createdAt: new Date().toISOString(), copiedMods: copied, tunnel: previous.tunnel, javaArgs: previous.javaArgs };
     await writeJsonFileAtomic(path.join(directory, META_FILE), meta);
     // A start script, for running the server without the launcher.
     const command = start.argsFile ? `@${start.argsFile}` : `-jar ${start.jar}`;
@@ -236,7 +273,7 @@ async function startServer(settings, instanceId) {
   const directory = serverDirectory(settings, instanceId);
   const meta = await readMeta(directory);
   if (!meta) throw new Error('Сервер ещё не создан.');
-  const args = [`-Xmx${meta.ramMb}M`, ...(meta.start.argsFile ? [`@${meta.start.argsFile}`] : ['-jar', meta.start.jar]), 'nogui'];
+  const args = [`-Xmx${meta.ramMb}M`, ...splitArgs(meta.javaArgs), ...(meta.start.argsFile ? [`@${meta.start.argsFile}`] : ['-jar', meta.start.jar]), 'nogui'];
   const child = spawn(meta.java, args, { cwd: directory, windowsHide: true });
   running.set(instanceId, { child, port: meta.port });
   consoles.set(instanceId, []);
@@ -247,11 +284,265 @@ async function startServer(settings, instanceId) {
   child.on('exit', (code) => {
     pushLine(instanceId, `--- Сервер остановлен (код ${code ?? '—'}) ---`);
     running.delete(instanceId);
+    require('../cloud/tunnel').stopServer(instanceId);
     broadcast(CHANNELS.events.serverState, { instanceId, running: false });
   });
   pushLine(instanceId, `--- Запуск сервера на порту ${meta.port} ---`);
+  if (meta.tunnel?.enabled && meta.tunnel.id) {
+    const name = (await instanceService.getInstance(settings, instanceId).catch(() => null))?.name ?? instanceId;
+    require('../cloud/tunnel')
+      .hostServer(instanceId, meta.tunnel.id, meta.port, name)
+      .then(() => {
+        pushLine(instanceId, '--- Туннель открыт: друзья с Amethyx заходят по приглашению ---');
+        broadcast(CHANNELS.events.serverState, { instanceId, running: running.has(instanceId) });
+      })
+      .catch((error) => pushLine(instanceId, `--- Туннель не открылся: ${error.message} ---`));
+  }
   broadcast(CHANNELS.events.serverState, { instanceId, running: true });
   return getServer(settings, instanceId);
+}
+
+/** Extra Java arguments as typed ("-XX:+UseG1GC -Dfoo=bar"), quotes kept together. */
+function splitArgs(text) {
+  return String(text ?? '').match(/"[^"]*"|\S+/g)?.map((part) => part.replace(/^"|"$/g, '')) ?? [];
+}
+
+// --- Server settings ----------------------------------------------------------------------------
+
+const PROPERTIES_FILE = 'server.properties';
+const PLAYER_FILES = { whitelist: 'whitelist.json', ops: 'ops.json', banned: 'banned-players.json' };
+const NAME = /^[A-Za-z0-9_]{1,16}$/;
+
+async function readProperties(directory) {
+  const text = await fsp.readFile(path.join(directory, PROPERTIES_FILE), 'utf8').catch(() => '');
+  const map = new Map();
+  for (const line of text.split(/\r?\n/)) {
+    if (!line || line.startsWith('#') || !line.includes('=')) continue;
+    // server.properties escapes ":" and "=" in values with a backslash.
+    map.set(line.slice(0, line.indexOf('=')).trim(), line.slice(line.indexOf('=') + 1).replace(/\\([:=\\])/g, '$1'));
+  }
+  return map;
+}
+
+async function writeProperties(directory, map) {
+  const lines = [...map].map(([key, value]) => `${key}=${String(value).replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/=/g, '\\=')}`);
+  await fsp.writeFile(path.join(directory, PROPERTIES_FILE), `#Minecraft server properties\n#${new Date().toUTCString()}\n${lines.join('\n')}\n`);
+}
+
+async function requireMeta(settings, instanceId) {
+  const directory = serverDirectory(settings, instanceId);
+  const meta = await readMeta(directory);
+  if (!meta) throw new Error('Сервер ещё не создан.');
+  return { directory, meta };
+}
+
+async function writeMeta(directory, meta) {
+  await writeJsonFileAtomic(path.join(directory, META_FILE), meta);
+}
+
+/** Folders that hold a world (a level.dat inside). */
+async function worldFolders(directory) {
+  const entries = await fsp.readdir(directory, { withFileTypes: true }).catch(() => []);
+  const worlds = [];
+  for (const entry of entries) {
+    if (entry.isDirectory() && (await fsp.stat(path.join(directory, entry.name, 'level.dat')).catch(() => null))) worlds.push(entry.name);
+  }
+  return worlds.sort((a, b) => a.localeCompare(b, 'ru'));
+}
+
+async function readPlayers(directory) {
+  const players = {};
+  for (const [list, file] of Object.entries(PLAYER_FILES)) {
+    const entries = await readJsonFile(path.join(directory, file), []);
+    players[list] = (Array.isArray(entries) ? entries : []).filter((entry) => entry?.name).map((entry) => ({ name: String(entry.name), uuid: entry.uuid ?? null, level: entry.level ?? null }));
+  }
+  return players;
+}
+
+/** Everything the server's settings window shows. */
+async function getServerSettings(settings, instanceId) {
+  const { directory, meta } = await requireMeta(settings, instanceId);
+  const instance = await instanceService.getInstance(settings, instanceId);
+  return {
+    running: running.has(instanceId),
+    minecraft: meta.minecraft,
+    loader: meta.loader,
+    properties: Object.fromEntries(await readProperties(directory)),
+    ramMb: meta.ramMb,
+    javaArgs: meta.javaArgs ?? '',
+    worlds: await worldFolders(directory),
+    saves: await worldFolders(path.join(instance.directory, 'saves')),
+    players: await readPlayers(directory),
+    icon: Boolean(await fsp.stat(path.join(directory, 'server-icon.png')).catch(() => null)),
+  };
+}
+
+/**
+ * Saves the settings window: { properties: { key: value }, ramMb, javaArgs }. Keys the window does
+ * not know stay as they are. A running server takes them on its next start.
+ */
+async function saveServerSettings(settings, instanceId, changes = {}) {
+  const { directory, meta } = await requireMeta(settings, instanceId);
+  const properties = await readProperties(directory);
+  for (const [key, value] of Object.entries(changes.properties ?? {})) {
+    if (!/^[a-z0-9.\-]{1,64}$/.test(key)) continue;
+    properties.set(key, String(value ?? '').replace(/[\r\n]/g, ' ').slice(0, 500));
+  }
+  const port = Number(properties.get('server-port'));
+  if (Number.isInteger(port) && port >= 1024 && port <= 65535) meta.port = port;
+  else properties.set('server-port', String(meta.port));
+  if (changes.ramMb !== undefined) meta.ramMb = Math.min(65536, Math.max(1024, Math.round(Number(changes.ramMb) || meta.ramMb)));
+  if (changes.javaArgs !== undefined) meta.javaArgs = String(changes.javaArgs ?? '').replace(/[\r\n]/g, ' ').trim().slice(0, 2000);
+  await writeProperties(directory, properties);
+  await writeMeta(directory, meta);
+  const command = meta.start.argsFile ? `@${meta.start.argsFile}` : `-jar ${meta.start.jar}`;
+  await fsp.writeFile(path.join(directory, 'start.bat'), `@echo off\r\ncd /d "%~dp0"\r\n"${meta.java}" -Xmx${meta.ramMb}M ${meta.javaArgs ? `${meta.javaArgs} ` : ''}${command} nogui\r\npause\r\n`);
+  return getServerSettings(settings, instanceId);
+}
+
+/** The offline UUID the server gives a name when online-mode is off (as the game computes it). */
+function offlineUuid(name) {
+  const hash = require('node:crypto').createHash('md5').update(`OfflinePlayer:${name}`).digest();
+  hash[6] = (hash[6] & 0x0f) | 0x30;
+  hash[8] = (hash[8] & 0x3f) | 0x80;
+  const hex = hash.toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+async function playerUuid(name, online) {
+  if (!online) return offlineUuid(name);
+  const profile = await fetchJson(`https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(name)}`).catch(() => null);
+  if (!profile?.id) throw new Error(`Игрока «${name}» нет среди аккаунтов Microsoft. Для офлайн-ников выключите «Только лицензия».`);
+  return profile.id.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+}
+
+const PLAYER_COMMANDS = {
+  whitelist: { add: 'whitelist add', remove: 'whitelist remove' },
+  ops: { add: 'op', remove: 'deop' },
+  banned: { add: 'ban', remove: 'pardon' },
+};
+
+/**
+ * Adds or removes a player in the white list, the operators or the banned ones. A running server
+ * is told by command; a stopped one gets its file written (with the UUID it would use itself).
+ */
+async function changePlayer(settings, instanceId, list, action, rawName) {
+  const name = String(rawName ?? '').trim();
+  if (!PLAYER_FILES[list] || !['add', 'remove'].includes(action)) throw new Error('Неверный запрос.');
+  if (!NAME.test(name)) throw new Error('Ник: латинские буквы, цифры и «_», до 16 символов.');
+  const { directory } = await requireMeta(settings, instanceId);
+  if (running.has(instanceId)) {
+    sendCommand(instanceId, `${PLAYER_COMMANDS[list][action]} ${name}`);
+    // The server writes its file a moment later.
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    return readPlayers(directory);
+  }
+  const file = path.join(directory, PLAYER_FILES[list]);
+  const entries = (await readJsonFile(file, [])).filter((entry) => String(entry?.name).toLowerCase() !== name.toLowerCase());
+  if (action === 'add') {
+    const online = (await readProperties(directory)).get('online-mode') === 'true';
+    const uuid = await playerUuid(name, online);
+    if (list === 'ops') entries.push({ uuid, name, level: 4, bypassesPlayerLimit: false });
+    else if (list === 'banned') entries.push({ uuid, name, created: new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' +0000'), source: 'Amethyx', expires: 'forever', reason: 'Banned by an operator.' });
+    else entries.push({ uuid, name });
+  }
+  await writeJsonFileAtomic(file, entries);
+  return readPlayers(directory);
+}
+
+function assertStopped(instanceId) {
+  if (running.has(instanceId)) throw new Error('Сначала остановите сервер.');
+}
+
+/** A free folder name for a world on the server. */
+async function freeWorldName(directory, wanted) {
+  const base = String(wanted ?? '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '').trim().slice(0, 40) || 'world';
+  let name = base;
+  for (let index = 2; await fsp.stat(path.join(directory, name)).catch(() => null); index += 1) name = `${base} ${index}`;
+  return name;
+}
+
+/** Copies a world of the instance onto the server and makes it the server's world. Resolves with its name. */
+async function importWorld(settings, instanceId, saveName) {
+  assertStopped(instanceId);
+  const { directory } = await requireMeta(settings, instanceId);
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const source = path.join(instance.directory, 'saves', path.basename(String(saveName)));
+  if (!(await fsp.stat(path.join(source, 'level.dat')).catch(() => null))) throw new Error('Мир не найден.');
+  const name = await freeWorldName(directory, path.basename(source));
+  await fsp.cp(source, path.join(directory, name), { recursive: true });
+  await fsp.rm(path.join(directory, name, 'session.lock'), { force: true });
+  const properties = await readProperties(directory);
+  properties.set('level-name', name);
+  await writeProperties(directory, properties);
+  return name;
+}
+
+/** A new world on the next start: { name, seed, type }. Resolves with its name. */
+async function newWorld(settings, instanceId, { name, seed = '', type = '' } = {}) {
+  assertStopped(instanceId);
+  const { directory } = await requireMeta(settings, instanceId);
+  const folder = await freeWorldName(directory, name || 'world');
+  const properties = await readProperties(directory);
+  properties.set('level-name', folder);
+  properties.set('level-seed', String(seed ?? '').replace(/[\r\n]/g, '').slice(0, 64));
+  if (type) properties.set('level-type', String(type).slice(0, 64));
+  await writeProperties(directory, properties);
+  return folder;
+}
+
+/** A world of the server to the recycle bin. */
+async function deleteWorld(settings, instanceId, name) {
+  assertStopped(instanceId);
+  const { directory } = await requireMeta(settings, instanceId);
+  const target = path.join(directory, path.basename(String(name)));
+  if (!(await fsp.stat(path.join(target, 'level.dat')).catch(() => null))) throw new Error('Мир не найден.');
+  const { shell } = require('electron');
+  await shell.trashItem(target);
+}
+
+/** The picture in the friends' server list: a 64×64 PNG (a data URL from the window). */
+async function setServerIcon(settings, instanceId, dataUrl) {
+  const { directory } = await requireMeta(settings, instanceId);
+  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl ?? ''));
+  if (!match) throw new Error('Нужна картинка PNG.');
+  const { nativeImage } = require('electron');
+  const image = nativeImage.createFromBuffer(Buffer.from(match[1], 'base64'));
+  if (image.isEmpty()) throw new Error('Картинка повреждена.');
+  await fsp.writeFile(path.join(directory, 'server-icon.png'), image.resize({ width: 64, height: 64, quality: 'best' }).toPNG());
+}
+
+/** "Доступ из интернета" on or off. On: the server keeps one tunnel; it opens whenever the server runs. */
+async function setServerTunnel(settings, instanceId, enabled) {
+  const { directory, meta } = await requireMeta(settings, instanceId);
+  const tunnel = require('../cloud/tunnel');
+  if (enabled) {
+    const id = await tunnel.serverTunnelId(meta.tunnel?.id ?? null);
+    meta.tunnel = { id, enabled: true };
+    await writeMeta(directory, meta);
+    if (running.has(instanceId)) {
+      const instance = await instanceService.getInstance(settings, instanceId);
+      await tunnel.hostServer(instanceId, id, meta.port, instance.name);
+    }
+  } else {
+    meta.tunnel = { ...(meta.tunnel ?? {}), enabled: false };
+    await writeMeta(directory, meta);
+    tunnel.stopServer(instanceId);
+  }
+  return getServer(settings, instanceId);
+}
+
+/** The server's tunnel for an invite (switched on when it was off). Resolves with { id, name, running }. */
+async function serverInvite(settings, instanceId) {
+  if (!(await readMeta(serverDirectory(settings, instanceId)))) {
+    throw new Error('У этой сборки ещё нет своего сервера: создайте его на вкладке «Серверы» → «Свой сервер».');
+  }
+  let { meta } = await requireMeta(settings, instanceId);
+  if (!meta.tunnel?.enabled || !meta.tunnel.id) {
+    await setServerTunnel(settings, instanceId, true);
+    ({ meta } = await requireMeta(settings, instanceId));
+  }
+  return { id: meta.tunnel.id, running: running.has(instanceId) };
 }
 
 /** Sends a console command ("stop", "op Steve", "say привет"). */
@@ -314,7 +605,7 @@ function stopAll() {
 /** Folders of mods that load data packs for every world (Paxi, Open Loader, Global Packs…). */
 const GLOBAL_DATAPACK_FOLDERS = ['datapacks', 'global_packs', 'openloader', 'paxi'];
 const LOADER_NAMES = { vanilla: 'Vanilla', fabric: 'Fabric', quilt: 'Quilt', forge: 'Forge', neoforge: 'NeoForge' };
-const SIDE_NAMES = { client: 'только клиент', server: 'только сервер', both: 'клиент и сервер' };
+const SIDE_NAMES = { client: 'только клиент', server: 'только сервер', both: 'клиент и сервер', unknown: 'неизвестный мод' };
 
 /**
  * The instance's mods with where each is needed, for choosing what goes on a server. Mods not
@@ -325,8 +616,23 @@ async function modsForServer(settings, instanceId) {
   const contentService = require('../content/contentService');
   await contentService.identifyContent(settings, instanceId, 'mod').catch((error) => log.warn(`Моды не распознаны на Modrinth: ${error.message}`));
   await contentService.resolveSides(settings, instanceId).catch((error) => log.warn(`Стороны модов не получены: ${error.message}`));
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const choices = instance.overrides?.serverMods ?? {};
   const mods = await contentService.listContent(settings, instanceId, 'mod');
-  return mods.filter((mod) => !mod.folder).map((mod) => ({ file: mod.file, title: mod.title, version: mod.version, icon: mod.icon, side: mod.side, enabled: mod.enabled, size: mod.size }));
+  return mods
+    .filter((mod) => !mod.folder)
+    .map((mod) => ({
+      file: mod.file,
+      title: mod.title,
+      version: mod.version,
+      icon: mod.icon,
+      side: serverSide(mod, choices),
+      // What the mod's own file says, as a hint for the question about it.
+      guess: mod.side,
+      known: Boolean(mod.platform),
+      enabled: mod.enabled,
+      size: mod.size,
+    }));
 }
 
 /** The mods that go on the server: the chosen files, or by default every enabled one not client-only. */
@@ -335,7 +641,7 @@ function pickServerMods(mods, files) {
     const chosen = new Set(files);
     return { included: mods.filter((mod) => chosen.has(mod.file)), left: mods.filter((mod) => !chosen.has(mod.file)) };
   }
-  const included = mods.filter((mod) => mod.enabled && mod.side !== 'client');
+  const included = mods.filter((mod) => mod.enabled && mod.side !== 'client' && mod.side !== 'unknown');
   return { included, left: mods.filter((mod) => !included.includes(mod)) };
 }
 
@@ -467,4 +773,28 @@ async function exportServerPack(settings, instanceId, target, options = {}) {
   }
 }
 
-module.exports = { getServer, createServer, startServer, stopServer, sendCommand, syncServerContent, deleteServer, stopAll, anyServerRunning, modsForServer, exportServerPack, exportServerModList };
+module.exports = {
+  getServer,
+  createServer,
+  startServer,
+  stopServer,
+  sendCommand,
+  syncServerContent,
+  deleteServer,
+  stopAll,
+  anyServerRunning,
+  modsForServer,
+  unknownMods,
+  setModSides,
+  exportServerPack,
+  exportServerModList,
+  getServerSettings,
+  saveServerSettings,
+  changePlayer,
+  importWorld,
+  newWorld,
+  deleteWorld,
+  setServerIcon,
+  setServerTunnel,
+  serverInvite,
+};

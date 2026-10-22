@@ -166,6 +166,7 @@ const bridge = {
     image: (imageId) => invoke(CHANNELS.friends.image, imageId),
     screenshots: () => invoke(CHANNELS.friends.screenshots),
     hostStatus: () => invoke(CHANNELS.friends.hostStatus),
+    joinTunnel: (tunnelId, name) => invoke(CHANNELS.friends.joinTunnel, tunnelId, name ?? ''),
   },
   java: {
     runtimes: () => invoke(CHANNELS.java.runtimes),
@@ -188,11 +189,23 @@ const bridge = {
     list: (instanceId) => invoke(CHANNELS.server.list, instanceId),
     saveList: (instanceId, servers) => invoke(CHANNELS.server.saveList, instanceId, servers),
     ping: (address) => invoke(CHANNELS.server.ping, address),
+    unknownMods: (instanceId) => invoke(CHANNELS.server.unknownMods, instanceId),
+    setModSides: (instanceId, answers) => invoke(CHANNELS.server.setModSides, instanceId, answers ?? {}),
+    settings: (instanceId) => invoke(CHANNELS.server.settings, instanceId),
+    saveSettings: (instanceId, changes) => invoke(CHANNELS.server.saveSettings, instanceId, changes ?? {}),
+    /** list: 'whitelist' | 'ops' | 'banned', action: 'add' | 'remove'. */
+    player: (instanceId, list, action, name) => invoke(CHANNELS.server.player, instanceId, list, action, name),
+    importWorld: (instanceId, save) => invoke(CHANNELS.server.importWorld, instanceId, save),
+    newWorld: (instanceId, options) => invoke(CHANNELS.server.newWorld, instanceId, options ?? {}),
+    deleteWorld: (instanceId, name) => invoke(CHANNELS.server.deleteWorld, instanceId, name),
+    setIcon: (instanceId, dataUrl) => invoke(CHANNELS.server.setIcon, instanceId, dataUrl),
+    setTunnel: (instanceId, enabled) => invoke(CHANNELS.server.setTunnel, instanceId, enabled === true),
   },
   share: {
     makeCode: (instanceId, options) => invoke(CHANNELS.share.makeCode, instanceId, options ?? {}),
     parseCode: (code) => invoke(CHANNELS.share.parseCode, code),
     importCode: (code, fields) => invoke(CHANNELS.share.importCode, code, fields ?? {}),
+    cancelImport: (jobId) => invoke(CHANNELS.share.cancelImport, jobId),
     /** Asks where to save and writes a .mrpack; resolves with { path, linked, bundled } or null. */
     exportPack: (instanceId, options) => invoke(CHANNELS.share.exportPack, instanceId, options ?? {}),
     listFiles: (instanceId, relativeDir) => invoke(CHANNELS.share.listFiles, instanceId, relativeDir ?? ''),

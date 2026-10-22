@@ -8,7 +8,7 @@
 | [Tiny5](https://fonts.google.com/specimen/Tiny5) font | loaded from Google Fonts | SIL Open Font License 1.1 |
 | [authlib-injector](https://github.com/yushijinhun/authlib-injector) | downloaded when signing in with Ely.by | AGPL-3.0 |
 | [CustomSkinLoader](https://github.com/xfl03/MCCustomSkinLoader) | downloaded from Modrinth into modded instances (Amethyx skins), not shipped with the launcher | GPL-3.0 |
-| [e4mc](https://modrinth.com/mod/e4mc) | downloaded from Modrinth into modded instances (friends join a world opened to LAN through the e4mc relay), not shipped with the launcher | MIT |
+| [e4mc](https://modrinth.com/mod/e4mc) | no longer installed by the launcher (friends join through the Amethyx tunnel); when a player has it in an instance, its address goes into invites. Not shipped with the launcher | MIT |
 | [Inno Setup](https://jrsoftware.org/isinfo.php) | building the installer | Inno Setup License |
 | Modrinth and CurseForge logos from [Simple Icons](https://simpleicons.org) 13.21 | `src/assets/platforms` | CC0 1.0 |
 

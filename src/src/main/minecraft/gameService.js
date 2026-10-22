@@ -14,7 +14,7 @@ const { getLaunchSession } = require('../accounts/accountService');
 const { loadAccountStore } = require('../accounts/accountStore');
 const { saveLastRun, crashReportSince } = require('./instanceFiles');
 const { analyzeLog, describeExitCode } = require('./logAnalyzer');
-const { prepareWorldSharing, parseLogLine } = require('./worldShare');
+const { parseLogLine } = require('./worldShare');
 
 const LOG_LIMIT = 4000;
 /** Lines kept for the saved copy of one run (the journal shows the end of longer runs). */
@@ -36,7 +36,9 @@ function pushLogLine(line) {
   const lan = current && LAN_PORT.exec(line);
   if (lan) {
     current.activity.lanPort = Number(lan[1]);
-    broadcast(CHANNELS.events.friendEvent, { type: 'lan-open', port: current.activity.lanPort, shared: current.activity.loader !== 'vanilla' });
+    broadcast(CHANNELS.events.friendEvent, { type: 'lan-open', port: current.activity.lanPort, shared: true });
+    // Friends with an earlier invite can come in through the tunnel at once (cloud/tunnel.js).
+    require('../cloud/tunnel').onLanOpen();
   }
   // e4mc's public address of the world opened to LAN (see worldShare.js).
   const shared = current && parseLogLine(line);
@@ -242,12 +244,6 @@ async function launch(requestedInstanceId, { server = null } = {}) {
   }
   const afterLaunch = overrides.afterLaunch ?? settings.afterLaunch;
   await prepareAmethyxSkins({ settings, instance, session, selectedId, gameDirectory });
-  await prepareWorldSharing({
-    instance,
-    gameDirectory,
-    installMod: (projectId) => require('../content/contentService').installProject(settings, { instanceId: instance.id, platform: 'modrinth', projectId, title: 'e4mc' }),
-    onLog: pushLogLine,
-  });
   const skinAgent = await prepareSkinAgent({ session, layout, versionId, onLog: pushLogLine });
   let child;
   try {
@@ -306,6 +302,7 @@ function finish(exitCode) {
   const { instanceId, versionId, skinAgent, stopRequested, startedAt, afterLaunch, postExit } = current;
   current = null;
   skinAgent?.stop().catch(() => {});
+  require('../cloud/tunnel').onGameExit();
   require('../cloud/cloudFriends').reportPresence();
   const finishedRun = runLog;
   runLog = null;

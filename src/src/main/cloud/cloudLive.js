@@ -33,7 +33,9 @@ function mainWindow() {
 function preview(message) {
   if (message.kind === 'image') return message.body?.caption ? `Скриншот: ${message.body.caption}` : 'Скриншот';
   if (message.kind === 'invite') {
+    if (message.body?.kind === 'server') return 'Зовёт на свой сервер';
     if (message.body?.world) return 'Зовёт в свой мир';
+    if (message.body?.kind === 'pack') return `Делится сборкой: ${message.body?.instance ?? 'сборка'}`;
     return message.body?.server ? `Зовёт играть на ${message.body.server}` : `Зовёт играть: ${message.body?.instance ?? 'сборка'}`;
   }
   return String(message.body ?? '').slice(0, 140);

@@ -233,6 +233,26 @@ r = await call('DELETE', `/v1/tunnels/${tunnelIds[0]}`, undefined, steve);
 assert.equal(r.status, 200);
 r = await call('POST', '/v1/tunnels', {}, steve);
 assert.equal(r.status, 200);
+// A tunnel in use lives on: asking for it moves its time forward; someone else's is not found.
+db.prepare('UPDATE tunnels SET created_at = ? WHERE id = ?').run(Date.now() - 86400000, tunnelIds[1]);
+r = await call('GET', `/v1/tunnels/${tunnelIds[1]}`, undefined, steve);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.ok(db.prepare('SELECT created_at FROM tunnels WHERE id = ?').get(tunnelIds[1]).created_at > Date.now() - 60000);
+r = await call('GET', `/v1/tunnels/${tunnelIds[1]}`, undefined, alex);
+assert.equal(r.status, 404);
+r = await call('GET', `/v1/tunnels/${'0'.repeat(32)}`, undefined, steve);
+assert.equal(r.status, 404);
+// An invite into the world: the tunnel, the instance's picture and the kind; a bad picture is dropped.
+r = await call('POST', '/v1/messages', { to: `ms:${uuid}`, kind: 'invite', invite: { instance: 'Мир', world: 'Мир', tunnel: tunnelIds[1], icon: 'block:grass_block', kind: 'world', code: 'VP1-abc' } }, steve);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.message.body.tunnel, tunnelIds[1]);
+assert.equal(r.body.message.body.icon, 'block:grass_block');
+assert.equal(r.body.message.body.kind, 'world');
+r = await call('POST', '/v1/messages', { to: `ms:${uuid}`, kind: 'invite', invite: { instance: 'Мир', code: 'VP1-abc', icon: 'javascript:alert(1)', kind: 'bad' } }, steve);
+assert.equal(r.body.message.body.icon, null);
+assert.equal(r.body.message.body.kind, null);
+r = await call('POST', '/v1/messages', { to: 'offline:steve', kind: 'invite', invite: { instance: 'Мир', tunnel: tunnelIds[1] } }, alex);
+assert.equal(r.status, 400, 'an invite cannot carry someone else\'s tunnel');
 
 // Share-code files: upload in parts, a pack, download by its id without signing in, cleanup.
 const { createHash, randomBytes } = await import('node:crypto');

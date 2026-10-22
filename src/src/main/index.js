@@ -96,6 +96,8 @@ if (!singleInstance) {
       require('./cloud/cloudFriends').startPresence();
       // Instant messages and friend requests.
       require('./cloud/cloudLive').startLive();
+      // Friends' worlds and servers already in the game's server lists answer again (tunnels).
+      setTimeout(() => require('./cloud/tunnel').restoreJoined().catch((error) => log.warn(`Туннели к друзьям не открыты: ${error.message}`)), 8000);
     }
 
     app.on('activate', () => {
@@ -120,6 +122,7 @@ if (!singleInstance) {
     event.preventDefault();
     serversStopped = true;
     require('./cloud/cloudLive').stopLive();
+    require('./cloud/tunnel').stopAll();
     Promise.all([stopAll().catch(() => {}), require('./cloud/cloudFriends').stopPresence().catch(() => {})]).finally(() => app.quit());
   });
 }

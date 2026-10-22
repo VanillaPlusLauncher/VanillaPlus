@@ -97,6 +97,24 @@ function registerDomainHandlers(handle) {
     return serverList.saveServers(await listDirectory(id), Array.isArray(servers) ? servers.slice(0, 500) : []);
   });
   handle(CHANNELS.server.ping, (_event, address) => serverList.pingServer(String(address ?? '').slice(0, 255)));
+  handle(CHANNELS.server.unknownMods, async (_event, instanceId) => serverService.unknownMods(await settings(), String(instanceId)));
+  handle(CHANNELS.server.setModSides, async (_event, instanceId, answers) => serverService.setModSides(await settings(), String(instanceId), answers && typeof answers === 'object' ? answers : {}));
+  handle(CHANNELS.server.settings, async (_event, instanceId) => serverService.getServerSettings(await settings(), String(instanceId)));
+  handle(CHANNELS.server.saveSettings, async (_event, instanceId, changes) =>
+    serverService.saveServerSettings(await settings(), String(instanceId), {
+      properties: changes?.properties && typeof changes.properties === 'object' ? changes.properties : {},
+      ramMb: changes?.ramMb,
+      javaArgs: changes?.javaArgs,
+    }),
+  );
+  handle(CHANNELS.server.player, async (_event, instanceId, list, action, name) => serverService.changePlayer(await settings(), String(instanceId), String(list), String(action), String(name ?? '').slice(0, 32)));
+  handle(CHANNELS.server.importWorld, async (_event, instanceId, save) => serverService.importWorld(await settings(), String(instanceId), String(save ?? '').slice(0, 200)));
+  handle(CHANNELS.server.newWorld, async (_event, instanceId, options) =>
+    serverService.newWorld(await settings(), String(instanceId), { name: String(options?.name ?? ''), seed: String(options?.seed ?? ''), type: String(options?.type ?? '') }),
+  );
+  handle(CHANNELS.server.deleteWorld, async (_event, instanceId, name) => serverService.deleteWorld(await settings(), String(instanceId), String(name ?? '').slice(0, 200)));
+  handle(CHANNELS.server.setIcon, async (_event, instanceId, dataUrl) => serverService.setServerIcon(await settings(), String(instanceId), String(dataUrl ?? '').slice(0, 2_000_000)));
+  handle(CHANNELS.server.setTunnel, async (_event, instanceId, enabled) => serverService.setServerTunnel(await settings(), String(instanceId), enabled === true));
   handle(CHANNELS.share.makeCode, async (_event, instanceId, options) => shareService.makeShareCode(await settings(), String(instanceId), { upload: options?.upload === true }));
   handle(CHANNELS.share.parseCode, (_event, code) => shareService.parseShareCode(String(code ?? '').slice(0, 200000)));
   handle(CHANNELS.share.importCode, async (_event, code, fields) => {
@@ -104,10 +122,13 @@ function registerDomainHandlers(handle) {
       name: fields?.name ? String(fields.name).slice(0, 64) : undefined,
       group: fields?.group ? String(fields.group).slice(0, 40) : '',
       withFiles: fields?.withFiles !== false,
+      icon: fields?.icon ? String(fields.icon).slice(0, 300) : null,
+      jobId: fields?.jobId ? String(fields.jobId).slice(0, 40) : null,
     });
     instancesChanged(result.instance.id);
     return result;
   });
+  handle(CHANNELS.share.cancelImport, (_event, jobId) => shareService.cancelImport(String(jobId ?? '').slice(0, 40)));
   // Formats of "Поделиться" → "Файл": file name suffix, save dialog filter and writer.
   const EXPORTS = {
     modrinth: { suffix: '.mrpack', filter: { name: 'Сборка Modrinth', extensions: ['mrpack'] }, write: shareService.exportMrpack },

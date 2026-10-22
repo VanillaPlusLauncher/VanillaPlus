@@ -1,5 +1,6 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
+import { assetUrl } from '../core/assets.js';
 import { errorMessage, formatGigabytes } from '../core/format.js';
 import { pixelBurst } from '../core/effects.js';
 import { sfx } from '../core/sound.js';
@@ -128,7 +129,7 @@ export function openOptimizeDialog(instance, onDone) {
       parts.push(
         section('Шейдеры',
           h('div', { class: 'optimize__row optimize-in', style: { '--i': wave++ } },
-            h('span', { class: 'optimize__icon' }, icon('image')),
+            h('img', { class: 'optimize__icon optimize__icon--mark', src: assetUrl('branding/amethyx-mark.png'), alt: '' }),
             h('span', { class: 'optimize__row-text' }, h('b', null, 'Шейдеры под этот компьютер'), h('span', { class: 'text-muted' }, 'Включить, подобрать самый лёгкий подходящий шейдер или выбрать свой и настроить, что важнее: скорость или красота.')),
             h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => openShaderDialog(instance, onDone) }, 'Настроить'),
           ),

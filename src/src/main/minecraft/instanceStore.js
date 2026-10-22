@@ -32,6 +32,8 @@ const OVERRIDE_KEYS = [
   'autoUpdateMods',
   // Shader optimization's choices: { enabled, auto, level, pack } (content/shaderService.js).
   'shaders',
+  // Mods the launcher does not know, as the player answered: { file: 'server' | 'client' } (serverService.js).
+  'serverMods',
 ];
 const writeQueue = new SerialQueue();
 const log = createLogger('instances');

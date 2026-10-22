@@ -123,6 +123,12 @@ function buildDefaults() {
       shareActivity: true,
       /** Address of the Amethyx server; empty = the built-in one. */
       serverUrl: '',
+      /** Invites carry the instance (its share code), so a friend builds the same one in a click. */
+      inviteWithPack: true,
+      /** Mods on neither Modrinth nor CurseForge in an invite: 'always' uploaded, 'never', or 'ask'. */
+      inviteUpload: 'always',
+      /** A friend's invite, clicked: 'join' builds and joins at once, 'build' only builds the instance. */
+      acceptInvite: 'join',
     },
   };
 }
@@ -262,6 +268,9 @@ function sanitize(input, defaults) {
       typeof input.social?.serverUrl === 'string' && /^(https:\/\/\S+|http:\/\/(127\.0\.0\.1|localhost)(:\d+)?)?$/i.test(input.social.serverUrl.trim())
         ? input.social.serverUrl.trim().replace(/\/+$/, '').slice(0, 300)
         : defaults.social.serverUrl,
+    inviteWithPack: typeof input.social?.inviteWithPack === 'boolean' ? input.social.inviteWithPack : defaults.social.inviteWithPack,
+    inviteUpload: ['always', 'never', 'ask'].includes(input.social?.inviteUpload) ? input.social.inviteUpload : defaults.social.inviteUpload,
+    acceptInvite: ['join', 'build'].includes(input.social?.acceptInvite) ? input.social.acceptInvite : defaults.social.acceptInvite,
   };
   result.downloads = {
     parallel: Number.isFinite(input.downloads?.parallel) ? clampInt(input.downloads.parallel, 1, 32) : defaults.downloads.parallel,
