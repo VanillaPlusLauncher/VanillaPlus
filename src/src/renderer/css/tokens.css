@@ -66,11 +66,21 @@
 :root[data-accent="lapis"] { --accent-rgb: 138, 172, 255; --accent-strong-rgb: 88, 128, 242; --color-accent-deep: #233f96; }
 :root[data-accent="copper"] { --accent-rgb: 255, 176, 128; --accent-strong-rgb: 226, 128, 80; --color-accent-deep: #8a4320; }
 
-/* Pixel font for headings, buttons and navigation (Settings → Appearance → Font). */
+/* The interface font (Settings → Appearance → Font): Inter ("clean") unless another is chosen. */
 :root[data-font="pixel"] {
   --font-display: var(--font-pixel);
   --font-ui: var(--font-pixel);
 }
+
+:root[data-font="golos"] { --font-ui: "Golos Text", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
+:root[data-font="onest"] { --font-ui: "Onest", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
+:root[data-font="manrope"] { --font-ui: "Manrope", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
+:root[data-font="nunito"] { --font-ui: "Nunito", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
+:root[data-font="rubik"] { --font-ui: "Rubik", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
+:root[data-font="montserrat"] { --font-ui: "Montserrat", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
+:root[data-font="comfortaa"] { --font-ui: "Comfortaa", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
+:root[data-font="exo"] { --font-ui: "Exo 2", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
+:root[data-font="unbounded"] { --font-ui: "Unbounded", "Segoe UI", system-ui, sans-serif; --font-display: var(--font-ui); }
 
 /* The launcher is dark-only by design; the browser colour scheme must match. */
 :root {

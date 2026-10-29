@@ -35,6 +35,20 @@ const ACCENTS = [
   { value: 'lapis', label: 'Лазурит', block: 'lapis_block' },
   { value: 'copper', label: 'Медь', block: 'copper_block' },
 ];
+/** Interface fonts (tokens.css sets each by data-font); every option is shown in its own font. */
+const FONTS = [
+  { value: 'pixel', label: 'Пиксельный', family: '"Tiny5"' },
+  { value: 'clean', label: 'Inter', family: '"Inter"' },
+  { value: 'golos', label: 'Golos', family: '"Golos Text"' },
+  { value: 'onest', label: 'Onest', family: '"Onest"' },
+  { value: 'manrope', label: 'Manrope', family: '"Manrope"' },
+  { value: 'nunito', label: 'Nunito', family: '"Nunito"' },
+  { value: 'rubik', label: 'Rubik', family: '"Rubik"' },
+  { value: 'montserrat', label: 'Montserrat', family: '"Montserrat"' },
+  { value: 'comfortaa', label: 'Comfortaa', family: '"Comfortaa"' },
+  { value: 'exo', label: 'Exo 2', family: '"Exo 2"' },
+  { value: 'unbounded', label: 'Unbounded', family: '"Unbounded"' },
+];
 // Panoramas of other versions: the list and the previews are fetched once per session.
 let panoramaList = null;
 const panoramaThumbs = new Map();
@@ -172,7 +186,18 @@ export function createSettingsPage() {
     };
     if (panoramaList) fillPanoramas(panoramaList);
     else api.app.panoramas().then((list) => { panoramaList = list; fillPanoramas(list); }).catch(() => {});
-    const font = createSegmented({ options: [{ value: 'pixel', label: 'Пиксельный' }, { value: 'clean', label: 'Обычный' }], value: ui.font, onChange: (value) => save({ ui: { font: value } }) });
+    const fontGrid = h(
+      'div',
+      { class: 'font-grid' },
+      FONTS.map((font) =>
+        h(
+          'button',
+          { class: 'font-option', type: 'button', style: { fontFamily: font.family }, 'aria-pressed': String(ui.font === font.value), onclick: () => save({ ui: { font: font.value } }) },
+          h('span', { class: 'font-option__sample', 'data-i18n': 'off' }, 'Аа Сборки'),
+          h('span', { class: 'font-option__name', 'data-i18n': font.value === 'pixel' ? null : 'off' }, font.label),
+        ),
+      ),
+    );
     const sidebar = createSegmented({
       options: [{ value: 'labels', label: 'С подписями' }, { value: 'hotbar', label: 'Хотбар' }, { value: 'icons', label: 'Только иконки' }],
       value: ui.sidebar ?? 'labels',
@@ -200,9 +225,9 @@ export function createSettingsPage() {
     return [
       card('Язык · Language', null, row('Язык интерфейса', null, languageSelect)),
       card('Цвет темы', 'Цвет кнопок, выделения и подсветки.', accentGrid),
+      card('Шрифт', 'Для всего интерфейса: заголовков, кнопок и текста.', fontGrid),
       card('Панорама', 'Фон как в главном меню Minecraft разных версий. Панорама скачивается один раз, когда её выбирают.', backgroundGrid),
       card('Интерфейс', null,
-        row('Шрифт заголовков и кнопок', 'Пиксельный похож на шрифт Minecraft.', font.element),
         row('Кнопки', 'Мягкие — выпуклые, на светлых панелях. Пиксельные — как в Minecraft.', style.element),
         row('Иконки', 'Цветные — каждая своего цвета, как предметы в инвентаре.', icons.element),
         row('Боковая панель', '«Хотбар» — как панель предметов в игре.', sidebar.element),

@@ -2325,6 +2325,47 @@
   box-shadow: 0 0 18px rgba(255, 255, 255, 0.15);
 }
 
+/* Fonts (Settings → Appearance → Font): each option written in its own font. */
+.font-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.font-option {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-text-soft);
+  text-align: left;
+  transition: transform 200ms var(--ease-spring), border-color 160ms, color 160ms;
+}
+
+.font-option:hover {
+  transform: translateY(-2px);
+  color: var(--color-text);
+}
+
+.font-option[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.font-option__sample {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.font-option__name {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
 .accent-option__block {
   width: 48px;
   height: 48px;

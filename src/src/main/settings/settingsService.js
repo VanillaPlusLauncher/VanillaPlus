@@ -18,7 +18,7 @@ const ACCENTS = ['amethyst', 'vanilla', 'berry', 'lavender', 'diamond', 'gold', 
 // Only Minecraft panoramas: the latest one, one of a given version, or a random one each start.
 // Old values (valley, forest, village, dirt) fall back to the latest panorama.
 const BACKGROUND = /^panorama(:(random|[0-9][0-9.]{0,15}))?$/;
-const FONTS = ['pixel', 'clean'];
+const FONTS = ['pixel', 'clean', 'golos', 'onest', 'manrope', 'nunito', 'rubik', 'montserrat', 'comfortaa', 'exo', 'unbounded'];
 const LANGUAGES = ['ru', 'en', 'uk', 'pl', 'de', 'fr', 'es', 'pt', 'zh'];
 const SIDEBARS = ['labels', 'hotbar', 'icons'];
 const CARD_STYLES = ['tile', 'card', 'slot'];
