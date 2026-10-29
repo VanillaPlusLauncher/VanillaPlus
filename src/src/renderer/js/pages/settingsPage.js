@@ -209,8 +209,8 @@ export function createSettingsPage() {
       onChange: (value) => save({ ui: { cards: value } }),
     });
     const style = createSegmented({
-      options: [{ value: 'pixel', label: 'Пиксельные' }, { value: 'soft', label: 'Мягкие' }],
-      value: ui.style ?? 'pixel',
+      options: [{ value: 'soft', label: 'Мягкие' }, { value: 'pixel', label: 'Пиксельные' }],
+      value: ui.style ?? 'soft',
       onChange: (value) => save({ ui: { style: value } }),
     });
     const icons = createSegmented({

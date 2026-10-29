@@ -68,7 +68,7 @@ function registerFriendsHandlers(handle) {
       world: tunnel.worldStatus(),
       ownServer,
       key: require('../overlay').overlayKey(),
-      ui: { language: settings.ui?.language ?? null, accent: settings.ui?.accent ?? 'amethyst', font: settings.ui?.font ?? 'pixel', style: settings.ui?.style ?? 'pixel', icons: settings.ui?.icons ?? 'color', animations: settings.ui?.animations !== false },
+      ui: { language: settings.ui?.language ?? null, accent: settings.ui?.accent ?? 'amethyst', font: settings.ui?.font ?? 'pixel', style: settings.ui?.style ?? 'soft', icons: settings.ui?.icons ?? 'color', animations: settings.ui?.animations !== false },
       social: { inviteWithPack: settings.social?.inviteWithPack !== false, inviteUpload: settings.social?.inviteUpload ?? 'always' },
     };
   });
