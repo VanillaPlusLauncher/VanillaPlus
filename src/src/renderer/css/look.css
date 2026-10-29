@@ -1,0 +1,455 @@
+/* Looks picked on the style page: soft buttons on lighter panels (data-style="soft"), coloured icons
+   (data-icons="color") and an icon that turns round under the pointer. Settings → Interface switches
+   both looks; "Пиксельные" / "Одноцветные" give back the pixel look of features.css. Loaded last. */
+
+/* ======================================================================================================
+   Soft: raised plates that cast a shadow down-right and catch light up-left, on panels of the same
+   colour (a lighter violet-grey, so the relief shows); pressed ones sink in. Round corners, no frames,
+   no bevel lines: the shape is the shadow.
+   ====================================================================================================== */
+:root[data-style="soft"] {
+  --soft-face: #272036;
+  --soft-face-hover: #2d2540;
+  --soft-pit: #1d1828;
+  --soft-raise: 5px 5px 12px rgba(0, 0, 0, 0.42), -3px -3px 9px rgba(255, 255, 255, 0.055);
+  --soft-raise-sm: 3px 3px 8px rgba(0, 0, 0, 0.4), -2px -2px 6px rgba(255, 255, 255, 0.05);
+  --soft-sink: inset 3px 3px 7px rgba(0, 0, 0, 0.45), inset -2px -2px 6px rgba(255, 255, 255, 0.05);
+  --soft-round: 12px;
+
+  --color-surface: rgba(39, 32, 54, 0.9);
+  --color-surface-strong: rgba(41, 34, 57, 0.98);
+  --color-surface-hover: rgba(255, 255, 255, 0.05);
+  --color-border: rgba(226, 214, 255, 0.07);
+  --color-border-strong: rgba(226, 214, 255, 0.12);
+}
+
+/* Round corners again (features.css squares every corner and cuts the steps) and no pixel frames. */
+:root[data-style="soft"] :is(.btn, .icon-button:not(.icon-button--window), .input, .textarea, .select, .chip, .segmented, .segmented button, .segmented__thumb, .tabs, .tabs__button, .loader-button, .version-picker__item, .settings-nav__item, .context-menu__item, .nav-button, .sidebar__indicator, .content-row, .selection-bar, .card-action, .account-chip, .badge, .list-row) {
+  border-radius: var(--soft-round) !important;
+  clip-path: none !important;
+  border-image: none !important;
+}
+
+:root[data-style="soft"] :is(.surface, .modal, .context-menu, .toast, .tour__card, .instance-card, .recent-card, .project-card, .news-tile, .server-place__card, .shader-card, .pack-picker__item, .language-picker__item, .file-tree, .share-upload) {
+  border-radius: 16px !important;
+  clip-path: none !important;
+  border-image: none !important;
+}
+
+:root[data-style="soft"] :is(.accent-option, .background-option, .play-bar__arrow, .content-toolbar--secondary, .instance-hero__icon, .dropdown__button) {
+  border-radius: 14px !important;
+  clip-path: none !important;
+  border-image: none !important;
+}
+
+:root[data-style="soft"] .home-section__head .link-button {
+  border-radius: 999px !important;
+}
+
+:root[data-style="soft"] :is(.content-row__icon, .account-chip__avatar) {
+  border-radius: 10px !important;
+  clip-path: none !important;
+}
+
+/* Panels: the lighter colour, no black frame, a soft shadow under them. */
+:root[data-style="soft"] .surface {
+  border-color: transparent;
+  background: var(--color-surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+}
+
+:root[data-style="soft"] .surface--panel::before {
+  background: var(--color-surface);
+  border-radius: inherit;
+}
+
+:root[data-style="soft"] .modal {
+  border-color: transparent;
+  border-radius: 20px !important;
+  background: var(--color-surface-strong);
+}
+
+/* Cards (instances, recent ones on Home, news): plates of the panel colour, raised. */
+:root[data-style="soft"] :is(.instance-card, .recent-card) {
+  border-color: transparent;
+  background: var(--color-surface);
+  box-shadow: var(--soft-raise);
+}
+
+:root[data-style="soft"] :is(.instance-card, .recent-card):hover {
+  background: rgba(46, 38, 64, 0.94);
+}
+
+:root[data-style="soft"] :is(.instance-card:focus-visible, .instance-card--selected, .recent-card--selected) {
+  border-color: transparent;
+  background: var(--color-surface);
+  box-shadow: var(--soft-raise), inset 0 0 0 2px rgba(var(--accent-rgb), 0.6);
+}
+
+:root[data-style="soft"] .news-tile {
+  border-color: transparent;
+  box-shadow: var(--soft-raise);
+}
+
+:root[data-style="soft"] .news-tile:hover {
+  border-color: transparent;
+  box-shadow: var(--soft-raise), 0 0 0 2px rgba(var(--accent-rgb), 0.55);
+}
+
+:root[data-style="soft"] .account-chip {
+  border-color: transparent;
+  background: var(--color-surface);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .home-section__head .link-button {
+  background: var(--color-surface);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .play-bar__actions .play-bar__arrow {
+  border-color: transparent;
+  background: var(--soft-face);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .play-bar__actions .play-bar__arrow:hover {
+  border-color: transparent;
+  background: var(--soft-face-hover);
+}
+
+/* Theme colours and panoramas in Settings: the chosen one pressed in. */
+:root[data-style="soft"] :is(.accent-option, .background-option) {
+  border-color: transparent;
+  background: var(--soft-face);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] :is(.accent-option, .background-option)[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink), inset 0 0 0 2px rgba(var(--accent-rgb), 0.7);
+}
+
+/* --- Buttons --------------------------------------------------------------------------------------- */
+:root[data-style="soft"] .btn,
+:root[data-style="soft"] .btn:hover:not(:disabled),
+:root[data-style="soft"] .btn:active:not(:disabled),
+:root[data-style="soft"] .btn:disabled {
+  border: 0;
+  text-shadow: none;
+}
+
+:root[data-style="soft"] .btn {
+  background: var(--soft-face);
+  color: var(--color-text);
+  box-shadow: var(--soft-raise);
+  transition: transform 260ms var(--ease-spring), scale 260ms var(--ease-spring), background-color 160ms ease, box-shadow 200ms ease, color 160ms ease;
+}
+
+:root[data-style="soft"] .btn:hover:not(:disabled) {
+  background: var(--soft-face-hover);
+  box-shadow: var(--soft-raise);
+  transform: translateY(-1px);
+}
+
+:root[data-style="soft"] .btn:active:not(:disabled) {
+  transform: none;
+  scale: 0.98;
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+  transition-duration: 80ms;
+}
+
+:root[data-style="soft"] .btn:disabled {
+  background: var(--soft-face);
+  box-shadow: none;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+/* The main action: the same plate, lit by the theme colour. */
+:root[data-style="soft"] .btn--primary {
+  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.36), rgba(var(--accent-rgb), 0.16)), var(--soft-face);
+  color: #fff;
+  font-weight: 700;
+}
+
+:root[data-style="soft"] .btn--primary:hover:not(:disabled) {
+  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.46), rgba(var(--accent-rgb), 0.22)), var(--soft-face);
+  box-shadow: var(--soft-raise), 0 0 18px rgba(var(--accent-rgb), 0.22);
+}
+
+:root[data-style="soft"] .btn--primary:active:not(:disabled) {
+  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.1)), var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .btn--primary:disabled {
+  background: var(--soft-face);
+  color: var(--color-text-muted);
+}
+
+/* Quiet buttons: a faint plate without relief (on a panel it melts in, over the panorama it keeps
+   the text readable). */
+:root[data-style="soft"] .btn--ghost {
+  background: rgba(39, 32, 54, 0.55);
+  box-shadow: none;
+}
+
+:root[data-style="soft"] .btn--ghost:hover:not(:disabled) {
+  background: rgba(52, 43, 72, 0.8);
+  box-shadow: none;
+}
+
+:root[data-style="soft"] .btn--ghost:active:not(:disabled) {
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .btn--danger:hover:not(:disabled) {
+  background: #382230;
+}
+
+/* The shine: one soft band of light crosses the plate when the pointer comes (features.css runs it). */
+:root[data-style="soft"] .btn::after {
+  width: 60%;
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.13) 50%, transparent 80%);
+}
+
+:root[data-style="soft"] .btn--primary::after {
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.24) 50%, transparent 80%);
+}
+
+/* Square icon buttons: the same plate, smaller. */
+:root[data-style="soft"] .icon-button:not(.icon-button--window) {
+  border: 0;
+  border-radius: 10px !important;
+  background: var(--soft-face);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .icon-button:not(.icon-button--window):hover {
+  background: var(--soft-face-hover);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .icon-button:not(.icon-button--window):active:not(:disabled) {
+  transform: none;
+  scale: 0.95;
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+/* --- What is chosen sits pressed in --------------------------------------------------------------- */
+:root[data-style="soft"]:not([data-sidebar="hotbar"]) .sidebar__indicator {
+  background: rgba(var(--accent-rgb), 0.12);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .settings-nav__item[aria-current="true"] {
+  background: rgba(var(--accent-rgb), 0.12);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .context-menu__item--active {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+:root[data-style="soft"] .loader-button {
+  background: var(--soft-face);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .loader-button:hover {
+  background: var(--soft-face-hover);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .loader-button[aria-pressed="true"] {
+  background: rgba(var(--accent-rgb), 0.14);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .tabs {
+  border: 0;
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+  border-radius: 14px !important;
+}
+
+:root[data-style="soft"] .tabs__button[aria-selected="true"] {
+  background: var(--soft-face);
+  color: var(--color-accent);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .segmented {
+  border: 0;
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .segmented__thumb {
+  border-radius: 9px !important;
+  background: var(--soft-face-hover);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .segmented button[aria-pressed="true"] {
+  color: var(--color-accent);
+}
+
+/* --- Rows, bars, fields ----------------------------------------------------------------------------- */
+:root[data-style="soft"] .content-row {
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+:root[data-style="soft"] .content-row:hover {
+  background: rgba(46, 38, 64, 0.94);
+}
+
+:root[data-style="soft"] .content-toolbar--secondary {
+  border-color: transparent;
+  background: var(--color-surface);
+}
+
+:root[data-style="soft"] .view-toggle[aria-pressed="true"] {
+  background: rgba(var(--accent-rgb), 0.14);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .content-row--selected {
+  background: linear-gradient(rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.12)), var(--color-surface-strong);
+  box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.45);
+}
+
+:root[data-style="soft"] .dropdown__button {
+  border-color: transparent;
+  background: var(--soft-face);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .dropdown__button:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--soft-face-hover);
+}
+
+:root[data-style="soft"] .dropdown__button--open {
+  border-color: transparent;
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .selection-slot .selection-bar {
+  border-radius: 14px !important;
+  background: var(--color-surface-strong);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-style="soft"] .card-action {
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .card-action--changed {
+  background: rgba(var(--accent-rgb), 0.12);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] :is(.input, .textarea, .select) {
+  border: 0;
+  border-radius: 10px !important;
+  background-color: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] :is(.input, .textarea, .select):focus {
+  box-shadow: var(--soft-sink), 0 0 0 2px rgba(var(--accent-rgb), 0.5);
+}
+
+:root[data-style="soft"] .chip {
+  background: var(--soft-face);
+  box-shadow: var(--soft-raise-sm);
+}
+
+:root[data-style="soft"] .chip[aria-pressed="true"] {
+  background: rgba(var(--accent-rgb), 0.14);
+  box-shadow: var(--soft-sink);
+}
+
+/* Switches: a round pit and a round knob. */
+:root[data-style="soft"] .toggle__track {
+  border-radius: 999px !important;
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .toggle:hover .toggle__track {
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .toggle input:checked + .toggle__track {
+  background: rgba(var(--accent-rgb), 0.5);
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-style="soft"] .toggle__thumb {
+  border-radius: 50% !important;
+  clip-path: none !important;
+  border-image: none !important;
+  background: #c3bbd4;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-style="soft"] .toggle input:checked + .toggle__track + .toggle__thumb {
+  background: #fff;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.35);
+}
+
+/* ======================================================================================================
+   Coloured icons: each its own colour, like an item in the inventory (assets/ui/<name>.color.svg, made
+   by installer/tools/make-pixel-icons.js). Window buttons and arrows stay in the text colour; the
+   sidebar keeps its Minecraft pictures.
+   ====================================================================================================== */
+.icon--home { --icon-color: url("../../../assets/ui/home.color.svg"); }
+.icon--cube { --icon-color: url("../../../assets/ui/cube.color.svg"); }
+.icon--stack { --icon-color: url("../../../assets/ui/stack.color.svg"); }
+.icon--gear { --icon-color: url("../../../assets/ui/gear.color.svg"); }
+.icon--user { --icon-color: url("../../../assets/ui/user.color.svg"); }
+.icon--download { --icon-color: url("../../../assets/ui/download.color.svg"); }
+.icon--folder { --icon-color: url("../../../assets/ui/folder.color.svg"); }
+.icon--file { --icon-color: url("../../../assets/ui/file.color.svg"); }
+.icon--export { --icon-color: url("../../../assets/ui/export.color.svg"); }
+.icon--search { --icon-color: url("../../../assets/ui/search.color.svg"); }
+.icon--play { --icon-color: url("../../../assets/ui/play.color.svg"); }
+.icon--close { --icon-color: url("../../../assets/ui/close.color.svg"); }
+.icon--bolt { --icon-color: url("../../../assets/ui/bolt.color.svg"); }
+.icon--pencil { --icon-color: url("../../../assets/ui/pencil.color.svg"); }
+.icon--image { --icon-color: url("../../../assets/ui/image.color.svg"); }
+.icon--cloud { --icon-color: url("../../../assets/ui/cloud.color.svg"); }
+.icon--globe { --icon-color: url("../../../assets/ui/globe.color.svg"); }
+
+:root[data-icons="color"] .icon:not(.icon--chevron, .icon--minus, .icon--fullscreen, .icon--fullscreen-exit):not(.icon-button--window .icon, .nav-button .icon) {
+  background: var(--icon-color) center / contain no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  image-rendering: pixelated;
+}
+
+:root[data-icons="color"] :disabled .icon {
+  filter: grayscale(1) opacity(0.5);
+}
+
+/* ======================================================================================================
+   The icon of the button under the pointer turns round once (only that button's own icon).
+   ====================================================================================================== */
+:root[data-animations="on"] :is(.btn, .icon-button:not(.icon-button--window)):hover:not(:disabled) .icon {
+  animation: icon-turn 650ms cubic-bezier(0.5, 0, 0.25, 1);
+}
+
+@keyframes icon-turn {
+  to { transform: rotate(360deg); }
+}

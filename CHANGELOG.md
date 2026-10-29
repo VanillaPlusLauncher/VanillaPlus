@@ -106,6 +106,7 @@
 - An instance's "Version": "Apply" is on top of the card, with what the instance is now and what it will become — nothing changes until it is pressed
 - Mods list: "Check for updates" sits in the top row and answers right there; the bar over ticked mods slides open and shut instead of jumping, and "Clear selection" has its frame; a mod's switch changes only its own row (the list no longer redraws); configs and list export moved to the "⋯" menu
 - Settings → Updates: "Checking…" shows right next to the button pressed
+- A new, calmer look (picked on the style page): soft raised buttons with round corners on lighter panels — a pressed one sinks in, a soft shine crosses it under the pointer; cards, fields, switches and menus match. Icons on buttons and in lists are in colour, like items in the inventory, and turn round once under the pointer; the sidebar keeps its Minecraft pictures. Settings → "Оформление" → "Кнопки" and "Иконки" bring back the pixel buttons and single-colour icons
 
 ### Fixes
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")

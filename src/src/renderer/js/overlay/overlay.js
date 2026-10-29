@@ -281,6 +281,8 @@ async function refresh() {
   const ui = state.info?.ui ?? {};
   document.documentElement.dataset.accent = ui.accent ?? 'amethyst';
   document.documentElement.dataset.font = ui.font ?? 'pixel';
+  document.documentElement.dataset.style = ui.style ?? 'soft';
+  document.documentElement.dataset.icons = ui.icons ?? 'color';
   document.documentElement.dataset.animations = ui.animations === false ? 'off' : 'on';
   render();
   try {

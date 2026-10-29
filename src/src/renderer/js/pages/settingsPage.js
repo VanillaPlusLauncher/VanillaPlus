@@ -183,6 +183,16 @@ export function createSettingsPage() {
       value: ui.cards ?? 'tile',
       onChange: (value) => save({ ui: { cards: value } }),
     });
+    const style = createSegmented({
+      options: [{ value: 'soft', label: 'Мягкие' }, { value: 'pixel', label: 'Пиксельные' }],
+      value: ui.style ?? 'soft',
+      onChange: (value) => save({ ui: { style: value } }),
+    });
+    const icons = createSegmented({
+      options: [{ value: 'color', label: 'Цветные' }, { value: 'mono', label: 'Одноцветные' }],
+      value: ui.icons ?? 'color',
+      onChange: (value) => save({ ui: { icons: value } }),
+    });
     const scale = createSegmented({ options: [80, 90, 100, 110, 125].map((value) => ({ value, label: `${value}%` })), value: ui.scale, onChange: (value) => save({ ui: { scale: value } }) });
     // Language names stay in their own language (data-i18n=off), whatever the interface language is.
     const languageSelect = h('select', { class: 'select', 'data-i18n': 'off', 'aria-label': 'Язык · Language', onchange: (event) => save({ ui: { language: event.target.value } }) }, LANGUAGES.map((entry) => h('option', { value: entry.code }, entry.label)));
@@ -193,6 +203,8 @@ export function createSettingsPage() {
       card('Панорама', 'Фон как в главном меню Minecraft разных версий. Панорама скачивается один раз, когда её выбирают.', backgroundGrid),
       card('Интерфейс', null,
         row('Шрифт заголовков и кнопок', 'Пиксельный похож на шрифт Minecraft.', font.element),
+        row('Кнопки', 'Мягкие — выпуклые, на светлых панелях. Пиксельные — как в Minecraft.', style.element),
+        row('Иконки', 'Цветные — каждая своего цвета, как предметы в инвентаре.', icons.element),
         row('Боковая панель', '«Хотбар» — как панель предметов в игре.', sidebar.element),
         row('Карточки сборок', 'Как выглядят сборки в сетке.', cards.element),
         row('Масштаб', 'Размер всего интерфейса.', scale.element),

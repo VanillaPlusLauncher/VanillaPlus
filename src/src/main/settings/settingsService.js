@@ -22,6 +22,8 @@ const FONTS = ['pixel', 'clean'];
 const LANGUAGES = ['ru', 'en', 'uk', 'pl', 'de', 'fr', 'es', 'pt', 'zh'];
 const SIDEBARS = ['labels', 'hotbar', 'icons'];
 const CARD_STYLES = ['tile', 'card', 'slot'];
+const BUTTON_STYLES = ['soft', 'pixel'];
+const ICON_STYLES = ['color', 'mono'];
 const CONTENT_SOURCES = ['modrinth', 'curseforge'];
 const INSTANCE_VIEWS = ['grid', 'list'];
 const UI_SCALES = [80, 90, 100, 110, 125];
@@ -79,6 +81,10 @@ function buildDefaults() {
       font: 'pixel',
       sidebar: 'labels',
       cards: 'tile',
+      /** Buttons: 'soft' (raised, round, lighter panels) or 'pixel' (renderer/css/look.css). */
+      style: 'soft',
+      /** Icons: 'color' (each its own colour) or 'mono' (the text colour). */
+      icons: 'color',
       animations: !light,
       /** Pixel sparks fly from a button when it is pressed. */
       sparks: !light,
@@ -152,6 +158,8 @@ function sanitizeUi(input, defaults) {
   if (FONTS.includes(input.font)) ui.font = input.font;
   if (SIDEBARS.includes(input.sidebar)) ui.sidebar = input.sidebar;
   if (CARD_STYLES.includes(input.cards)) ui.cards = input.cards;
+  if (BUTTON_STYLES.includes(input.style)) ui.style = input.style;
+  if (ICON_STYLES.includes(input.icons)) ui.icons = input.icons;
   if (typeof input.animations === 'boolean') ui.animations = input.animations;
   if (typeof input.sparks === 'boolean') ui.sparks = input.sparks;
   if (typeof input.blur === 'boolean') ui.blur = input.blur;
