@@ -103,7 +103,7 @@ function setupAppearance() {
     root.dataset.font = ui.font;
     root.dataset.sidebar = ui.sidebar ?? 'labels';
     root.dataset.cards = ui.cards ?? 'tile';
-    root.dataset.style = ui.style ?? 'soft';
+    root.dataset.style = ui.style ?? 'pixel';
     root.dataset.icons = ui.icons ?? 'color';
     root.dataset.blur = ui.blur ? 'on' : 'off';
     // Every background is a panorama now (of the latest version, a chosen one, or a random one).
