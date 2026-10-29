@@ -18,9 +18,9 @@
   /* A lit top edge: keeps a plate's shape where no panel is under it (over the panorama the light
      side of the relief cannot show). Only the top, so it never reads as a frame. */
   --soft-edge: inset 0 1px 0 rgba(255, 255, 255, 0.13);
-  /* What is chosen: pressed in, the dark of a pit (any tint would make it lighter than the plates
-     around it, so it would read as raised); its text takes the theme colour. */
-  --soft-chosen: var(--soft-pit);
+  /* What is chosen: pressed in, darker than any plate or field (any tint would make it lighter than
+     the plates around it, so it would read as raised); its text takes the theme colour. */
+  --soft-chosen: #16121e;
 
   /* The components' own rounding (features.css squares every corner only in the pixel look). */
   --radius-sm: 8px;
@@ -94,6 +94,12 @@
   border-color: transparent;
   border-radius: 20px !important;
   background: var(--color-surface-strong);
+}
+
+/* A dialog's scroll area leaves room round its content, so the plates' shadows are not cut off. */
+:root[data-style="soft"] .modal__body {
+  margin: -6px -10px 0;
+  padding: 6px 10px 12px;
 }
 
 /* Cards: plates of the panel colour. */
@@ -196,7 +202,7 @@
 /* Quiet buttons: the same plate with a smaller relief, see-through, so they still read as buttons on
    a panel, in a dialog's footer and over the panorama. */
 :root[data-style="soft"] .btn--ghost {
-  background: rgba(45, 37, 65, 0.78);
+  background: rgba(45, 37, 65, 0.95);
   color: var(--color-text);
   box-shadow: var(--soft-raise-sm), var(--soft-edge);
 }
@@ -310,9 +316,39 @@
   color: var(--color-accent);
 }
 
+/* The sidebar: a panel of its own colour with a soft shadow instead of the black edge line, so the
+   current page can sit pressed into it. */
+:root[data-style="soft"] .sidebar {
+  background: rgba(31, 25, 43, 0.94);
+  border-right: 0;
+  box-shadow: 6px 0 18px rgba(0, 0, 0, 0.35);
+}
+
 :root[data-style="soft"]:not([data-sidebar="hotbar"]) .sidebar__indicator {
   background: var(--soft-chosen);
   box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .vendor-option[aria-pressed="true"] .vendor-option__name {
+  color: var(--color-accent);
+}
+
+/* Accounts: each account a plate you can choose; the one in use pressed in, its mark a lit dot. */
+:root[data-style="soft"] .account-row {
+  border-color: transparent;
+  background: var(--soft-face);
+  box-shadow: var(--soft-raise-sm), var(--soft-edge);
+}
+
+:root[data-style="soft"] .account-row__check {
+  border: 0;
+  background: var(--soft-pit);
+  box-shadow: var(--soft-sink);
+}
+
+:root[data-style="soft"] .account-row--selected .account-row__check {
+  background: radial-gradient(circle, #fff 0 3px, var(--color-accent-strong) 4px);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.45);
 }
 
 :root[data-style="soft"] .content-row--selected {
@@ -325,16 +361,20 @@
   box-shadow: none;
 }
 
-/* In a pit of options the chosen one is the raised plate (tabs, segmented controls, the platform). */
+/* A group of options (tabs, segmented controls, the platform switch) is one raised plate; the chosen
+   option is pressed into it like every other chosen thing. `background` (not -color) also clears the
+   pixel look's speckled thumb (mc.css). */
 :root[data-style="soft"] :is(.tabs, .segmented, .platform-switch) {
   border: 0;
-  background: var(--soft-pit);
-  box-shadow: var(--soft-sink);
+  background: var(--color-surface);
+  box-shadow: var(--soft-raise-sm), var(--soft-edge);
 }
 
 :root[data-style="soft"] :is(.tabs__button[aria-selected="true"], .segmented__thumb, .platform-switch__thumb) {
-  background-color: var(--soft-face-hover);
-  box-shadow: var(--soft-raise-sm), var(--soft-edge);
+  background: var(--soft-chosen);
+  box-shadow: var(--soft-sink);
+  clip-path: none !important;
+  border-image: none !important;
 }
 
 :root[data-style="soft"] .platform-switch__thumb {
@@ -395,10 +435,10 @@
 }
 
 /* --- 7. Controls ---------------------------------------------------------------------------------------- */
-/* Switches: a round pit and a round knob. */
+/* Switches: a round pit (deep enough to see when off) and a round knob. */
 :root[data-style="soft"] .toggle__track,
 :root[data-style="soft"] .toggle:hover .toggle__track {
-  background: var(--soft-pit);
+  background: #120e19;
   box-shadow: var(--soft-sink);
 }
 
@@ -506,11 +546,11 @@
 
 /* Titles, hints and section names straight on the panorama: brighter, with a soft dark halo. */
 :root[data-style="soft"] :is(.page-header, .home-section__head, .home-hero, .section-label),
-:root[data-style="soft"] :is(.content-hint, .text-muted, .settings-card__desc, .page-subtitle):not(.surface *, .modal *, .card *) {
+:root[data-style="soft"] :is(.content-hint, .text-muted, .settings-card__desc, .page-subtitle, .section-title):not(.surface *, .modal *, .card *) {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 14px rgba(0, 0, 0, 0.65);
 }
 
-:root[data-style="soft"] :is(.content-hint, .text-muted, .settings-card__desc, .page-subtitle):not(.surface *, .modal *, .card *) {
+:root[data-style="soft"] :is(.content-hint, .text-muted, .settings-card__desc, .page-subtitle, .section-title):not(.surface *, .modal *, .card *) {
   color: var(--color-text-soft);
 }
 
@@ -534,8 +574,20 @@
   clip-path: none !important;
 }
 
-/* The little play buttons of Settings → Sounds: an icon you can see. */
-:root[data-style="soft"] .sound-action__play .icon {
-  width: 16px;
-  height: 16px;
+/* Small icons the pixel look kept at 10 px (one pixel art cell): big enough to see as smooth icons —
+   the play buttons of Settings → Sounds, the arrow beside "Играть", the account chip's arrow. */
+:root[data-style="soft"] :is(.sound-action__play, .play-bar__actions .play-bar__arrow, .play-bar__arrow) .icon {
+  width: 18px;
+  height: 18px;
+}
+
+:root[data-style="soft"] .account-chip .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* A search or filter field beside the toolbar's buttons: their height, not taller. */
+:root[data-style="soft"] .input-with-icon .input {
+  height: 40px;
+  min-height: 40px;
 }

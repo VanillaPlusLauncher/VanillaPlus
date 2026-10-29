@@ -8121,14 +8121,66 @@ input[type="checkbox"]:not(.toggle input),
   to { opacity: 0.28; }
 }
 
-/* "Nothing found" or a problem in the catalog spans the whole grid, not one column of it. */
+/* "Nothing found" or a problem in the catalog spans the whole grid, not one column of it, and keeps
+   its own height while the grid glides to the new one (it stretched, then jumped). */
+.project-grid {
+  align-content: start;
+}
+
 .project-grid > .empty-state {
   grid-column: 1 / -1;
+  align-self: start;
+}
+
+/* A catalog card's title: the name comes first; the author gives way and shortens before it does. */
+.project-card__name {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.project-card__author {
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A news tile's words stay readable over a light picture. */
+.news-tile__shade {
+  background: linear-gradient(180deg, transparent 20%, rgba(0, 0, 0, 0.55) 55%, rgba(0, 0, 0, 0.92) 100%);
 }
 
 :root[data-animations="off"] .platform-switch__thumb,
 :root[data-animations="off"] .project-grid {
   transition: none;
+}
+
+/* Settings: the section menu wide enough for "Друзья и скины" on one line; a list in a row (the
+   language) as wide as its words, so the row's label does not have to wrap. */
+.settings-layout {
+  grid-template-columns: 228px minmax(0, 860px);
+}
+
+.settings-row__control > .select {
+  width: auto;
+  min-width: 240px;
+}
+
+/* Settings → Java: the mode card as wide as the install card under it (the stack capped it). */
+.java-section .settings-stack {
+  max-width: none;
+}
+
+/* A field and its buttons in one row are one height. */
+.path-row > .btn,
+.path-row > .icon-button {
+  align-self: stretch;
+  height: auto;
+}
+
+/* A dialog without footer buttons ends with its content, not with an empty strip. */
+.modal__footer:empty {
+  display: none;
 }
 
 /* Tabs in a dialog (Аккаунты: Microsoft / Ely.by / Офлайн) share its width the same way. */

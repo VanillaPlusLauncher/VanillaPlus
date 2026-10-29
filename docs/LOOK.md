@@ -1,14 +1,15 @@
 # The launcher's look — what it must stay
 
 This is the look the owner chose (October 2026). Any change to the interface keeps everything below
-unless the owner asks otherwise. Backup of this state: the git tag `look-soft-1`.
+unless the owner asks otherwise. Backups of this state: the git tags `look-soft-1`, `look-soft-2` (latest).
 
 ## The chosen look
 
 | Part | How it is | Where |
 |---|---|---|
 | Buttons and panels | **Soft**: raised plates (shadow down-right, light up-left, a lit top edge) on lighter violet-grey panels; round corners; no frames or bevel lines | `css/soft.css`, `data-style="soft"` (default) |
-| Chosen things | **Pressed in** (inner shadow), lightly tinted with the theme colour, text in the theme colour; never shown by an outline | `soft.css` §5 |
+| Chosen things | **Pressed in**: darker than the plates around, inner shadow, text in the theme colour; never shown by an outline. The same in tab bars and switches: the group is one raised plate, the chosen option is pressed into it | `soft.css` §5 |
+| Motion | Choices fade over 220 ms; switches' plates slide; the catalog dims the old cards while loading and the new ones rise in as the list glides to its height; cards lean towards the pointer (wide ones only slightly) | `soft.css`, `features.css` end, `core/effects.js resizeSmoothly`, `components/alive.js` |
 | Font | **Tiny5, the Minecraft pixel font** (default). Settings → Оформление → Шрифт offers 11 | `tokens.css` `data-font` |
 | Icons on buttons and in lists | **Smooth and coloured**, the colours of items in the inventory | `css/icons.css`, `assets/ui/*.smooth.svg` |
 | Sidebar | **Minecraft pictures** (items and blocks of the game) — never replaced by drawn icons | `layout/shell.js` |
