@@ -78,7 +78,7 @@ export function createInstancesPage() {
         { class: 'page-header__actions' },
         h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Prism, Modrinth App, CurseForge, Millida, TLauncher и другие', onclick: () => openLauncherImportDialog() }, icon('download'), 'Из других лаунчеров'),
         h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => importPack() }, icon('folder'), 'Импорт'),
-        h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Собрать сборку по коду от друга', onclick: () => openImportCodeDialog() }, 'Вставить код'),
+        h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Собрать сборку по коду от друга', onclick: () => openImportCodeDialog() }, icon('file'), 'Вставить код'),
         h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Группа — как папка: сборки перетаскиваются в неё мышкой', onclick: () => createGroup() }, icon('folder'), 'Новая группа'),
         h('button', { class: 'btn btn--primary', type: 'button', onclick: (event) => { pixelBurst(event.currentTarget, { count: 10 }); openCreateInstanceModal(); } }, h('span', { class: 'plus' }, '+'), 'Новая сборка'),
       ),

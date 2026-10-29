@@ -1,0 +1,79 @@
+/* Which picture an icon (base.css .icon, core/dom.js icon()) shows. Three sets of the same 21 icons:
+     <name>.svg         pixel, one colour (a mask in the text colour)  — the pixel look, "Одноцветные"
+     <name>.color.svg   pixel, coloured like items in the inventory    — the pixel look, "Цветные"
+     <name>.smooth.svg  smooth, coloured; as a mask a plain silhouette — the soft look, both settings
+   The pixel ones come from assets/ui/pixel-icons.txt (installer/tools/make-pixel-icons.js), the smooth
+   ones from installer/tools/make-smooth-icons.js. Window buttons and arrows always stay in the text
+   colour; the sidebar keeps its Minecraft pictures (layout/shell.js). Loaded after soft.css. */
+
+/* --- Coloured pixel pictures --------------------------------------------------------------------------- */
+.icon--home { --icon-color: url("../../../assets/ui/home.color.svg"); }
+.icon--cube { --icon-color: url("../../../assets/ui/cube.color.svg"); }
+.icon--stack { --icon-color: url("../../../assets/ui/stack.color.svg"); }
+.icon--gear { --icon-color: url("../../../assets/ui/gear.color.svg"); }
+.icon--user { --icon-color: url("../../../assets/ui/user.color.svg"); }
+.icon--download { --icon-color: url("../../../assets/ui/download.color.svg"); }
+.icon--folder { --icon-color: url("../../../assets/ui/folder.color.svg"); }
+.icon--file { --icon-color: url("../../../assets/ui/file.color.svg"); }
+.icon--export { --icon-color: url("../../../assets/ui/export.color.svg"); }
+.icon--search { --icon-color: url("../../../assets/ui/search.color.svg"); }
+.icon--play { --icon-color: url("../../../assets/ui/play.color.svg"); }
+.icon--close { --icon-color: url("../../../assets/ui/close.color.svg"); }
+.icon--bolt { --icon-color: url("../../../assets/ui/bolt.color.svg"); }
+.icon--pencil { --icon-color: url("../../../assets/ui/pencil.color.svg"); }
+.icon--image { --icon-color: url("../../../assets/ui/image.color.svg"); }
+.icon--cloud { --icon-color: url("../../../assets/ui/cloud.color.svg"); }
+.icon--globe { --icon-color: url("../../../assets/ui/globe.color.svg"); }
+
+/* --- The soft look: smooth pictures for both settings ------------------------------------------------- */
+:root[data-style="soft"] .icon--home { --icon: url("../../../assets/ui/home.smooth.svg"); --icon-color: url("../../../assets/ui/home.smooth.svg"); }
+:root[data-style="soft"] .icon--cube { --icon: url("../../../assets/ui/cube.smooth.svg"); --icon-color: url("../../../assets/ui/cube.smooth.svg"); }
+:root[data-style="soft"] .icon--stack { --icon: url("../../../assets/ui/stack.smooth.svg"); --icon-color: url("../../../assets/ui/stack.smooth.svg"); }
+:root[data-style="soft"] .icon--gear { --icon: url("../../../assets/ui/gear.smooth.svg"); --icon-color: url("../../../assets/ui/gear.smooth.svg"); }
+:root[data-style="soft"] .icon--user { --icon: url("../../../assets/ui/user.smooth.svg"); --icon-color: url("../../../assets/ui/user.smooth.svg"); }
+:root[data-style="soft"] .icon--download { --icon: url("../../../assets/ui/download.smooth.svg"); --icon-color: url("../../../assets/ui/download.smooth.svg"); }
+:root[data-style="soft"] .icon--folder { --icon: url("../../../assets/ui/folder.smooth.svg"); --icon-color: url("../../../assets/ui/folder.smooth.svg"); }
+:root[data-style="soft"] .icon--file { --icon: url("../../../assets/ui/file.smooth.svg"); --icon-color: url("../../../assets/ui/file.smooth.svg"); }
+:root[data-style="soft"] .icon--export { --icon: url("../../../assets/ui/export.smooth.svg"); --icon-color: url("../../../assets/ui/export.smooth.svg"); }
+:root[data-style="soft"] .icon--search { --icon: url("../../../assets/ui/search.smooth.svg"); --icon-color: url("../../../assets/ui/search.smooth.svg"); }
+:root[data-style="soft"] .icon--play { --icon: url("../../../assets/ui/play.smooth.svg"); --icon-color: url("../../../assets/ui/play.smooth.svg"); }
+:root[data-style="soft"] .icon--chevron { --icon: url("../../../assets/ui/chevron.smooth.svg"); }
+:root[data-style="soft"] .icon--close { --icon: url("../../../assets/ui/close.smooth.svg"); --icon-color: url("../../../assets/ui/close.smooth.svg"); }
+:root[data-style="soft"] .icon--minus { --icon: url("../../../assets/ui/minus.smooth.svg"); }
+:root[data-style="soft"] .icon--fullscreen { --icon: url("../../../assets/ui/fullscreen.smooth.svg"); }
+:root[data-style="soft"] .icon--fullscreen-exit { --icon: url("../../../assets/ui/fullscreen-exit.smooth.svg"); }
+:root[data-style="soft"] .icon--bolt { --icon: url("../../../assets/ui/bolt.smooth.svg"); --icon-color: url("../../../assets/ui/bolt.smooth.svg"); }
+:root[data-style="soft"] .icon--pencil { --icon: url("../../../assets/ui/pencil.smooth.svg"); --icon-color: url("../../../assets/ui/pencil.smooth.svg"); }
+:root[data-style="soft"] .icon--image { --icon: url("../../../assets/ui/image.smooth.svg"); --icon-color: url("../../../assets/ui/image.smooth.svg"); }
+:root[data-style="soft"] .icon--cloud { --icon: url("../../../assets/ui/cloud.smooth.svg"); --icon-color: url("../../../assets/ui/cloud.smooth.svg"); }
+:root[data-style="soft"] .icon--globe { --icon: url("../../../assets/ui/globe.smooth.svg"); --icon-color: url("../../../assets/ui/globe.smooth.svg"); }
+
+/* --- "Цветные": the picture itself instead of a mask in the text colour --------------------------------- */
+:root[data-icons="color"] .icon:not(.icon--chevron, .icon--minus, .icon--fullscreen, .icon--fullscreen-exit):not(.icon-button--window .icon, .nav-button .icon) {
+  background: var(--icon-color) center / contain no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  image-rendering: pixelated;
+}
+
+:root[data-style="soft"] .icon {
+  image-rendering: auto !important;
+}
+
+:root[data-icons="color"] :disabled .icon {
+  filter: grayscale(1) opacity(0.5);
+}
+
+/* --- A theme colour whose block picture the game files lack (settingsPage.js, core/mc.js mcPictureOr):
+   a gem of that colour instead of a grass block. --swatch is set on the element. -------------------- */
+.accent-option__swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--swatch) 80%, #fff), color-mix(in srgb, var(--swatch) 60%, #000));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 2px 3px 6px rgba(0, 0, 0, 0.35);
+}
+
+:root:not([data-style="soft"]) .accent-option__swatch {
+  border-radius: 0;
+}

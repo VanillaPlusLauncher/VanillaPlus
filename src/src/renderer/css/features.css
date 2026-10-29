@@ -2328,7 +2328,7 @@
 /* Fonts (Settings → Appearance → Font): each option written in its own font. */
 .font-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 10px;
 }
 
@@ -6484,13 +6484,14 @@ button.server-place__card:hover {
 
 /* --- No rounded corners anywhere ------------------------------------------------------------------------
    Minecraft's GUI has none: the last pills ("Все сборки ›", platform marks, slots), round dots, the
-   switches' and sliders' rounded parts become square or pixel-cut like the rest. */
-*,
-*::before,
-*::after,
-::-webkit-scrollbar-thumb,
-::-webkit-slider-thumb,
-::-webkit-slider-runnable-track {
+   switches' and sliders' rounded parts become square or pixel-cut like the rest. Only in the pixel
+   look: the soft one (soft.css) keeps every element's own rounding. */
+:root:not([data-style="soft"]) *,
+:root:not([data-style="soft"]) *::before,
+:root:not([data-style="soft"]) *::after,
+:root:not([data-style="soft"]) ::-webkit-scrollbar-thumb,
+:root:not([data-style="soft"]) ::-webkit-slider-thumb,
+:root:not([data-style="soft"]) ::-webkit-slider-runnable-track {
   border-radius: 0 !important;
 }
 
@@ -8055,4 +8056,32 @@ input[type="checkbox"]:not(.toggle input),
 .content-toolbar__more .dots {
   font-size: 18px;
   line-height: 1;
+}
+
+/* --- Layout fixes from a tour of every screen (both looks) ----------------------------------------- */
+/* The scrollbar keeps its room, so a page does not shift sideways when it appears. */
+.page {
+  scrollbar-gutter: stable;
+}
+
+/* A segmented control stretched to a row's width shares it among its options, instead of leaving an
+   empty tail after them (accounts, friends, "При запуске игры"). */
+.segmented button {
+  flex: 1 0 auto;
+}
+
+.friends-add .segmented {
+  display: flex;
+  width: 100%;
+}
+
+/* Tabs in a dialog (Аккаунты: Microsoft / Ely.by / Офлайн) share its width the same way. */
+.modal .tabs__button {
+  flex: 1;
+  justify-content: center;
+}
+
+.friends-add__row .input,
+.friends-add__row .btn {
+  min-height: 42px;
 }

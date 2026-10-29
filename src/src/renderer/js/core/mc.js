@@ -210,6 +210,39 @@ export async function iconUrl(icon) {
   return blockIcon(block);
 }
 
+/**
+ * `fallback` (an element of the launcher's own) that becomes the game's picture `icon` ("item:x" /
+ * "block:x") once that picture has really loaded. Unlike iconImage it never shows a grass block or a
+ * broken image in place of a texture that is missing.
+ */
+export function mcPictureOr(icon, className, fallback) {
+  const [kind, name] = icon.split(':');
+  const grass = assetUrl('icons/grass-block.png');
+  const tryPicture = () => {
+    if (!(kind === 'item' ? hasItem(name) : blockAvailable(name))) return;
+    iconUrl(icon).then((url) => {
+      // A block that could not be drawn comes back as the grass block.
+      if (url === grass && name !== 'grass_block') return;
+      const image = document.createElement('img');
+      image.className = className;
+      image.alt = '';
+      image.decoding = 'async';
+      image.classList.toggle('is-smooth', url.startsWith('data:') || url.startsWith('https://'));
+      image.onload = () => fallback.replaceWith(image);
+      image.src = url;
+    });
+  };
+  if (manifest) {
+    tryPicture();
+  } else {
+    const stop = onMcReady(() => {
+      stop();
+      tryPicture();
+    });
+  }
+  return fallback;
+}
+
 /** <img> that shows an instance icon; updates itself when the Minecraft textures arrive. */
 export function iconImage(icon, className = 'block-icon') {
   const image = document.createElement('img');

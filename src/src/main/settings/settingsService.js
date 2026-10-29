@@ -81,7 +81,7 @@ function buildDefaults() {
       font: 'pixel',
       sidebar: 'labels',
       cards: 'tile',
-      /** Buttons: 'soft' (raised, round, lighter panels) or 'pixel' (renderer/css/look.css). */
+      /** Buttons: 'soft' (raised, round, lighter panels; renderer/css/soft.css) or 'pixel' (Minecraft's look). */
       style: 'soft',
       /** Icons: 'color' (each its own colour) or 'mono' (the text colour). */
       icons: 'color',

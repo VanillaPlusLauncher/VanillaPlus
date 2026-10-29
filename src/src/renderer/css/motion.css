@@ -1,0 +1,152 @@
+/* Every icon moves in its own way when its button is under the pointer (both looks, only with
+   Settings → Animations on). One rule plays the icon's --icon-motion; each icon names its motion
+   below; icons without one hop with a tilt, like the instance icons on their cards (icon-hop,
+   features.css). Only the icon of the button under the pointer moves. Loaded after icons.css. */
+
+:root[data-animations="on"] :is(.btn, .icon-button:not(.icon-button--window), .chip, .tabs__button, .context-menu__item):hover:not(:disabled) .icon {
+  animation: var(--icon-motion, icon-hop 620ms var(--ease-spring));
+}
+
+.icon--play { --icon-motion: icon-dash 720ms cubic-bezier(0.5, 0, 0.3, 1); }
+.icon--download { --icon-motion: icon-drop 640ms var(--ease-spring); }
+.icon--export { --icon-motion: icon-launch 680ms cubic-bezier(0.4, 0, 0.3, 1); }
+.icon--folder { --icon-motion: icon-open 560ms var(--ease-spring); }
+.icon--gear { --icon-motion: icon-turn 700ms cubic-bezier(0.4, 0, 0.2, 1); }
+.icon--search { --icon-motion: icon-look 760ms ease-in-out; }
+.icon--close { --icon-motion: icon-spin-away 480ms cubic-bezier(0.4, 0, 0.2, 1); }
+.icon--user { --icon-motion: icon-try-on 760ms ease-in-out; }
+.icon--cube { --icon-motion: icon-flip 760ms var(--ease-spring); }
+.icon--pencil { --icon-motion: icon-scribble 620ms ease-in-out; }
+.icon--bolt { --icon-motion: icon-zap 520ms steps(1, end); }
+.icon--image { --icon-motion: icon-snap 560ms var(--ease-spring); }
+.icon--cloud { --icon-motion: icon-drift 900ms ease-in-out; }
+.icon--globe { --icon-motion: icon-globe 900ms ease-in-out; }
+.icon--file { --icon-motion: icon-page 620ms var(--ease-spring); }
+.icon--stack { --icon-motion: icon-spread 640ms var(--ease-spring); }
+.icon--chevron { --icon-motion: icon-nudge 520ms ease-in-out; }
+
+/* "Играть": off to the right, faster and faster, then back in from the left. */
+@keyframes icon-dash {
+  0% { transform: translateX(0); opacity: 1; }
+  45% { transform: translateX(14px) skewX(-18deg); opacity: 0; }
+  46% { transform: translateX(-14px) skewX(-18deg); opacity: 0; }
+  80% { transform: translateX(2px) skewX(6deg); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* Download: lifted, then dropped into the tray with a squash. */
+@keyframes icon-drop {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+  60% { transform: translateY(3px) scale(1.12, 0.85); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Export: shot up and out, back from below. */
+@keyframes icon-launch {
+  0% { transform: translateY(0); opacity: 1; }
+  40% { transform: translateY(-12px); opacity: 0; }
+  41% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Folder: the lid lifts open. */
+@keyframes icon-open {
+  0% { transform: perspective(40px) rotateX(0); }
+  45% { transform: perspective(40px) rotateX(-28deg) translateY(-2px); }
+  100% { transform: perspective(40px) rotateX(0); }
+}
+
+/* Settings: the gear turns half round (it looks the same after). */
+@keyframes icon-turn {
+  to { transform: rotate(180deg); }
+}
+
+/* Search: the magnifier looks round in a small circle. */
+@keyframes icon-look {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-3px, -2px) rotate(-8deg); }
+  50% { transform: translate(2px, -3px); }
+  75% { transform: translate(3px, 1px) rotate(8deg); }
+}
+
+/* Close / delete: the cross spins away and back. */
+@keyframes icon-spin-away {
+  0% { transform: rotate(0) scale(1); }
+  60% { transform: rotate(120deg) scale(0.8); }
+  100% { transform: rotate(180deg) scale(1); }
+}
+
+/* "Гардероб": the figure turns round as if in front of a mirror. */
+@keyframes icon-try-on {
+  0% { transform: perspective(60px) rotateY(0); }
+  50% { transform: perspective(60px) rotateY(180deg) translateY(-2px); }
+  100% { transform: perspective(60px) rotateY(360deg); }
+}
+
+/* Instances: the block jumps and lands on another face. */
+@keyframes icon-flip {
+  0% { transform: translateY(0) rotate(0); }
+  45% { transform: translateY(-6px) rotate(-45deg); }
+  80% { transform: translateY(1px) rotate(-90deg) scale(1.05, 0.95); }
+  100% { transform: translateY(0) rotate(-90deg); }
+}
+
+/* Rename: the pencil scribbles. */
+@keyframes icon-scribble {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  20% { transform: translate(-2px, 1px) rotate(-12deg); }
+  40% { transform: translate(2px, -1px) rotate(8deg); }
+  60% { transform: translate(-2px, 1px) rotate(-10deg); }
+  80% { transform: translate(1px, 0) rotate(5deg); }
+}
+
+/* Optimisation: a flash — bright, dim, bright. */
+@keyframes icon-zap {
+  0% { filter: brightness(2.2); transform: scale(1.15); }
+  20% { filter: brightness(0.7); transform: scale(1); }
+  40% { filter: brightness(2); transform: scale(1.12) translateX(-1px); }
+  60% { filter: none; transform: scale(1); }
+}
+
+/* Screenshot: like a photo being taken — shrinks, flashes, back. */
+@keyframes icon-snap {
+  0% { transform: scale(1) rotate(0); }
+  35% { transform: scale(0.82) rotate(-6deg); filter: brightness(1.6); }
+  100% { transform: scale(1) rotate(0); filter: none; }
+}
+
+/* Cloud: drifts to the side and back. */
+@keyframes icon-drift {
+  0%, 100% { transform: translateX(0); }
+  35% { transform: translateX(4px) translateY(-1px); }
+  70% { transform: translateX(-3px); }
+}
+
+/* Globe: turns round once. */
+@keyframes icon-globe {
+  0% { transform: perspective(60px) rotateY(0); }
+  100% { transform: perspective(60px) rotateY(360deg); }
+}
+
+/* File: a page turns. */
+@keyframes icon-page {
+  0% { transform: perspective(50px) rotateY(0); }
+  50% { transform: perspective(50px) rotateY(-50deg) translateX(-1px); }
+  100% { transform: perspective(50px) rotateY(0); }
+}
+
+/* Stack: the layers spread and settle. */
+@keyframes icon-spread {
+  0% { transform: scale(1, 1); }
+  40% { transform: scale(0.9, 1.25) translateY(-2px); }
+  70% { transform: scale(1.06, 0.94); }
+  100% { transform: scale(1, 1); }
+}
+
+/* Arrow: a nudge down. */
+@keyframes icon-nudge {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(3px); }
+  70% { transform: translateY(-1px); }
+}

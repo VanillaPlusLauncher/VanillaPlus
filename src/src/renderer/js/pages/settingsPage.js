@@ -1,7 +1,7 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage, formatGigabytes } from '../core/format.js';
-import { getMcManifest, iconImage, mcUrl, onMcReady } from '../core/mc.js';
+import { getMcManifest, iconImage, mcPictureOr, mcUrl, onMcReady } from '../core/mc.js';
 import { configureSound, presetFor, previewSound, SOUND_ACTIONS, SOUND_PRESETS } from '../core/sound.js';
 import { store } from '../state/appStore.js';
 import { saveSettings } from '../state/actions.js';
@@ -25,15 +25,15 @@ const SECTIONS = [
   { key: 'updates', label: 'Обновления', icon: 'item:clock_00' },
 ];
 const ACCENTS = [
-  { value: 'amethyst', label: 'Аметист', block: 'amethyst_block' },
-  { value: 'vanilla', label: 'Ваниль', block: 'honeycomb_block' },
-  { value: 'berry', label: 'Ягода', block: 'cherry_planks' },
-  { value: 'lavender', label: 'Лаванда', block: 'purpur_block' },
-  { value: 'diamond', label: 'Алмаз', block: 'diamond_block' },
-  { value: 'gold', label: 'Золото', block: 'gold_block' },
-  { value: 'redstone', label: 'Редстоун', block: 'redstone_block' },
-  { value: 'lapis', label: 'Лазурит', block: 'lapis_block' },
-  { value: 'copper', label: 'Медь', block: 'copper_block' },
+  { value: 'amethyst', label: 'Аметист', block: 'amethyst_block', colour: '#bea0ff' },
+  { value: 'vanilla', label: 'Ваниль', block: 'honeycomb_block', colour: '#f7d794' },
+  { value: 'berry', label: 'Ягода', block: 'cherry_planks', colour: '#ff8aa8' },
+  { value: 'lavender', label: 'Лаванда', block: 'purpur_block', colour: '#c2b0ff' },
+  { value: 'diamond', label: 'Алмаз', block: 'diamond_block', colour: '#7cecff' },
+  { value: 'gold', label: 'Золото', block: 'gold_block', colour: '#ffd86b' },
+  { value: 'redstone', label: 'Редстоун', block: 'redstone_block', colour: '#ff7870' },
+  { value: 'lapis', label: 'Лазурит', block: 'lapis_block', colour: '#8aacff' },
+  { value: 'copper', label: 'Медь', block: 'copper_block', colour: '#ffb080' },
 ];
 /** Interface fonts (tokens.css sets each by data-font); every option is shown in its own font. */
 const FONTS = [
@@ -153,7 +153,7 @@ export function createSettingsPage() {
             'aria-pressed': String(ui.accent === accent.value),
             onclick: () => save({ ui: { accent: accent.value } }),
           },
-          iconImage(`block:${accent.block}`, 'accent-option__block'),
+          mcPictureOr(`block:${accent.block}`, 'accent-option__block', h('span', { class: 'accent-option__swatch', style: `--swatch: ${accent.colour}` })),
           h('span', null, accent.label),
         ),
       ),
@@ -170,7 +170,7 @@ export function createSettingsPage() {
     const latest = getMcManifest()?.textures.panorama[0];
     const random = option('panorama:random', 'Случайная при каждом запуске', null);
     random.image.classList.add('background-option__preview--random');
-    random.image.append(iconImage('item:compass_16', 'background-option__random-icon'));
+    random.image.append(mcPictureOr('item:compass_16', 'background-option__random-icon', icon('globe')));
     const backgroundGrid = h('div', { class: 'background-grid' }, random.element, option('panorama', 'Последняя версия', latest ? mcUrl(latest) : null).element);
     const fillPanoramas = (list) => {
       for (const entry of list) {
