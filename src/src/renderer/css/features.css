@@ -7771,3 +7771,247 @@ input[type="checkbox"]:not(.toggle input):disabled {
   z-index: 3000;
   pointer-events: none;
 }
+
+/* ======================================================================================================
+   Pixel-cut everywhere, the last word. Highlights and small square things that were still plain
+   rectangles get the cut corners and a frame that follows the step: the sidebar's and the settings'
+   current item, menu items, loader buttons, mod rows and their icons, the selection bar.
+   ====================================================================================================== */
+.nav-button,
+.sidebar__indicator,
+.settings-nav__item,
+.context-menu__item,
+.loader-button,
+.version-picker__item,
+.content-row,
+.content-row__icon,
+.selection-bar,
+.card-action {
+  --cut: 3px;
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+}
+
+.nav-button,
+.sidebar__indicator,
+.content-row,
+.selection-bar {
+  --cut: 4px;
+}
+
+/* The frame follows the step. Said again here because a later `border:` shorthand resets
+   border-image: that is why the small square buttons (×, ⋯, the list views) and the ticks had a gap
+   at every corner. */
+.icon-button:not(.icon-button--window),
+input[type="checkbox"]:not(.toggle input),
+.pixel-check,
+.toggle__track,
+.sidebar__indicator,
+.settings-nav__item,
+.loader-button,
+.version-picker__item,
+.content-row,
+.selection-bar,
+.card-action {
+  border-image: paint(pixel-frame) 0 fill / 0;
+}
+
+/* The current page in the sidebar: the same plate as the buttons, with the theme colour's line. */
+:root:not([data-sidebar="hotbar"]) .sidebar__indicator {
+  background: linear-gradient(rgba(var(--accent-rgb), 0.16), rgba(var(--accent-rgb), 0.16)), rgba(22, 15, 36, 0.92);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.62), inset 0 2px 0 rgba(255, 255, 255, 0.08), inset 0 -4px 0 rgba(0, 0, 0, 0.45);
+}
+
+:root:not([data-sidebar="hotbar"]) .sidebar__indicator::before {
+  display: none;
+}
+
+/* The current section in Settings and in an instance's settings. */
+.settings-nav__item {
+  border: 0;
+}
+
+.settings-nav__item[aria-current="true"] {
+  background: linear-gradient(rgba(var(--accent-rgb), 0.15), rgba(var(--accent-rgb), 0.15)), rgba(22, 15, 36, 0.9);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.55), inset 0 -3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.context-menu__item--active {
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.45);
+}
+
+/* Loader buttons (Vanilla, Fabric…): a ring instead of a border, so the frame can follow the step. */
+.loader-button {
+  border: 0;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.loader-button:hover {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.loader-button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--color-accent), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Mod rows: the same ring, the theme colour when ticked. */
+.content-row {
+  border: 0;
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.content-row--selected {
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.6), inset 5px 0 0 var(--color-accent);
+}
+
+/* Quiet buttons keep a faint frame, so a row of buttons never has one without it ("Снять выбор",
+   "Из файла" over the panorama). */
+.btn--ghost {
+  --ring: rgba(255, 255, 255, 0.09);
+  background: rgba(12, 9, 18, 0.42);
+  box-shadow: inset 0 0 0 2px var(--ring);
+}
+
+/* --- Switches: a sunk slot with a frame and a raised pixel knob that slides over with a spring ------- */
+.toggle__track {
+  border: 0;
+  background: #0b0911;
+  box-shadow: inset 0 0 0 2px #2b2140, inset 0 3px 0 rgba(0, 0, 0, 0.45);
+  transition: background 180ms ease, box-shadow 180ms ease;
+}
+
+.toggle:hover .toggle__track {
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.6), inset 0 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.toggle input:checked + .toggle__track {
+  background: rgba(var(--accent-rgb), 0.34);
+  box-shadow: inset 0 0 0 2px var(--color-accent), inset 0 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.toggle__thumb {
+  --cut: 2px;
+  top: 5px;
+  left: 5px;
+  width: 18px;
+  height: 18px;
+  background: #8f879f;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.toggle input:checked + .toggle__track + .toggle__thumb {
+  transform: translateX(22px);
+  background: #e6d7ff;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), inset 0 -3px 0 rgba(var(--accent-rgb), 0.55);
+}
+
+.toggle--small .toggle__thumb {
+  width: 14px;
+  height: 14px;
+}
+
+.toggle--small input:checked + .toggle__track + .toggle__thumb {
+  transform: translateX(18px);
+}
+
+.toggle input:active + .toggle__track + .toggle__thumb {
+  scale: 0.85;
+}
+
+.toggle input:disabled + .toggle__track,
+.toggle input:disabled + .toggle__track + .toggle__thumb {
+  opacity: 0.45;
+}
+
+/* --- The bar over ticked mods slides open and shut (it was there or gone in one frame) ------------- */
+.selection-slot {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-rows: 0fr;
+  /* Closed it takes no room, the list's gap included. */
+  margin-top: -12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: grid-template-rows 300ms var(--ease-out), margin-top 300ms var(--ease-out), opacity 220ms ease;
+}
+
+.selection-slot.is-open {
+  grid-template-rows: 1fr;
+  margin-top: 0;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.selection-slot__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.selection-slot .selection-bar {
+  position: static;
+  border: 0;
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.55);
+  transform: translateY(-10px);
+  transition: transform 340ms var(--press-spring);
+}
+
+.selection-slot.is-open .selection-bar {
+  transform: none;
+}
+
+:root[data-animations="off"] .selection-slot,
+:root[data-animations="off"] .selection-slot .selection-bar {
+  transition: none;
+}
+
+/* --- An action with its result in the same place: the instance's version (Apply on top) and the
+   launcher's update check (the button and what it found side by side). ---------------------------- */
+.card-action {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.05);
+}
+
+.card-action__text {
+  flex: 1;
+  min-width: 200px;
+  color: var(--color-text-soft);
+  font-size: 13.5px;
+}
+
+.card-action__text b {
+  color: var(--color-text);
+}
+
+.card-action--changed {
+  background: rgba(var(--accent-rgb), 0.1);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.45);
+}
+
+.update-status__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.update-status__row .update-status__main {
+  flex: 1;
+  min-width: 220px;
+}
+
+.content-toolbar__more .dots {
+  font-size: 18px;
+  line-height: 1;
+}

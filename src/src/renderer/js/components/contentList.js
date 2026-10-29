@@ -119,15 +119,24 @@ export function createContentList(getInstance, type) {
   // Selection (Prism-style): tick rows, then act on all of them at once.
   const selectAll = h('input', { type: 'checkbox', class: 'content-check', title: 'Выбрать все', onchange: (event) => toggleAll(event.target.checked) });
   const selectionText = h('span', { class: 'selection-bar__text' });
-  const selectionBar = h(
+  // The bar slides open over the list and shut again (features.css .selection-slot), never jumps.
+  const selectionSlot = h(
     'div',
-    { class: 'selection-bar', hidden: true },
-    selectionText,
-    h('span', { class: 'content-toolbar__spacer' }),
-    h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => bulkEnable(true) }, 'Включить'),
-    h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => bulkEnable(false) }, 'Выключить'),
-    h('button', { class: 'btn btn--secondary btn--compact btn--danger', type: 'button', onclick: () => bulkRemove() }, 'Удалить'),
-    h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => { state.selected.clear(); syncSelection(); } }, 'Снять выбор'),
+    { class: 'selection-slot' },
+    h(
+      'div',
+      { class: 'selection-slot__inner' },
+      h(
+        'div',
+        { class: 'selection-bar' },
+        selectionText,
+        h('span', { class: 'content-toolbar__spacer' }),
+        h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => bulkEnable(true) }, 'Включить'),
+        h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => bulkEnable(false) }, 'Выключить'),
+        h('button', { class: 'btn btn--secondary btn--compact btn--danger', type: 'button', onclick: () => bulkRemove() }, 'Удалить'),
+        h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => { state.selected.clear(); syncSelection(); } }, 'Снять выбор'),
+      ),
+    ),
   );
   const isMods = type === 'mod';
   const sideSelect = isMods
@@ -149,7 +158,9 @@ export function createContentList(getInstance, type) {
       sortSelect,
       h('div', { class: 'view-switch view-switch--inline' }, viewButtons),
       h('span', { class: 'content-toolbar__spacer' }),
-      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => addFiles() }, icon('folder'), 'Из файла'),
+      // On top, where there is room: at the end of the second row it wrapped onto a line of its own.
+      updateAllButton,
+      updatesButton,
       h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => browseFor(getInstance().id, type) }, icon('download'), labels.add),
     ),
     h(
@@ -161,14 +172,13 @@ export function createContentList(getInstance, type) {
       h('span', { class: 'content-toolbar__spacer' }),
       isMods ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Память и моды для скорости под этот компьютер', onclick: () => openOptimizeDialog(getInstance(), () => load({ quiet: true })) }, icon('bolt'), 'Оптимизация') : null,
       type === 'shader' ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Включить шейдеры и подобрать их под этот компьютер', onclick: () => openShaderDialog(getInstance(), () => load({ quiet: true })) }, icon('bolt'), 'Оптимизация') : null,
+      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => addFiles() }, icon('file'), 'Из файла'),
       h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Открыть папку в проводнике', onclick: () => openFolder(FOLDERS[type]) }, icon('folder'), 'Папка'),
-      isMods ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Настройки модов (папка config)', onclick: () => openFolder('config') }, 'Конфиги') : null,
-      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Сохранить список в файл', onclick: () => exportList() }, 'Экспорт списка'),
       serverButton,
-      updateAllButton,
-      updatesButton,
+      // The rarer actions in a menu, so the row fits on one line.
+      h('button', { class: 'icon-button content-toolbar__more', type: 'button', title: 'Ещё', onclick: (event) => openMoreMenu(event.currentTarget) }, h('span', { class: 'dots' }, '⋯')),
     ),
-    selectionBar,
+    selectionSlot,
     rows,
     h('p', { class: 'content-hint' }, 'Файлы можно перетащить прямо в окно. Выключенные остаются в папке, но игра их не загружает.'),
   );
@@ -210,14 +220,10 @@ export function createContentList(getInstance, type) {
 
   /** The selection shown: the bar, "select all" and each row's tick and highlight (no re-render). */
   function syncSelection() {
-    const wasHidden = selectionBar.hidden;
-    selectionBar.hidden = state.selected.size === 0;
-    if (wasHidden && !selectionBar.hidden) {
-      selectionBar.classList.remove('selection-bar--in');
-      void selectionBar.offsetWidth;
-      selectionBar.classList.add('selection-bar--in');
-    }
-    selectionText.textContent = `Выбрано: ${state.selected.size}`;
+    const open = state.selected.size > 0;
+    selectionSlot.classList.toggle('is-open', open);
+    // While it slides shut it keeps the last number instead of showing "0".
+    if (open) selectionText.textContent = `Выбрано: ${state.selected.size}`;
     selectAll.checked = state.items.length > 0 && state.selected.size === state.items.length;
     selectAll.indeterminate = state.selected.size > 0 && state.selected.size < state.items.length;
     for (const [file, entry] of rowElements) {
@@ -227,6 +233,11 @@ export function createContentList(getInstance, type) {
     }
   }
 
+  function showCounter() {
+    const enabled = state.items.filter((item) => item.enabled).length;
+    counter.textContent = state.items.length ? `${enabled} из ${state.items.length} включено` : '';
+  }
+
   function renderRows() {
     // Files that are gone (deleted, renamed by enabling) leave the selection.
     const files = new Set(state.items.map((item) => item.file));
@@ -234,8 +245,7 @@ export function createContentList(getInstance, type) {
       if (!files.has(file)) state.selected.delete(file);
     }
     rowElements.clear();
-    const enabled = state.items.filter((item) => item.enabled).length;
-    counter.textContent = state.items.length ? `${enabled} из ${state.items.length} включено` : '';
+    showCounter();
     const byName = (a, b) => a.title.localeCompare(b.title, locale());
     const sorters = {
       az: byName,
@@ -296,16 +306,33 @@ export function createContentList(getInstance, type) {
       h('button', { class: 'icon-button content-row__more', type: 'button', title: 'Действия', onclick: (event) => openRowMenu(item, event.currentTarget) }, h('span', { class: 'dots' }, '⋯')),
       h('button', { class: 'icon-button', type: 'button', title: 'Удалить', onclick: () => remove(item) }, icon('close')),
     );
-    rowElements.set(item.file, { element, check });
+    rowElements.set(item.file, { element, check, toggle });
     return element;
   }
 
   async function setEnabled(item, enabled) {
+    const before = item.file;
     try {
       const file = await api.content.setEnabled(getInstance().id, type, item.file, enabled);
       item.file = file;
       item.enabled = enabled;
-      renderRows();
+      // The switch has slid over already: the row changes in place, the list is not drawn again
+      // (that made every switch jump). Only the order "enabled first" needs the whole list.
+      const entry = rowElements.get(before);
+      if (!entry || state.sort === 'enabled') {
+        renderRows();
+        return;
+      }
+      rowElements.delete(before);
+      rowElements.set(file, entry);
+      if (state.selected.delete(before)) state.selected.add(file);
+      if (state.updates.has(before)) {
+        state.updates.set(file, state.updates.get(before));
+        state.updates.delete(before);
+      }
+      entry.element.classList.toggle('content-row--disabled', !enabled);
+      entry.toggle.title = enabled ? 'Выключить' : 'Включить';
+      showCounter();
     } catch (error) {
       toast(errorMessage(error), 'error');
       load({ quiet: true });
@@ -342,21 +369,27 @@ export function createContentList(getInstance, type) {
     }
   }
 
+  // The answer shows where the button is: "Обновить все (N)" appears beside it, or the button itself
+  // says "Всё обновлено" for a moment (no card popping up in another corner).
+  let updatesLabelTimer = 0;
   async function checkUpdates() {
+    clearTimeout(updatesLabelTimer);
     updatesButton.disabled = true;
     updatesButton.textContent = 'Проверяем…';
+    let label = 'Проверить обновления';
     try {
       const updates = await api.content.checkUpdates(getInstance().id, type);
       state.updates = new Map(updates.map((update) => [update.file, update]));
       updateAllButton.hidden = updates.length === 0;
       updateAllButton.textContent = `Обновить все (${updates.length})`;
-      toast(updates.length ? `Доступно обновлений: ${updates.length}` : 'Всё обновлено', updates.length ? 'info' : 'success');
+      if (updates.length === 0) label = 'Всё обновлено';
       renderRows();
     } catch (error) {
       toast(errorMessage(error), 'error');
     } finally {
       updatesButton.disabled = false;
-      updatesButton.textContent = 'Проверить обновления';
+      updatesButton.textContent = label;
+      if (label !== 'Проверить обновления') updatesLabelTimer = setTimeout(() => (updatesButton.textContent = 'Проверить обновления'), 3000);
     }
   }
 
@@ -688,6 +721,28 @@ export function createContentList(getInstance, type) {
   }
 
   /** Server preparation: switch mods on or off by where they are needed. */
+  function openMoreMenu(anchor) {
+    document.querySelector('.context-menu')?.remove();
+    const entry = (label, action) => h('button', { class: 'context-menu__item', type: 'button', onclick: () => { menu.remove(); action(); } }, label);
+    const menu = h(
+      'div',
+      { class: 'context-menu', role: 'menu' },
+      isMods ? entry('Конфиги модов', () => openFolder('config')) : null,
+      entry('Экспорт списка', () => exportList()),
+    );
+    document.body.append(menu);
+    const rect = anchor.getBoundingClientRect();
+    menu.style.left = `${Math.max(12, rect.right - menu.offsetWidth)}px`;
+    menu.style.top = `${rect.bottom + 6}px`;
+    const close = (event) => {
+      if (!menu.contains(event.target)) {
+        menu.remove();
+        document.removeEventListener('pointerdown', close, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('pointerdown', close, true));
+  }
+
   function openSideMenu(anchor) {
     document.querySelector('.context-menu')?.remove();
     const count = (side, enabled) => state.items.filter((item) => item.side === side && item.enabled === enabled).length;

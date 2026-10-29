@@ -527,14 +527,36 @@ export function createInstancePage() {
       loadLoaderVersions();
     }
     fillMinecraft();
-    const loaderVersionSelect = h('select', { class: 'select' });
+    const loaderVersionSelect = h('select', { class: 'select', onchange: () => showChoice() });
     let token = 0;
+
+    // "Применить" sits on top of the card, next to what the instance is now and what it would become:
+    // under the long list of versions it was out of sight. Nothing changes until it is pressed.
+    const applyButton = h('button', { class: 'btn btn--primary btn--compact', type: 'button', disabled: true, onclick: () => apply() }, 'Применить');
+    const applyText = h('span', { class: 'card-action__text' });
+    const applyBar = h('div', { class: 'card-action' }, applyText, applyButton);
+    const describe = (minecraft, type, version) => `Minecraft ${minecraft}, ${LOADER_LABELS[type]}${version ? ` ${version}` : ''}`;
+    function showChoice() {
+      const loaderVersion = loaderSelect.value === 'vanilla' ? null : loaderVersionSelect.value || null;
+      const changed =
+        minecraftSelect.value !== current.minecraft ||
+        loaderSelect.value !== current.loader.type ||
+        (loaderSelect.value !== 'vanilla' && Boolean(loaderVersion) && loaderVersion !== current.loader.version);
+      applyBar.classList.toggle('card-action--changed', changed);
+      applyButton.disabled = !changed;
+      applyText.replaceChildren(
+        h('span', null, changed ? 'Станет:' : 'Сейчас:'),
+        ' ',
+        h('b', { 'data-i18n': 'off' }, changed ? describe(minecraftSelect.value, loaderSelect.value, loaderVersion) : describe(current.minecraft, current.loader.type, current.loader.version)),
+      );
+    }
 
     async function loadLoaderVersions() {
       const mine = ++token;
       if (loaderSelect.value === 'vanilla') {
         loaderVersionSelect.replaceChildren(h('option', { value: '' }, '—'));
         loaderVersionSelect.disabled = true;
+        showChoice();
         return;
       }
       loaderVersionSelect.disabled = true;
@@ -555,9 +577,11 @@ export function createInstancePage() {
       } catch (error) {
         loaderVersionSelect.replaceChildren(h('option', { value: '' }, errorMessage(error)));
       }
+      showChoice();
     }
 
     loadLoaderVersions();
+    showChoice();
 
     async function apply() {
       const loader = { type: loaderSelect.value, version: loaderSelect.value === 'vanilla' ? null : loaderVersionSelect.value || null };
@@ -609,6 +633,7 @@ export function createInstancePage() {
     const installedText = current.installed ? `Установлено: ${current.versionId}` : 'Ещё не установлена — скачается при запуске.';
     formHost.replaceChildren(
       card('Версия и загрузчик', 'Перейти на другую версию Minecraft или поменять загрузчик модов. Если загрузчик не ставится — попробуйте другую его версию.',
+        applyBar,
         h('div', { class: 'field' }, h('span', { class: 'field__label' }, 'Загрузчик модов'), h('div', { class: 'loader-grid' }, loaderButtons)),
         field('Версия загрузчика', loaderVersionSelect),
         h('div', { class: 'field' },
@@ -616,7 +641,6 @@ export function createInstancePage() {
           h('div', { class: 'create-custom__version-tools' }, h('div', { class: 'input-with-icon', style: { flex: '1' } }, icon('search'), versionSearch), h('div', { class: 'settings-row' }, h('span', { class: 'text-muted' }, 'Снапшоты'), showSnapshots)),
           versionList,
         ),
-        h('div', null, h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: apply }, 'Применить')),
       ),
       card('Файлы игры', installedText,
         h('div', { class: 'instance-settings__actions' },

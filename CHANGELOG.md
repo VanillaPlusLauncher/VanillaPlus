@@ -102,6 +102,10 @@
 - The start screen simply says "Loading…" under the amethyst plate, instead of naming every step
 - The frame of every pixel-cut button, panel, card and field now goes round the cut corners too (it used to stop at each step); "Shaders for this computer" in "Optimization" and packs without a picture show the Amethyx X
 - Fixed: the panorama sometimes stayed black after a start (for example the first one after an update): when the background was drawn twice in a row, the two copies removed each other
+- Interface pass: small square buttons (×, ⋯, list views) and ticks have the frame along the cut corners too; the current page in the sidebar and the current section in Settings are pixel plates with a line in the theme colour instead of a plain rectangle; switches are a sunk slot with a raised pixel knob; mod rows, mod icons, loader buttons and menu items are pixel-cut
+- An instance's "Version": "Apply" is on top of the card, with what the instance is now and what it will become — nothing changes until it is pressed
+- Mods list: "Check for updates" sits in the top row and answers right there; the bar over ticked mods slides open and shut instead of jumping, and "Clear selection" has its frame; a mod's switch changes only its own row (the list no longer redraws); configs and list export moved to the "⋯" menu
+- Settings → Updates: "Checking…" shows right next to the button pressed
 
 ### Fixes
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")
