@@ -128,7 +128,7 @@ export function createHomePage({ navigate }) {
     next.setActive(playerActive);
     loadPlayerSkin();
   }
-  const side = player ? h('aside', { class: 'home-side' }, playerBox, h('button', { class: 'btn btn--secondary btn--compact home-side__wardrobe', type: 'button', onclick: openWardrobe }, 'Гардероб')) : null;
+  const side = player ? h('aside', { class: 'home-side' }, playerBox, h('button', { class: 'btn btn--secondary btn--compact home-side__wardrobe', type: 'button', onclick: openWardrobe }, icon('user'), 'Гардероб')) : null;
   element.append(h('div', { class: 'home-top' }, hero, side), playBar.element);
   let playerLoad = 0;
   async function loadPlayerSkin(changed = false) {

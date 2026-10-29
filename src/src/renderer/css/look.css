@@ -14,6 +14,8 @@
   --soft-raise: 5px 5px 12px rgba(0, 0, 0, 0.42), -3px -3px 9px rgba(255, 255, 255, 0.055);
   --soft-raise-sm: 3px 3px 8px rgba(0, 0, 0, 0.4), -2px -2px 6px rgba(255, 255, 255, 0.05);
   --soft-sink: inset 3px 3px 7px rgba(0, 0, 0, 0.45), inset -2px -2px 6px rgba(255, 255, 255, 0.05);
+  /* A thin lit top edge: keeps a plate's shape where there is no panel under it (over the panorama). */
+  --soft-edge: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   --soft-round: 12px;
 
   --color-surface: rgba(39, 32, 54, 0.9);
@@ -143,14 +145,27 @@
 :root[data-style="soft"] .btn {
   background: var(--soft-face);
   color: var(--color-text);
-  box-shadow: var(--soft-raise);
+  box-shadow: var(--soft-raise), var(--soft-edge);
   transition: transform 260ms var(--ease-spring), scale 260ms var(--ease-spring), background-color 160ms ease, box-shadow 200ms ease, color 160ms ease;
 }
 
 :root[data-style="soft"] .btn:hover:not(:disabled) {
   background: var(--soft-face-hover);
-  box-shadow: var(--soft-raise);
+  box-shadow: var(--soft-raise), var(--soft-edge);
   transform: translateY(-1px);
+}
+
+/* "Гардероб" under the player on Home stands over the panorama: a full-size plate with its icon. */
+:root[data-style="soft"] .home-side__wardrobe {
+  min-height: 44px;
+  padding: 0 22px;
+  font-size: 14px;
+  background: rgba(39, 32, 54, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+:root[data-style="soft"] .home-side__wardrobe:hover:not(:disabled) {
+  background: rgba(50, 41, 70, 0.95);
 }
 
 :root[data-style="soft"] .btn:active:not(:disabled) {
@@ -444,12 +459,9 @@
 }
 
 /* ======================================================================================================
-   The icon of the button under the pointer turns round once (only that button's own icon).
+   The icon of the button under the pointer hops up with a tilt and lands back, like the instance
+   icons on their cards (icon-hop in features.css); only that button's own icon.
    ====================================================================================================== */
 :root[data-animations="on"] :is(.btn, .icon-button:not(.icon-button--window)):hover:not(:disabled) .icon {
-  animation: icon-turn 650ms cubic-bezier(0.5, 0, 0.25, 1);
-}
-
-@keyframes icon-turn {
-  to { transform: rotate(360deg); }
+  animation: icon-hop 620ms var(--ease-spring);
 }
