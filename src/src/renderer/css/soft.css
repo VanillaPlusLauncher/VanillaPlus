@@ -114,6 +114,17 @@
   box-shadow: var(--soft-raise);
 }
 
+/* A card leaning towards the pointer (components/alive.js): lifted higher, no frame line. */
+:root[data-style="soft"] .is-tilting {
+  box-shadow: 10px 14px 26px rgba(0, 0, 0, 0.5), -4px -4px 10px rgba(255, 255, 255, 0.06), var(--soft-edge);
+}
+
+/* Waiting for content: plates of the panel colour with the shimmer running over them. */
+:root[data-style="soft"] .skeleton {
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
 /* Options in Settings (theme colours, fonts, panoramas): smaller plates. */
 :root[data-style="soft"] :is(.accent-option, .background-option, .font-option) {
   border-color: transparent;
@@ -213,7 +224,8 @@
   opacity: 0.55;
 }
 
-/* The shine: one soft band of light crosses the plate when the pointer comes (features.css runs it). */
+/* The shine: one soft band of light crosses every plate you can press when the pointer comes — the
+   buttons (features.css runs it for .btn; quiet buttons get it too) and the small plates below. */
 :root[data-style="soft"] .btn::after {
   width: 60%;
   background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.13) 50%, transparent 80%);
@@ -221,6 +233,29 @@
 
 :root[data-style="soft"] .btn--primary::after {
   background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.24) 50%, transparent 80%);
+}
+
+:root[data-style="soft"] .btn--ghost::after {
+  display: block;
+}
+
+:root[data-style="soft"] :is(.icon-button:not(.icon-button--window), .dropdown__button, .chip, .loader-button, .platform-button) {
+  position: relative;
+  overflow: hidden;
+}
+
+:root[data-style="soft"] :is(.icon-button:not(.icon-button--window), .dropdown__button, .chip, .loader-button, .platform-button)::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 60%;
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.13) 50%, transparent 80%);
+  transform: translateX(-110%);
+  pointer-events: none;
+}
+
+:root[data-style="soft"][data-animations="on"] :is(.icon-button:not(.icon-button--window), .dropdown__button, .chip, .loader-button, .platform-button):hover:not(:disabled)::after {
+  animation: btn-shine 620ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
 }
 
 /* Square icon buttons: the same plate, smaller. */
@@ -297,9 +332,18 @@
   box-shadow: var(--soft-sink);
 }
 
-:root[data-style="soft"] :is(.tabs__button[aria-selected="true"], .segmented__thumb, .platform-button[aria-pressed="true"]) {
+:root[data-style="soft"] :is(.tabs__button[aria-selected="true"], .segmented__thumb, .platform-switch__thumb) {
   background-color: var(--soft-face-hover);
   box-shadow: var(--soft-raise-sm), var(--soft-edge);
+}
+
+:root[data-style="soft"] .platform-switch__thumb {
+  border-radius: 10px;
+}
+
+/* A choice changes over a moment, not in one frame: the plate, its shadow and the text colour fade. */
+:root[data-style="soft"] :is(.tabs__button, .loader-button, .chip, .view-toggle, .settings-nav__item, .accent-option, .font-option, .background-option, .vendor-option, .context-menu__item) {
+  transition: background-color 220ms ease, box-shadow 220ms ease, color 220ms ease, transform 220ms var(--ease-spring);
 }
 
 :root[data-style="soft"] :is(.tabs__button[aria-selected="true"], .segmented button[aria-pressed="true"]) {

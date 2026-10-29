@@ -7,6 +7,7 @@ import { openProjectModal } from './projectModal.js';
 import { toast } from './toast.js';
 import { loadingState } from './controls.js';
 import { projectIcon } from '../core/projectIcon.js';
+import { resizeSmoothly } from '../core/effects.js';
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 350;
@@ -69,7 +70,8 @@ export function createProjectBrowser(options) {
     ['fabric', 'forge', 'neoforge', 'quilt'].map((loader) => h('option', { value: loader }, LOADER_LABELS[loader])),
   );
   const resetFilters = h('button', { class: 'btn btn--ghost btn--compact browser-toolbar__reset', type: 'button', hidden: true, title: 'Вернуть версию и загрузчик сборки', onclick: () => { state.filtersKey = null; reload(); } }, 'Как у сборки');
-  const platformButtons = ['modrinth', 'curseforge'].map((platform) =>
+  const PLATFORMS = ['modrinth', 'curseforge'];
+  const platformButtons = PLATFORMS.map((platform) =>
     h(
       'button',
       { class: `platform-button platform-button--${platform}`, type: 'button', 'aria-pressed': String(platform === state.platform), onclick: () => setPlatform(platform, true) },
@@ -77,6 +79,9 @@ export function createProjectBrowser(options) {
       PLATFORM_LABELS[platform],
     ),
   );
+  // The chosen platform's plate: one element that slides from one button to the other.
+  const platformThumb = h('span', { class: 'platform-switch__thumb', 'aria-hidden': 'true' });
+  const platformSwitch = h('div', { class: 'platform-switch', 'data-platform': state.platform }, platformThumb, platformButtons);
   // "Загрузка…" until the first page of the catalogue is in (it can take a while the first time).
   const results = h('div', { class: 'project-grid' }, loadingState('Загружаем каталог…'));
   const footer = h('div', { class: 'browser-footer' });
@@ -87,7 +92,7 @@ export function createProjectBrowser(options) {
     h(
       'div',
       { class: 'browser-toolbar' },
-      h('div', { class: 'platform-switch' }, platformButtons),
+      platformSwitch,
       h('div', { class: 'input-with-icon browser-toolbar__search' }, icon('search'), searchInput),
       h('div', { class: 'browser-toolbar__filters' }, resetFilters, versionInput, loaderSelect, sortSelect),
     ),
@@ -95,6 +100,17 @@ export function createProjectBrowser(options) {
     footer,
     sentinel,
   );
+
+  function movePlatformThumb() {
+    const button = platformButtons[PLATFORMS.indexOf(state.platform)];
+    if (!button?.offsetWidth) {
+      return;
+    }
+    platformThumb.style.width = `${button.offsetWidth}px`;
+    platformThumb.style.transform = `translateX(${button.offsetLeft}px)`;
+  }
+  // Placed again whenever the switch gets its size (built while hidden, or the font changed).
+  new ResizeObserver(() => movePlatformThumb()).observe(platformSwitch);
 
   const observer = new IntersectionObserver((entries) => {
     if (entries.some((entry) => entry.isIntersecting) && !state.loading && state.hits.length < state.total) {
@@ -190,7 +206,13 @@ export function createProjectBrowser(options) {
     if (reset) {
       state.offset = 0;
       state.hits = [];
-      results.replaceChildren(loadingState(state.hits.length || state.total ? 'Ищем…' : 'Загружаем каталог…'), ...Array.from({ length: 6 }, () => h('div', { class: 'skeleton project-card-skeleton' })));
+      // Cards already shown dim and wait in place (another platform, query or filter); only an empty
+      // list shows the skeletons.
+      if (results.querySelector('.project-card')) {
+        results.classList.add('is-refreshing');
+      } else {
+        results.replaceChildren(loadingState(state.total ? 'Ищем…' : 'Загружаем каталог…'), ...Array.from({ length: 6 }, () => h('div', { class: 'skeleton project-card-skeleton' })));
+      }
       footer.replaceChildren();
     } else {
       footer.replaceChildren(h('div', { class: 'loading-dots' }, h('span'), h('span'), h('span')));
@@ -213,12 +235,15 @@ export function createProjectBrowser(options) {
       const start = state.hits.length;
       state.hits.push(...page.hits);
       state.offset += page.hits.length;
+      const cards = page.hits.map((hit, index) => cardFor(hit, start === 0 ? index : 0));
       if (reset) {
-        results.replaceChildren();
-      }
-      results.append(...page.hits.map((hit, index) => cardFor(hit, start === 0 ? index : 0)));
-      if (state.hits.length === 0) {
-        results.replaceChildren(h('div', { class: 'empty-state' }, icon('search'), h('p', null, 'Ничего не найдено. Попробуйте другой запрос.')));
+        // The new cards come in one after another (.rise) while the list glides to its new height.
+        resizeSmoothly(results, () => {
+          results.classList.remove('is-refreshing');
+          results.replaceChildren(...(cards.length ? cards : [h('div', { class: 'empty-state' }, icon('search'), h('p', null, 'Ничего не найдено. Попробуйте другой запрос.'))]));
+        });
+      } else {
+        results.append(...cards);
       }
       footer.replaceChildren(state.hits.length > 0 && state.hits.length >= state.total ? h('p', { class: 'text-muted' }, `Это всё: ${state.total}`) : '');
     } catch (error) {
@@ -226,20 +251,22 @@ export function createProjectBrowser(options) {
         return;
       }
       const missingKey = /ключ/i.test(error.message);
-      results.replaceChildren(
-        h(
-          'div',
-          { class: 'empty-state surface' },
-          icon(missingKey ? 'gear' : 'download'),
-          h('p', null, errorMessage(error)),
-          missingKey
-            ? h('div', { class: 'settings-row', style: { justifyContent: 'center' } },
-                h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => go('settings') }, 'Открыть настройки'),
-                h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => api.app.openExternal('https://console.curseforge.com/') }, 'console.curseforge.com'),
-              )
-            : h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => reload() }, 'Повторить'),
-        ),
+      const problem = h(
+        'div',
+        { class: 'empty-state surface rise' },
+        icon(missingKey ? 'gear' : 'download'),
+        h('p', null, errorMessage(error)),
+        missingKey
+          ? h('div', { class: 'settings-row', style: { justifyContent: 'center' } },
+              h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => go('settings') }, 'Открыть настройки'),
+              h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => api.app.openExternal('https://console.curseforge.com/') }, 'console.curseforge.com'),
+            )
+          : h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => reload() }, 'Повторить'),
       );
+      resizeSmoothly(results, () => {
+        results.classList.remove('is-refreshing');
+        results.replaceChildren(problem);
+      });
       footer.replaceChildren();
     } finally {
       if (token === state.token) {
@@ -268,7 +295,9 @@ export function createProjectBrowser(options) {
       return;
     }
     state.platform = platform;
-    platformButtons.forEach((button, index) => button.setAttribute('aria-pressed', String(['modrinth', 'curseforge'][index] === platform)));
+    platformButtons.forEach((button, index) => button.setAttribute('aria-pressed', String(PLATFORMS[index] === platform)));
+    platformSwitch.dataset.platform = platform;
+    movePlatformThumb();
     if (fromUser) {
       options.onPlatformChange?.(platform);
     }

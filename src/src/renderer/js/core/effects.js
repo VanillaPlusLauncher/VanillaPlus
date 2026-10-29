@@ -149,6 +149,29 @@ export function installClickSparks(isOn) {
 }
 
 /** Counts a number up with an ease-out, for statistics. */
+/**
+ * Runs `change` (which replaces an element's content) and lets the element's height glide from the old
+ * one to the new one instead of jumping. With animations off the content simply changes.
+ */
+export function resizeSmoothly(element, change, duration = 340) {
+  const from = element.offsetHeight;
+  change();
+  if (document.documentElement.dataset.animations === 'off') {
+    return;
+  }
+  const to = element.offsetHeight;
+  if (Math.abs(to - from) < 2) {
+    return;
+  }
+  element.animate(
+    [
+      { height: `${from}px`, overflow: 'hidden' },
+      { height: `${to}px`, overflow: 'hidden' },
+    ],
+    { duration, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+  );
+}
+
 export function countUp(element, target, { duration = 900, format = (value) => String(value) } = {}) {
   if (!animationsEnabled()) {
     element.textContent = format(target);
