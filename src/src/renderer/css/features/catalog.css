@@ -1,0 +1,634 @@
+/* The catalog (Библиотека and "Найти моды"): Modrinth / CurseForge switch, cards, the project
+   dialog, the compatibility warning, the platforms' logos. */
+
+/* --- Catalog ------------------------------------------------------------------------ */
+.browse-tabs {
+  margin-bottom: 14px;
+  width: fit-content;
+}
+
+.target-picker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+
+.target-picker--empty {
+  justify-content: space-between;
+  color: var(--color-text-soft);
+}
+
+.target-picker__img {
+  width: 44px;
+  height: 44px;
+  image-rendering: pixelated;
+}
+
+.target-picker__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.target-picker__label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.target-picker__text .select {
+  max-width: 520px;
+}
+
+.target-picker__meta {
+  font-size: 12px;
+}
+
+.project-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.browser-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.browser-toolbar__search {
+  flex: 1;
+  min-width: 220px;
+}
+
+.browser-toolbar__filters {
+  display: flex;
+  gap: 8px;
+}
+
+.browser-toolbar__filters .input {
+  width: 120px;
+}
+
+.browser-toolbar__filters .select {
+  width: auto;
+}
+
+.platform-switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.platform-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-soft);
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+
+.platform-button[aria-pressed="true"].platform-button--modrinth {
+  background: rgba(27, 217, 106, 0.16);
+  color: #1bd96a;
+}
+
+.platform-button[aria-pressed="true"].platform-button--curseforge {
+  background: rgba(241, 100, 54, 0.16);
+  color: #f16436;
+}
+
+.platform-button__dot {
+  width: 10px;
+  height: 10px;
+}
+
+.platform-button__dot--modrinth { background: #1bd96a; }
+.platform-button__dot--curseforge { background: #f16436; }
+
+.badge--modrinth { background: rgba(27, 217, 106, 0.14); color: #1bd96a; }
+.badge--curseforge { background: rgba(241, 100, 54, 0.14); color: #ff8a5c; }
+.badge--microsoft { background: rgba(100, 170, 255, 0.14); color: #8ec5ff; }
+.badge--ely { background: rgba(32, 201, 151, 0.16); color: #4fe3b0; }
+.badge--offline { background: rgba(255, 255, 255, 0.06); color: var(--color-text-muted); }
+
+.browser-filter-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--color-text-soft);
+}
+
+.browser-filter-note .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-accent);
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 12px;
+  transition: opacity 220ms ease, filter 220ms ease;
+  align-content: start;
+}
+
+.project-card-skeleton {
+  height: 118px;
+}
+
+.project-card {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: rgba(15, 12, 21, 0.74);
+  border: 2px solid rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  cursor: var(--cursor-hand);
+  transition: transform 240ms var(--ease-out), background 160ms, border-color 160ms;
+}
+
+.project-card:hover {
+  transform: translateY(-3px);
+  background: rgba(23, 19, 34, 0.85);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+.project-card__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.project-card__icon--empty {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+}
+
+.project-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.project-card__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* A catalog card's title: the name comes first; the author gives way and shortens before it does. */
+.project-card__name {
+  font-family: var(--font-display);
+  font-size: 16.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.project-card__author {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-card__description {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.project-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.project-card__meta .icon {
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+
+.project-card__tag {
+  padding: 1px 7px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.project-card__install {
+  align-self: center;
+}
+
+.project-card__install-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.browser-footer {
+  display: flex;
+  justify-content: center;
+  min-height: 30px;
+}
+
+.browser-sentinel {
+  height: 1px;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--color-accent);
+  animation: dotBounce 900ms ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 150ms; }
+.loading-dots span:nth-child(3) { animation-delay: 300ms; }
+
+@keyframes dotBounce {
+  50% { transform: translateY(-8px); }
+}
+
+/* Project modal */
+.project-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.project-header {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.project-header__icon {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+}
+
+.project-header__icon--empty {
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.project-header__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.project-header__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 22px;
+}
+
+.project-header__sub {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.project-header__summary {
+  color: var(--color-text-soft);
+}
+
+.project-header__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-header__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.project-tab-host {
+  min-height: 300px;
+}
+
+.project-description {
+  line-height: 1.6;
+  color: var(--color-text-soft);
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+
+.project-description img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.project-description a {
+  color: var(--color-accent);
+}
+
+.project-description h1,
+.project-description h2,
+.project-description h3 {
+  margin: 18px 0 8px;
+  color: var(--color-text);
+  font-family: var(--font-display);
+}
+
+.project-description p,
+.project-description ul,
+.project-description ol {
+  margin: 0 0 10px;
+}
+
+.project-description pre,
+.project-description code {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-family: Consolas, monospace;
+}
+
+.project-description pre {
+  padding: 10px;
+  overflow-x: auto;
+}
+
+.project-description blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 3px solid rgba(var(--accent-rgb), 0.5);
+}
+
+.project-description table {
+  border-collapse: collapse;
+}
+
+.project-description td,
+.project-description th {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+}
+
+.project-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.gallery-item {
+  position: relative;
+  padding: 0;
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #000;
+  animation: rise 420ms var(--ease-out) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+.gallery-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  transition: transform 500ms var(--ease-out);
+}
+
+.gallery-item:hover img {
+  transform: scale(1.06);
+}
+
+.gallery-item span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 6px 10px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  font-size: 12px;
+  text-align: left;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.88);
+  animation: fadeIn 200ms both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+}
+
+.lightbox figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.lightbox__image {
+  max-width: 82vw;
+  max-height: 80vh;
+  border: 3px solid #000;
+}
+
+.lightbox__caption {
+  color: var(--color-text-soft);
+}
+
+.lightbox__nav {
+  width: 50px;
+  height: 80px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 40px;
+}
+
+.lightbox__nav:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.project-versions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.version-row__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.version-row__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.version-row__sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Compatibility warning before installing */
+.compat-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compat-dialog__remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: var(--cursor-hand);
+}
+
+.compat-dialog__remember input {
+  accent-color: rgb(var(--accent-rgb));
+}
+
+.compat-dialog__off {
+  align-self: flex-start;
+  font-size: 13px;
+}
+
+/* Modrinth and CurseForge logos (simple-icons, CC0) */
+.platform-logo {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex: none;
+  background: center / contain no-repeat;
+}
+
+.badge .platform-logo {
+  width: 12px;
+  height: 12px;
+}
+
+.platform-logo--modrinth { background-image: url("../../../../assets/platforms/modrinth.svg"); }
+.platform-logo--curseforge { background-image: url("../../../../assets/platforms/curseforge.svg"); }
+
+/* Library: back to the instance's version and loader */
+.browser-toolbar__reset {
+  white-space: nowrap;
+}
+
+/* Modrinth / CurseForge (components/projectBrowser.js): one plate in the platform's colour slides
+   from one to the other; the buttons themselves stay clear. */
+.platform-switch__thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  transition: transform 420ms var(--ease-spring), width 420ms var(--ease-spring), background-color 320ms ease;
+}
+
+.platform-switch[data-platform="modrinth"] .platform-switch__thumb { background-color: rgba(27, 217, 106, 0.16); }
+.platform-switch[data-platform="curseforge"] .platform-switch__thumb { background-color: rgba(241, 100, 54, 0.16); }
+
+.platform-switch .platform-button {
+  position: relative;
+  z-index: 1;
+  transition: color 320ms ease;
+}
+
+.platform-switch .platform-button[aria-pressed="true"] {
+  background: transparent;
+}
+
+/* The catalog while it looks for something else: the cards shown wait dimmed in place, then the new
+   ones come in. */
+.project-grid.is-refreshing {
+  opacity: 0.45;
+  filter: saturate(0.7) blur(1px);
+  pointer-events: none;
+  animation: grid-wait 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes grid-wait {
+  to { opacity: 0.28; }
+}
+
+/* "Nothing found" or a problem in the catalog spans the whole grid, not one column of it, and keeps
+   its own height while the grid glides to the new one (it stretched, then jumped). */
+.project-grid > .empty-state {
+  grid-column: 1 / -1;
+  align-self: start;
+}
+
+/* Motion off: the platform plate and the catalog grid change at once. */
+:root[data-animations="off"] .platform-switch__thumb,
+:root[data-animations="off"] .project-grid {
+  transition: none;
+}

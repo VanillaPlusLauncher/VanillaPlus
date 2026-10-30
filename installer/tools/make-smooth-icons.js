@@ -1,7 +1,7 @@
 'use strict';
 
 /*
- * The smooth icons of the soft look (renderer/css/look.css): the same set and the same colours as the
+ * The smooth icons of the soft look (renderer/css/icons.css): the same set and the same colours as the
  * coloured pixel icons (make-pixel-icons.js), drawn as round shapes on a 24 × 24 grid with a light-to-
  * dark gradient instead of pixel shading. Writes src/assets/ui/<name>.smooth.svg. As CSS masks (the
  * single-colour setting, window buttons, arrows) only the outline counts, so the line icons are lines.

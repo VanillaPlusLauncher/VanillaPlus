@@ -1,0 +1,603 @@
+/* "Мой сервер": where it runs, its card, the "Серверы" parts (hosting export), its settings and the
+   unknown mods dialog. */
+
+/* Own server card (Servers tab) */
+.own-server {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 2px solid rgba(var(--accent-rgb), 0.35);
+}
+
+.own-server__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.own-server__text .status-dot {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.server-create {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.server-create__hint {
+  font-size: 13px;
+  margin: 0;
+}
+
+.server-console__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.server-console {
+  height: 56vh;
+}
+
+/* --- "Серверы": three parts switched on top (components/instanceTabs.js) -------------------------- */
+.servers-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.servers-tab__switch {
+  display: flex;
+}
+
+.servers-tab__part--in > * {
+  animation: rise 320ms var(--ease-out) both;
+}
+
+.server-others {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.server-list .server-row {
+  animation: rise 360ms var(--ease-out) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+/* "Для хостинга": what goes in on the left, the mods on the right. */
+.server-export {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+
+.server-export__head p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.server-export__grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.server-export__what,
+.server-export__mods {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.server-export .section-title {
+  margin: 6px 0 0;
+}
+
+.server-export__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: var(--cursor-hand);
+  transition: background var(--duration-fast);
+}
+
+.server-export__check:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+.server-export__check input {
+  margin-top: 2px;
+  accent-color: var(--color-accent-strong);
+}
+
+.server-export__check span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.server-export__check small {
+  font-size: 11px;
+}
+
+.server-export__core {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-left: 2px solid rgba(var(--accent-rgb), 0.35);
+  animation: rise 260ms var(--ease-out) both;
+}
+
+.server-export__core[hidden] {
+  display: none;
+}
+
+.server-export__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.server-export__mods-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.server-export__count {
+  color: var(--color-accent);
+  font-size: 12px;
+}
+
+.server-export__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.server-mod {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: var(--cursor-hand);
+  transition: background var(--duration-fast), opacity var(--duration-fast);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 38px;
+}
+
+.server-mod:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.server-mod--off {
+  opacity: 0.5;
+}
+
+.server-mod input {
+  accent-color: var(--color-accent-strong);
+}
+
+.server-mod__icon {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 4px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.server-mod__icon--empty {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.server-mod__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.server-mod__side {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.server-mod__side--client {
+  background: rgba(110, 140, 220, 0.18);
+  color: #a9c0ff;
+}
+
+.server-mod__side--server {
+  background: rgba(240, 140, 60, 0.18);
+  color: #ffc58a;
+}
+
+.server-mod__side--both {
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--color-accent);
+}
+
+.server-mod__off {
+  font-size: 11px;
+}
+
+@media (max-width: 980px) {
+  .server-export__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- "Мой сервер": where it runs (this computer / Amethyx cloud, soon) and internet access ------ */
+.server-place {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  flex: 1 1 100%;
+}
+
+.server-place__card {
+  --cut: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  border: 0;
+  background: var(--btn-face, #2a2533);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.08), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+  transition: background var(--duration-fast), transform 90ms ease-out, box-shadow var(--duration-fast);
+}
+
+button.server-place__card {
+  cursor: var(--cursor-hand);
+}
+
+button.server-place__card:hover {
+  background: var(--btn-face-hover, #353042);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -3px 0 var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.server-place__card--soon {
+  opacity: 0.62;
+  cursor: var(--cursor-arrow);
+}
+
+.server-place__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.server-place__title .icon {
+  color: var(--color-accent);
+}
+
+.server-place__text {
+  color: var(--color-text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.server-place__action {
+  margin-top: auto;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.server-place__card--soon .server-place__action {
+  color: var(--color-text-muted);
+}
+
+.own-server__tunnel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1 1 100%;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.own-server__tunnel .icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+  color: var(--color-accent);
+}
+
+@media (max-width: 900px) {
+  .server-place {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Unknown mods: on the server or only with the players (components/unknownModsDialog.js) -------------- */
+.unknown-mods {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.unknown-mods__all {
+  display: flex;
+  gap: 8px;
+}
+
+.unknown-mods__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 48vh;
+  overflow-y: auto;
+}
+
+.unknown-mods__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.unknown-mods__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.unknown-mods__icon--mark {
+  padding: 6px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.unknown-mods__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.unknown-mods__text > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unknown-mods__text .mono {
+  font-size: 11.5px;
+}
+
+.server-export__unknown {
+  align-items: center;
+  margin: 8px 0;
+}
+
+.server-export__unknown > span {
+  flex: 1;
+}
+
+/* --- The own server's settings (components/serverSettingsDialog.js) ------------------------------------- */
+.server-settings__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.server-settings__tabs .segmented {
+  width: 100%;
+}
+
+.server-settings {
+  min-height: 46vh;
+}
+
+.server-settings__part {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.server-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 52px;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.server-settings__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.server-settings__label .text-muted {
+  font-size: 12.5px;
+}
+
+.server-settings__row > .input,
+.server-settings__row > .select {
+  flex: none;
+  width: min(300px, 45%);
+}
+
+.server-settings__row > .input[type="number"] {
+  width: 140px;
+}
+
+.server-settings__range {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  width: min(300px, 45%);
+}
+
+.server-settings__range .range {
+  flex: 1;
+}
+
+.server-settings__range-value {
+  min-width: 2ch;
+  text-align: right;
+}
+
+.server-settings__note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: rgba(var(--accent-rgb), 0.1);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.35);
+  font-size: 13px;
+}
+
+.server-settings__warn {
+  margin: 0 0 6px;
+  color: var(--color-warning);
+  font-size: 13px;
+}
+
+.server-settings__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.server-settings__group > .btn {
+  align-self: flex-start;
+}
+
+.server-settings__all summary {
+  padding: 10px 4px;
+  color: var(--color-text-soft);
+  cursor: var(--cursor-hand);
+}
+
+.server-settings__saved {
+  font-size: 12.5px;
+}
+
+.server-worlds {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.server-worlds__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.server-worlds__item .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+}
+
+.server-worlds__item--current {
+  background: rgba(var(--accent-rgb), 0.12);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.45);
+}
+
+.server-worlds__item--current .icon {
+  color: var(--color-accent);
+}
+
+.server-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.server-players__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 6px 10px;
+}
+
+.server-players__remove {
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: var(--cursor-hand);
+}
+
+.server-players__remove:hover {
+  color: var(--color-danger, #ff8a80);
+}
+
+/* "Доступ из интернета" switched on. */
+.own-server__tunnel--on .icon {
+  color: var(--color-success, #6ee07a);
+}
+
+.badge--ok {
+  background: rgba(110, 224, 122, 0.16);
+  color: #8ff09a;
+}

@@ -1,7 +1,7 @@
 /* Every icon moves in its own way when its button is under the pointer (both looks, only with
    Settings → Animations on). One rule plays the icon's --icon-motion; each icon names its motion
    below; icons without one hop with a tilt, like the instance icons on their cards (icon-hop,
-   features.css). Only the icon of the button under the pointer moves. Loaded after icons.css. */
+   features/alive.css). Only the icon of the button under the pointer moves. Loaded after icons.css. */
 
 :root[data-animations="on"] :is(.btn, .icon-button:not(.icon-button--window), .chip, .tabs__button, .context-menu__item):hover:not(:disabled) .icon {
   animation: var(--icon-motion, icon-hop 620ms var(--ease-spring));

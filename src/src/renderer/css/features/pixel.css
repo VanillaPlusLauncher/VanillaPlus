@@ -1,0 +1,518 @@
+/* The Minecraft (pixel) look of the controls: square corners, pixel-cut frames, the plates that sink
+   when pressed, the pixel shine, pixel ticks, switches, sliders and lists. soft.css replaces it in the
+   soft look. */
+
+/* --- No rounded corners anywhere ------------------------------------------------------------------------
+   Minecraft's GUI has none: the last pills ("Все сборки ›", platform marks, slots), round dots, the
+   switches' and sliders' rounded parts become square or pixel-cut like the rest. Only in the pixel
+   look: the soft one (soft.css) keeps every element's own rounding. */
+:root:not([data-style="soft"]) *,
+:root:not([data-style="soft"]) *::before,
+:root:not([data-style="soft"]) *::after,
+:root:not([data-style="soft"]) ::-webkit-scrollbar-thumb,
+:root:not([data-style="soft"]) ::-webkit-slider-thumb,
+:root:not([data-style="soft"]) ::-webkit-slider-runnable-track {
+  border-radius: 0 !important;
+}
+
+/* The frame goes round the cut corners too: a border or an inset ring was drawn along the plain
+   rectangle, so the step of every pixel-cut element had no line (js/core/pixelFrame.worklet.js
+   draws it from the element's own style). */
+.btn,
+.icon-button:not(.icon-button--window),
+.surface,
+.modal,
+.input,
+.textarea,
+.select,
+.segmented,
+.segmented__thumb,
+.tabs,
+.tabs__button,
+.chip,
+.badge,
+.account-chip,
+.toggle__track,
+.toggle__thumb,
+.instance-card,
+.recent-card,
+.project-card,
+.news-tile,
+.home-section__head .link-button,
+.language-picker__item,
+.tour__card,
+.server-place__card,
+input[type="checkbox"]:not(.toggle input),
+.pixel-check,
+.file-tree,
+.share-upload,
+.pack-picker__item,
+.shader-card {
+  border-image: paint(pixel-frame) 0 fill / 0;
+}
+
+/* Lists (select) like the fields: a sunk pixel-cut box, a pixel arrow instead of Windows' one, and a
+   focus frame that keeps the cut corners. */
+.select {
+  --c: 3px;
+  background-color: rgba(5, 4, 9, 0.62);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.4), inset 0 -2px 0 rgba(255, 255, 255, 0.06);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+
+.select:hover {
+  background-color: rgba(var(--accent-rgb), 0.08);
+}
+
+/* A plain <select> (the launcher's dropdown button draws its own arrow): the pixel arrow instead of Windows' one. */
+select.select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10' shape-rendering='crispEdges'%3E%3Cpath d='M1 3h2v1H1zm6 0h2v1H7zM2 4h2v1H2zm4 0h2v1H6zM3 5h2v1H3zm2 0h2v1H5zM4 6h2v1H4z' fill='%23c9bfdc'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px 20px;
+}
+
+.select:focus {
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.85), inset 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* A slider like the game's: a sunk track filled with the theme colour and a raised block to drag. */
+.range {
+  height: 12px;
+  background: linear-gradient(90deg, var(--color-accent-strong) var(--range-fill, 50%), #0b0911 var(--range-fill, 50%));
+  box-shadow: inset 0 0 0 2px #2b2140, inset 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.range::-webkit-slider-thumb {
+  width: 14px;
+  height: 26px;
+  border: 0;
+  background: var(--btn-face-hover);
+  box-shadow: inset 0 0 0 2px #0a080f, inset 0 4px 0 rgba(255, 255, 255, 0.16), inset 0 -5px 0 rgba(0, 0, 0, 0.4);
+  transition: background 90ms;
+}
+
+.range:hover::-webkit-slider-thumb {
+  background: #463f57;
+}
+
+.range:active::-webkit-slider-thumb {
+  transform: none;
+  background: var(--color-accent-strong);
+}
+
+/* --- Pixel icons at whole sizes ----------------------------------------------------------------------
+   The icons are 10 × 10 pixel art (base.css): shown at 10, 20 or 40 px only, so every pixel stays
+   square. These replace the in-between sizes the smooth icons used to have. */
+.btn .icon,
+.btn--primary.btn--play .icon,
+.icon-button .icon,
+.input-with-icon .icon,
+.instance-tabs__settings .icon,
+.own-server__tunnel .icon,
+.instance-card__play .icon,
+.nav-button .icon,
+.chat__tool .icon,
+.share-format .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.account-chip .icon,
+.group-header__chevron .icon,
+.browser-filter-note .icon,
+.project-card__meta .icon,
+.play-bar__actions .play-bar__arrow .icon,
+.sound-action__play .icon,
+.news-card__arrow .icon,
+.play-bar__arrow .icon {
+  width: 10px;
+  height: 10px;
+}
+
+.empty-state .icon,
+.create-file__drop .icon {
+  width: 40px;
+  height: 40px;
+}
+
+/* --- Pixel ticks ----------------------------------------------------------------------------------------
+   Every tick in the launcher is a little pixel block instead of Windows' checkbox: sunk and dark when
+   off, a raised amethyst block with a pixel check when on, a bar for "part of it" (the export tree).
+   Switches (.toggle) keep their own look. */
+:root {
+  --pixel-check-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath d='M0 3h1v1h1v1h1V4h1V3h1V2h1V1H5v1H4v1H3v1H2V3H1V2H0z'/%3E%3C/svg%3E");
+  --pixel-check-bar: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Crect x='1' y='2' width='4' height='2'/%3E%3C/svg%3E");
+  --press-spring: cubic-bezier(0.34, 1.7, 0.5, 1);
+}
+
+input[type="checkbox"]:not(.toggle input),
+.pixel-check {
+  --c: 2px;
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #0b0911;
+  box-shadow: inset 0 0 0 2px #2b2140, inset 0 2px 0 rgba(0, 0, 0, 0.4);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+  cursor: var(--cursor-hand);
+  transition: background 90ms, box-shadow 90ms;
+}
+
+input[type="checkbox"]:not(.toggle input):hover,
+.pixel-check:hover {
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.7), inset 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+input[type="checkbox"]:not(.toggle input):checked,
+.pixel-check[data-state="on"],
+.pixel-check[data-state="partial"] {
+  background: var(--color-accent-strong);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+}
+
+input[type="checkbox"]:not(.toggle input):checked::after,
+.pixel-check[data-state="on"]::after,
+.pixel-check[data-state="partial"]::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  background: var(--color-text-on-accent);
+  -webkit-mask: var(--pixel-check-mark) center / 12px 12px no-repeat;
+  mask: var(--pixel-check-mark) center / 12px 12px no-repeat;
+}
+
+.pixel-check[data-state="partial"]::after {
+  -webkit-mask-image: var(--pixel-check-bar);
+  mask-image: var(--pixel-check-bar);
+}
+
+input[type="checkbox"]:not(.toggle input):disabled {
+  opacity: 0.45;
+  cursor: var(--cursor-arrow);
+}
+
+/* ======================================================================================================
+   Buttons: "Резонанс", picked on the style page. A dark plate with a glowing line in the theme colour
+   (the main action) or a quiet one (the rest); under the pointer a pixel shine runs across it, and a
+   press visibly pushes it in: it sinks by its thickness and the dark edge moves from the bottom to the
+   top. Pressing is quick, letting go springs back. The line goes round the cut corners too (border-image
+   is the pixel-frame worklet, set again here because older rules gave buttons picture borders).
+   ====================================================================================================== */
+.btn,
+.btn:hover:not(:disabled),
+.btn:active:not(:disabled),
+.btn:disabled {
+  border: 0;
+  border-image: paint(pixel-frame) 0 fill / 0;
+  filter: none;
+}
+
+.btn {
+  --ring: rgba(255, 255, 255, 0.13);
+  position: relative;
+  overflow: hidden;
+  background: #1a1424;
+  color: var(--color-text);
+  text-shadow: none;
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 -5px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 360ms var(--press-spring), scale 360ms var(--press-spring), background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  --ring: rgba(var(--accent-rgb), 0.55);
+  background: #221a30;
+  color: var(--color-text);
+  transform: translateY(-2px);
+}
+
+/* Pushed in: down by the plate's thickness, the dark edge now on top, the plate in shadow. */
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  scale: 0.97;
+  background: #120d1a;
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 6px 0 rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  transition-duration: 60ms;
+  transition-timing-function: ease-out;
+}
+
+.btn:disabled {
+  --ring: rgba(255, 255, 255, 0.08);
+  background: #17131f;
+  color: #7f7790;
+}
+
+.btn--primary {
+  --ring: var(--color-accent);
+  background: linear-gradient(rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.2)), #160f24;
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 2px 0 rgba(255, 255, 255, 0.1), inset 0 -5px 0 rgba(0, 0, 0, 0.55);
+}
+
+.btn--primary:hover:not(:disabled) {
+  --ring: var(--color-accent);
+  background: linear-gradient(rgba(var(--accent-rgb), 0.32), rgba(var(--accent-rgb), 0.32)), #160f24;
+  color: #fff;
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 2px 0 rgba(255, 255, 255, 0.14), inset 0 -5px 0 rgba(0, 0, 0, 0.55), inset 0 0 14px rgba(var(--accent-rgb), 0.35);
+}
+
+.btn--primary:active:not(:disabled) {
+  background: linear-gradient(rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.12)), #0d0816;
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 6px 0 rgba(0, 0, 0, 0.65), inset 0 0 10px rgba(var(--accent-rgb), 0.25);
+}
+
+.btn--primary:disabled {
+  --ring: rgba(255, 255, 255, 0.1);
+  background: #1b1724;
+  color: #8f879f;
+  text-shadow: none;
+}
+
+.btn--ghost {
+  color: var(--color-text-soft);
+  /* Quiet buttons keep a faint frame, so a row of buttons never has one without it ("Снять выбор",
+   "Из файла" over the panorama). */
+  --ring: rgba(255, 255, 255, 0.09);
+  background: rgba(12, 9, 18, 0.42);
+  box-shadow: inset 0 0 0 2px var(--ring);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  --ring: rgba(var(--accent-rgb), 0.38);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 2px var(--ring);
+}
+
+.btn--ghost:active:not(:disabled) {
+  box-shadow: inset 0 0 0 2px var(--ring), inset 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.btn--danger {
+  color: #ff9b91;
+}
+
+.btn--danger:hover:not(:disabled) {
+  --ring: rgba(255, 107, 94, 0.6);
+  background: #2a1519;
+  color: #ffc2bb;
+}
+
+/* The shine: two bright pixel stripes cross the plate once each time the pointer comes. */
+.btn::after,
+.btn--primary::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 70%;
+  background: linear-gradient(105deg, transparent 0 34%, rgba(255, 255, 255, 0.32) 34% 44%, transparent 44% 52%, rgba(255, 255, 255, 0.18) 52% 56%, transparent 56%);
+  transform: translateX(-110%) skewX(0deg);
+  opacity: 1;
+  pointer-events: none;
+  animation: none;
+}
+
+.btn--primary::after {
+  background: linear-gradient(105deg, transparent 0 34%, rgba(255, 255, 255, 0.5) 34% 44%, transparent 44% 52%, rgba(255, 255, 255, 0.3) 52% 56%, transparent 56%);
+}
+
+.btn:hover:not(:disabled)::after,
+.btn--primary:hover:not(:disabled)::after {
+  animation: btn-shine 620ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
+}
+
+.btn--ghost::after {
+  display: none;
+}
+
+@keyframes btn-shine {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(160%); }
+}
+
+/* Square icon buttons: the same plate, smaller. */
+.icon-button:not(.icon-button--window) {
+  border: 0;
+  background: #1a1424;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1), inset 0 -3px 0 rgba(0, 0, 0, 0.45);
+  transition: transform 360ms var(--press-spring), scale 360ms var(--press-spring), background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.icon-button:not(.icon-button--window):hover {
+  background: #221a30;
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.icon-button:not(.icon-button--window):active:not(:disabled) {
+  transform: translateY(2px);
+  scale: 0.96;
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5), inset 0 3px 0 rgba(0, 0, 0, 0.5);
+  transition-duration: 70ms;
+  transition-timing-function: ease-out;
+}
+
+:root[data-animations="off"] .btn::after {
+  display: none;
+}
+
+/* ======================================================================================================
+   Pixel-cut everywhere, the last word. Highlights and small square things that were still plain
+   rectangles get the cut corners and a frame that follows the step: the sidebar's and the settings'
+   current item, menu items, loader buttons, mod rows and their icons, the selection bar.
+   ====================================================================================================== */
+.nav-button,
+.sidebar__indicator,
+.settings-nav__item,
+.context-menu__item,
+.loader-button,
+.version-picker__item,
+.content-row,
+.content-row__icon,
+.selection-bar,
+.card-action {
+  --cut: 3px;
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+}
+
+.nav-button,
+.sidebar__indicator,
+.content-row,
+.selection-bar {
+  --cut: 4px;
+}
+
+/* The frame follows the step. Said again here because a later `border:` shorthand resets
+   border-image: that is why the small square buttons (×, ⋯, the list views) and the ticks had a gap
+   at every corner. */
+.icon-button:not(.icon-button--window),
+input[type="checkbox"]:not(.toggle input),
+.pixel-check,
+.toggle__track,
+.sidebar__indicator,
+.settings-nav__item,
+.loader-button,
+.version-picker__item,
+.content-row,
+.selection-bar,
+.card-action {
+  border-image: paint(pixel-frame) 0 fill / 0;
+}
+
+/* The current page in the sidebar: the same plate as the buttons, with the theme colour's line. */
+:root:not([data-sidebar="hotbar"]) .sidebar__indicator {
+  background: linear-gradient(rgba(var(--accent-rgb), 0.16), rgba(var(--accent-rgb), 0.16)), rgba(22, 15, 36, 0.92);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.62), inset 0 2px 0 rgba(255, 255, 255, 0.08), inset 0 -4px 0 rgba(0, 0, 0, 0.45);
+}
+
+:root:not([data-sidebar="hotbar"]) .sidebar__indicator::before {
+  display: none;
+}
+
+/* The current section in Settings and in an instance's settings. */
+.settings-nav__item {
+  border: 0;
+}
+
+.settings-nav__item[aria-current="true"] {
+  background: linear-gradient(rgba(var(--accent-rgb), 0.15), rgba(var(--accent-rgb), 0.15)), rgba(22, 15, 36, 0.9);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.55), inset 0 -3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.context-menu__item--active {
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.45);
+}
+
+/* Loader buttons (Vanilla, Fabric…): a ring instead of a border, so the frame can follow the step. */
+.loader-button {
+  border: 0;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.loader-button:hover {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.loader-button[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--color-accent), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Mod rows: the same ring, the theme colour when ticked. */
+.content-row {
+  border: 0;
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.content-row--selected {
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.6), inset 5px 0 0 var(--color-accent);
+}
+
+/* --- Switches: a sunk slot with a frame and a raised pixel knob that slides over with a spring ------- */
+.toggle__track {
+  border: 0;
+  background: #0b0911;
+  box-shadow: inset 0 0 0 2px #2b2140, inset 0 3px 0 rgba(0, 0, 0, 0.45);
+  transition: background 180ms ease, box-shadow 180ms ease;
+}
+
+.toggle:hover .toggle__track {
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.6), inset 0 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+.toggle input:checked + .toggle__track {
+  background: rgba(var(--accent-rgb), 0.34);
+  box-shadow: inset 0 0 0 2px var(--color-accent), inset 0 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.toggle__thumb {
+  --cut: 2px;
+  top: 5px;
+  left: 5px;
+  width: 18px;
+  height: 18px;
+  background: #8f879f;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.toggle input:checked + .toggle__track + .toggle__thumb {
+  transform: translateX(22px);
+  background: #e6d7ff;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), inset 0 -3px 0 rgba(var(--accent-rgb), 0.55);
+}
+
+.toggle--small .toggle__thumb {
+  width: 14px;
+  height: 14px;
+}
+
+.toggle--small input:checked + .toggle__track + .toggle__thumb {
+  transform: translateX(18px);
+}
+
+.toggle input:active + .toggle__track + .toggle__thumb {
+  scale: 0.85;
+}
+
+.toggle input:disabled + .toggle__track,
+.toggle input:disabled + .toggle__track + .toggle__thumb {
+  opacity: 0.45;
+}

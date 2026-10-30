@@ -1,0 +1,856 @@
+/* The window around the pages: first start, the sidebar's extras, the context menu, tooltips, toasts,
+   "Загрузка…", the cursor, the start screen, the language picker and the walk-through. */
+
+/* --- First start: loading screen while the game's look is fetched ------------------ */
+.first-run {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: #0d0a13;
+  transition: opacity 420ms ease;
+}
+
+.first-run--leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.first-run__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.first-run__logo {
+  width: 72px;
+  height: 72px;
+  animation: floatBlock 3s ease-in-out infinite;
+}
+
+.first-run__status {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--color-text-soft);
+}
+
+.first-run__track {
+  width: 280px;
+  height: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.first-run__bar {
+  display: block;
+  width: 3%;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 250ms ease;
+}
+
+/* --- Shell extras -------------------------------------------------------------- */
+.app-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 60% 40%, transparent 0%, rgba(0, 0, 0, 0.35) 70%, rgba(0, 0, 0, 0.7) 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.1) 100%);
+}
+
+.app-background[data-kind="panorama"]::after,
+.app-background[data-kind="dirt"]::after {
+  display: none;
+}
+
+.sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar__tasks {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+  -webkit-app-region: no-drag;
+}
+
+.task-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 480px;
+  height: 36px;
+  padding: 0 12px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  background: rgba(11, 9, 16, 0.85);
+  font-size: 12px;
+  color: var(--color-text-soft);
+  animation: rise 360ms var(--ease-out) both;
+}
+
+.task-pill__spinner {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  background: var(--color-accent);
+  animation: spinBlock 1s steps(4) infinite;
+}
+
+@keyframes spinBlock {
+  to { transform: rotate(360deg); }
+}
+
+.task-pill__text {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.task-pill__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-pill__percent {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* The instance the download is for, as a small tag before the task. */
+.task-pill__instance {
+  flex: 0 1 auto;
+  max-width: 130px;
+  padding: 2px 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--color-accent);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-pill__instance[hidden] {
+  display: none;
+}
+
+.task-pill__more {
+  padding: 0 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.task-pill__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.task-pill__bar {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--color-accent);
+  transition: width 300ms var(--ease-out);
+}
+
+.account-chip {
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  height: 46px;
+  padding: 0 12px 0 5px;
+}
+
+.account-chip__avatar {
+  border-radius: 4px;
+  background: linear-gradient(145deg, var(--color-accent-strong), var(--color-accent-deep));
+  image-rendering: pixelated;
+}
+
+/* A player head needs no coloured backdrop: the face is the whole square. */
+.account-chip__avatar--head {
+  background: #000;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.account-chip__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.account-chip__type {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.drop-overlay__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 60px;
+  border: 4px dashed rgba(var(--accent-rgb), 0.8);
+  border-radius: var(--radius-lg);
+  background: rgba(11, 9, 16, 0.85);
+  animation: dropPulse 1.2s ease-in-out infinite;
+}
+
+.drop-overlay__title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--color-accent);
+}
+
+@keyframes dropPulse {
+  50% { transform: scale(1.03); }
+}
+
+/* --- Context menu ---------------------------------------------------------------- */
+.context-menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 200px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: rgba(17, 13, 24, 0.98);
+  border: 2px solid #000;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), var(--shadow-card);
+  animation: menuIn 160ms var(--ease-out) both;
+}
+
+.context-menu--wide {
+  min-width: 300px;
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.context-menu__item:hover {
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+.context-menu__item--danger {
+  color: var(--color-danger);
+}
+
+.context-menu__item--active {
+  background: rgba(var(--accent-rgb), 0.1);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.context-menu__icon {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.context-menu__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.context-menu__text small {
+  color: var(--color-text-muted);
+}
+
+.context-menu__divider {
+  height: 2px;
+  margin: 4px 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.context-menu__empty {
+  padding: 10px;
+  color: var(--color-text-muted);
+}
+
+/* The first start: which language (components/languagePicker.js). Nine equal pixel buttons, 3 × 3:
+   the language's code small on top, its own name below. */
+.language-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.language-picker__item {
+  --cut: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px 13px;
+  border: 0;
+  background: var(--btn-face);
+  box-shadow: inset 0 -4px 0 var(--btn-dark);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: var(--cursor-hand);
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+  transition: background 120ms, transform 90ms ease-out, box-shadow 90ms;
+}
+
+.language-picker__code {
+  color: var(--color-text-muted, #a99bc0);
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  font-size-adjust: 0.62;
+  letter-spacing: 0.08em;
+}
+
+.language-picker__name {
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  font-size-adjust: 0.62;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.language-picker__item:hover,
+.language-picker__item:focus-visible {
+  outline: none;
+  background: var(--btn-face-hover);
+  box-shadow: inset 0 -4px 0 var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.language-picker__item:hover .language-picker__code,
+.language-picker__item:focus-visible .language-picker__code {
+  color: var(--color-accent);
+}
+
+.language-picker__item:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 3px 0 var(--btn-dark);
+}
+
+/* --- Tooltips in the launcher's style (components/tooltip.js) --------------------------- */
+.tooltip {
+  position: fixed;
+  z-index: 10000;
+  max-width: 280px;
+  padding: 6px 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 8px;
+  background: rgba(22, 18, 32, 0.96);
+  color: var(--color-text);
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  line-height: 1.35;
+  pointer-events: none;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(4px) scale(0.96);
+  transition: opacity 140ms ease-out, transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+.tooltip[data-side="bottom"] {
+  transform: translateY(-4px) scale(0.96);
+}
+
+.tooltip--visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* --- Toasts pile up (components/toast.js): newest in front, older ones peek out behind ------------ */
+.toast-stack.toast-pile {
+  display: block;
+  width: 420px;
+  max-width: calc(100vw - 44px);
+  pointer-events: auto;
+  transition: height 260ms var(--ease-out);
+}
+
+.toast-pile:empty,
+.toast-pile:not(:has(.toast)) {
+  pointer-events: none;
+}
+
+.toast-pile .toast {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
+  transform-origin: bottom center;
+  transition: translate 320ms var(--ease-spring), scale 320ms var(--ease-spring), opacity 220ms;
+}
+
+/* How many toasts there are: quiet grey text in the newest one's top-right corner. */
+.toast__count {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  color: var(--color-text-muted);
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.toast__count--pop {
+  animation: count-pop 300ms var(--ease-out);
+}
+
+@keyframes count-pop {
+  from { opacity: 0; translate: 0 -3px; }
+}
+
+/* --- "Загрузка…" while a page waits for its first answer (components/controls.js) --------------- */
+.loading-state {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px 16px;
+  color: var(--color-text-soft);
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  animation: fadeIn 300ms both;
+}
+
+.loading-state__text {
+  animation: loading-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes loading-pulse {
+  50% { opacity: 0.55; }
+}
+
+/* --- An amethyst cursor in the launcher (assets/cursors, variables in tokens.css) -------------------- */
+html {
+  cursor: var(--cursor-arrow);
+}
+
+a,
+button,
+[role="button"],
+summary,
+select,
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  cursor: var(--cursor-hand);
+}
+
+button:disabled {
+  cursor: var(--cursor-arrow);
+}
+
+/* --- The launcher's X wherever something loads: bobbing on a soft bounce, glinting ------------------ */
+.loading-mark {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(180, 140, 255, 0.55));
+  animation: mark-bob 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  will-change: transform;
+}
+
+.update-status__mark.loading-mark {
+  width: 20px;
+  height: 20px;
+}
+
+.task-pill__spinner.loading-mark {
+  width: 18px;
+  height: 18px;
+  background: none;
+}
+
+@keyframes mark-bob {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-6deg) scale(1); }
+  45% { transform: translate3d(0, -5px, 0) rotate(6deg) scale(1.06); }
+  60% { transform: translate3d(0, -4px, 0) rotate(5deg) scale(1.05); }
+}
+
+/* --- The start screen (index.html #splash, components/splash.js) -------------------------------- */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(150, 112, 245, 0.22), transparent 62%),
+    #0a080f;
+  -webkit-app-region: drag;
+  transition: opacity 500ms var(--ease-out), visibility 500ms;
+}
+
+.splash--leaving {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.splash--leaving .splash__box {
+  transform: scale(1.04);
+}
+
+.splash__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  transition: transform 500ms var(--ease-out);
+}
+
+.splash__logo {
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 28px rgba(150, 112, 245, 0.45));
+  animation: splash-logo 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite, splash-in 700ms var(--ease-spring) both;
+}
+
+@keyframes splash-logo {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-3deg); }
+  50% { transform: translate3d(0, -8px, 0) rotate(3deg); }
+}
+
+@keyframes splash-in {
+  from { opacity: 0; scale: 0.6; }
+}
+
+.splash__name {
+  font-family: var(--font-pixel);
+  font-size: 30px;
+  color: var(--color-text);
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.5);
+  animation: fadeIn 600ms 200ms both;
+}
+
+/* A plate of budding amethyst turning slowly in the air (components/splash.js builds its faces):
+   crystals grow on it like a snake, from the edge round into the middle, with a little pop at
+   every stage; sparkles blink around it. Until all of the game's textures are loaded the plate is
+   not shown at all (.splash__blocks--waiting); then it fades in whole. */
+.splash__blocks {
+  position: relative;
+  width: 240px;
+  height: 200px;
+}
+
+.geode__float,
+.geode__shadow {
+  transition: opacity 420ms ease-out, scale 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.splash__blocks--waiting .geode__float,
+.splash__blocks--waiting .geode__shadow {
+  opacity: 0;
+  scale: 0.85;
+}
+
+.geode__float {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: geode-float 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes geode-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -7px, 0); }
+}
+
+.geode__shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: 130px;
+  height: 22px;
+  margin-left: -65px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(150, 112, 245, 0.32), rgba(150, 112, 245, 0.08) 60%, transparent);
+  animation: geode-shadow 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes geode-shadow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.88); opacity: 0.7; }
+}
+
+.geode__slab {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -14%;
+  transform-style: preserve-3d;
+  animation: geode-spin 16s linear infinite;
+}
+
+@keyframes geode-spin {
+  from { transform: rotateX(60deg) rotateZ(0deg); }
+  to { transform: rotateX(60deg) rotateZ(-360deg); }
+}
+
+.geode__face {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--cell);
+  height: var(--cell);
+  transform-origin: 0 0;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  backface-visibility: hidden;
+  filter: brightness(var(--shade, 1));
+}
+
+.geode__crystal,
+.geode__grow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+.geode__grow {
+  transform-origin: 0 0;
+  transition: transform 260ms cubic-bezier(0.5, 0, 0.75, 0), opacity 260ms;
+}
+
+.geode__grow--pop {
+  animation: geode-pop 340ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes geode-pop {
+  from { transform: scale3d(0.7, 0.7, 0.7); }
+}
+
+.geode__grow--gone {
+  transform: scale3d(0.2, 0.2, 0.2);
+  opacity: 0;
+  animation: none;
+}
+
+.geode__sprite {
+  position: absolute;
+  left: calc(var(--cell) * -0.65);
+  top: calc(var(--cell) * -1.3);
+  width: calc(var(--cell) * 1.3);
+  height: calc(var(--cell) * 1.3);
+  transform-origin: 50% 100%;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 3px rgba(214, 170, 255, 0.55));
+}
+
+/* A four-pointed sparkle drawn with pixels (one square and four arms), blinking once. */
+.geode__spark {
+  --size: 2px;
+  position: absolute;
+  width: var(--size);
+  height: var(--size);
+  background: #fbe9ff;
+  box-shadow:
+    0 calc(var(--size) * -1) 0 #e4c4ff,
+    0 var(--size) 0 #e4c4ff,
+    calc(var(--size) * -1) 0 0 #e4c4ff,
+    var(--size) 0 0 #e4c4ff;
+  pointer-events: none;
+  animation: geode-spark 1100ms cubic-bezier(0.45, 0, 0.55, 1) both;
+}
+
+@keyframes geode-spark {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  35% { transform: scale(1.4) rotate(45deg); opacity: 1; }
+  100% { transform: scale(0) rotate(90deg) translateY(-6px); opacity: 0; }
+}
+
+.splash__status {
+  min-height: 18px;
+  color: var(--color-text-soft);
+  font-family: var(--font-pixel);
+  font-size: 14px;
+}
+
+.splash__track {
+  width: 260px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.splash__bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-accent-strong), var(--color-accent));
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.6);
+  transition: width 420ms var(--ease-out);
+}
+
+/* --- First-start walk-through (components/tour.js): the lit-up part, the rest dimmed, a card ---- */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  animation: fadeIn 220ms both;
+}
+
+.tour--leaving {
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+.tour__spot {
+  position: absolute;
+  box-shadow: 0 0 0 200vmax rgba(5, 4, 9, 0.74), 0 0 0 2px rgba(var(--accent-rgb), 0.9), 0 0 24px rgba(var(--accent-rgb), 0.45);
+  transition: left 380ms var(--ease-out), top 380ms var(--ease-out), width 380ms var(--ease-out), height 380ms var(--ease-out);
+  pointer-events: none;
+}
+
+.tour__spot--none {
+  box-shadow: 0 0 0 200vmax rgba(5, 4, 9, 0.74);
+}
+
+.tour__card {
+  --cut: 5px;
+  position: absolute;
+  width: 340px;
+  padding: 16px 18px 14px;
+  background: #17121f;
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.3), inset 0 -3px 0 rgba(0, 0, 0, 0.4);
+  clip-path: polygon(
+    0 var(--cut), var(--cut) var(--cut), var(--cut) 0,
+    calc(100% - var(--cut)) 0, calc(100% - var(--cut)) var(--cut), 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, var(--cut) calc(100% - var(--cut)), 0 calc(100% - var(--cut))
+  );
+  transition: left 380ms var(--ease-out), top 380ms var(--ease-out);
+}
+
+.tour__card--in {
+  animation: tour-in 300ms var(--ease-spring) both;
+}
+
+@keyframes tour-in {
+  from { opacity: 0; scale: 0.94; }
+}
+
+.tour__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.tour__skip {
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: var(--cursor-hand);
+}
+
+.tour__skip:hover {
+  color: var(--color-text);
+}
+
+.tour__title {
+  margin: 8px 0 6px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--color-text);
+}
+
+.tour__text {
+  margin: 0 0 14px;
+  color: var(--color-text-soft);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.tour__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tour__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.tour__dots {
+  display: flex;
+  gap: 5px;
+}
+
+.tour__dots i {
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  transition: background var(--duration-fast), transform var(--duration-fast);
+}
+
+.tour__dots i.is-on {
+  background: var(--color-accent);
+  transform: scale(1.3);
+}
+
+/* The scrollbar keeps its room, so a page does not shift sideways when it appears. */
+.page {
+  scrollbar-gutter: stable;
+}

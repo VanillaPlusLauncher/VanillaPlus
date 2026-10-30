@@ -1,0 +1,476 @@
+/* Settings: the layout, fonts, Java, accounts, panoramas, sounds. */
+
+/* --- Java ------------------------------------------------------------------------- */
+.vendor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.vendor-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-text-soft);
+  text-align: left;
+  transition: border-color 140ms, background 140ms;
+}
+
+.vendor-option:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.vendor-option[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.vendor-option__name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.vendor-option__desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.vendor-option__versions {
+  font-size: 11.5px;
+  color: var(--color-accent);
+}
+
+.java-install__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.java-install__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.runtime-card__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.runtime-card__actions .btn {
+  flex: 1;
+}
+
+/* --- Accounts ---------------------------------------------------------------------- */
+.auth-host {
+  min-height: 150px;
+}
+
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Login and password of Ely.by: the same gaps as the other panels, a bit more above the button. */
+.auth-password {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-password > .btn {
+  margin-top: 8px;
+}
+
+.auth-panel--in {
+  animation: rise 320ms var(--ease-out) both;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ely-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, rgba(32, 201, 151, 0.16), rgba(32, 201, 151, 0.04));
+  border: 2px solid rgba(32, 201, 151, 0.3);
+  font-size: 13px;
+  color: var(--color-text-soft);
+}
+
+.ely-banner__logo {
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: #20c997;
+  color: #072a20;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.account-row__avatar {
+  border-radius: 4px;
+  overflow: hidden;
+  background: linear-gradient(145deg, var(--color-accent-strong), var(--color-accent-deep));
+}
+
+.account-row__avatar--ely {
+  background: linear-gradient(145deg, #4fe3b0, #157a5c);
+}
+
+.account-row__avatar--microsoft {
+  background: linear-gradient(145deg, #8ec5ff, #2e5d9a);
+}
+
+.account-row__avatar img {
+  border-radius: 0;
+}
+
+/* --- Settings ---------------------------------------------------------------------- */
+.settings-layout {
+  display: grid;
+  gap: 18px;
+  align-items: start;
+  grid-template-columns: 228px minmax(0, 860px);
+}
+
+.settings-nav {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.settings-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-soft);
+  font-family: var(--font-display);
+  font-size: 15px;
+  text-align: left;
+  transition: background 160ms, color 160ms;
+}
+
+.settings-nav__item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text);
+}
+
+.settings-nav__item[aria-current="true"] {
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--color-accent);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.settings-nav__icon {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+
+.settings-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-sections--enter > * {
+  animation: rise 420ms var(--ease-out) both;
+}
+
+.settings-sections--enter > *:nth-child(2) { animation-delay: 50ms; }
+.settings-sections--enter > *:nth-child(3) { animation-delay: 100ms; }
+.settings-sections--enter > *:nth-child(4) { animation-delay: 150ms; }
+.settings-sections--enter > *:nth-child(5) { animation-delay: 200ms; }
+
+.settings-row__title {
+  font-weight: 600;
+}
+
+.accent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+
+.accent-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 6px;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-text-soft);
+  font-family: var(--font-display);
+  transition: transform 200ms var(--ease-spring), border-color 160ms;
+}
+
+.accent-option:hover {
+  transform: translateY(-3px);
+}
+
+.accent-option[aria-pressed="true"] {
+  border-color: #fff;
+  color: #fff;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.15);
+}
+
+/* Fonts (Settings → Appearance → Font): each option written in its own font. */
+.font-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.font-option {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-text-soft);
+  text-align: left;
+  transition: transform 200ms var(--ease-spring), border-color 160ms, color 160ms;
+}
+
+.font-option:hover {
+  transform: translateY(-2px);
+  color: var(--color-text);
+}
+
+.font-option[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.font-option__sample {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.font-option__name {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.accent-option__block {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.background-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.background-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-text-soft);
+  text-align: left;
+  transition: border-color 160ms, transform 200ms var(--ease-out);
+}
+
+.background-option:hover {
+  transform: translateY(-2px);
+}
+
+.background-option[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.background-option__preview {
+  height: 80px;
+  border-radius: var(--radius-sm);
+  background-size: cover;
+  background-position: center;
+}
+
+.background-option__preview--pixel {
+  background-size: 32px 32px;
+  background-repeat: repeat;
+  image-rendering: pixelated;
+  filter: brightness(0.5);
+}
+
+.background-option__label {
+  font-size: 12.5px;
+  padding: 0 4px 2px;
+}
+
+.note-piano {
+  display: flex;
+  height: 90px;
+  gap: 2px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: #3a2414;
+  box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #6b4426;
+}
+
+.note-key {
+  flex: 1;
+  border: 0;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, #f3f3f3, #cfcfcf);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+  transition: transform 60ms, background 80ms;
+}
+
+.note-key--sharp {
+  background: linear-gradient(180deg, #333, #111);
+  height: 64%;
+}
+
+.note-key:active {
+  transform: translateY(2px);
+  background: var(--color-accent);
+}
+
+/* Account rows: a long UUID is cut with an ellipsis instead of running under the badge. */
+.account-row__uuid {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-row .badge {
+  flex: none;
+}
+
+/* Java inside Settings */
+.java-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.java-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.java-section .page-section {
+  margin-top: 6px;
+}
+
+/* Panorama picker */
+.background-option__preview--random {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.28), rgba(0, 0, 0, 0.45));
+}
+
+.background-option__random-icon {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.background-option__preview--missing {
+  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 10px, transparent 10px 20px);
+}
+
+/* Settings → Sounds: a sound per action */
+.sound-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.sound-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sound-action__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-action__select {
+  width: 280px;
+  flex: none;
+}
+
+.sound-action__play .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* The chosen Java's path: plain text to select or copy. */
+.java-path {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.java-path__text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12.5px;
+  color: var(--color-text-soft);
+  user-select: text;
+  cursor: text;
+}
+
+.java-path .btn {
+  flex: none;
+}
+
+/* Settings: the section menu wide enough for "Друзья и скины" on one line; a list in a row (the
+   language) as wide as its words, so the row's label does not have to wrap. */
+.settings-row__control > .select {
+  width: auto;
+  min-width: 240px;
+}
+
+/* Settings → Java: the mode card as wide as the install card under it (the stack capped it). */
+.java-section .settings-stack {
+  max-width: none;
+}

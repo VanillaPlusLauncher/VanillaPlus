@@ -119,7 +119,7 @@ export function createContentList(getInstance, type) {
   // Selection (Prism-style): tick rows, then act on all of them at once.
   const selectAll = h('input', { type: 'checkbox', class: 'content-check', title: 'Выбрать все', onchange: (event) => toggleAll(event.target.checked) });
   const selectionText = h('span', { class: 'selection-bar__text' });
-  // The bar slides open over the list and shut again (features.css .selection-slot), never jumps.
+  // The bar slides open over the list and shut again (features/instance.css .selection-slot), never jumps.
   const selectionSlot = h(
     'div',
     { class: 'selection-slot' },

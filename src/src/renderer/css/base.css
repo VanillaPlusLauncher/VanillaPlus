@@ -115,7 +115,7 @@ img {
 }
 
 /* Icons are hand-drawn pixel art on a 10 × 10 grid (assets/ui/pixel-icons.txt), drawn with CSS
-   masks so that they inherit currentColor. They are shown at 10, 20 or 40 px only (features.css
+   masks so that they inherit currentColor. They are shown at 10, 20 or 40 px only (features/pixel.css
    sets the sizes), so every pixel stays square. */
 .icon {
   display: inline-block;

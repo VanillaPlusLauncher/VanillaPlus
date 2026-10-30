@@ -31,7 +31,7 @@ import { dropHandlerFor, setNavigator } from './core/nav.js';
 
 const MAX_PARALLAX_PX = { x: 18, y: 12 };
 
-// Frames that follow the cut corners (features.css → border-image: paint(pixel-frame)).
+// Frames that follow the cut corners (features/pixel.css → border-image: paint(pixel-frame)).
 CSS.paintWorklet?.addModule(new URL('./core/pixelFrame.worklet.js', import.meta.url)).catch(() => {});
 
 /**

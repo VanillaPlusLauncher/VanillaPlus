@@ -2,7 +2,7 @@
  * CSS Paint worklet "pixel-frame": the frame of a pixel-cut element follows its cut corners.
  * The corners are cut by a clip-path (a step of `cut` px), but a border or an inset box-shadow ring
  * is drawn along the plain rectangle, so the step itself had no line. Used as
- * `border-image: paint(pixel-frame) 0 fill / 0` (features.css), it draws over the element:
+ * `border-image: paint(pixel-frame) 0 fill / 0` (features/pixel.css), it draws over the element:
  *  - a border (which border-image replaces): the whole ring, along the step;
  *  - an inset ring (box-shadow "inset 0 0 0 Npx color", still drawn by the browser): only the two
  *    short lines of each step, joining the ring's sides.

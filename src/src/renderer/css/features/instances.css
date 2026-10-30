@@ -1,0 +1,810 @@
+/* Сборки: groups, the three card styles (tile, card, slot), "Новая сборка", the icon picker, moving
+   instances from other launchers, "Новая группа". */
+
+/* --- Instances --------------------------------------------------------------------- */
+.view-switch {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.view-toggle[aria-pressed="true"] {
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--color-accent);
+}
+
+.view-icon {
+  width: 16px;
+  height: 16px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 7px 7px no-repeat,
+    linear-gradient(currentColor, currentColor) 100% 0 / 7px 7px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 100% / 7px 7px no-repeat,
+    linear-gradient(currentColor, currentColor) 100% 100% / 7px 7px no-repeat;
+}
+
+.view-icon--list {
+  background:
+    linear-gradient(currentColor, currentColor) 0 1px / 100% 3px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 7px / 100% 3px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 13px / 100% 3px no-repeat;
+}
+
+.instance-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.instance-groups--static .rise {
+  animation: none;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.group-header__chevron .icon {
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-muted);
+  transition: transform 260ms var(--ease-spring);
+}
+
+.group-header[aria-expanded="false"] .group-header__chevron .icon {
+  transform: rotate(-90deg);
+}
+
+.group-header__title {
+  font-size: 17px;
+}
+
+.group-header__count {
+  padding: 0 8px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--color-text-soft);
+}
+
+.group-header__line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), transparent);
+}
+
+.instance-group__body {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin-top: 10px;
+  transition: grid-template-rows 320ms var(--ease-out), opacity 240ms;
+}
+
+/* Clipped so the group can fold, with room left for the cards' shadows while it is open. */
+.instance-group__body > * {
+  min-height: 0;
+  overflow: clip;
+  overflow-clip-margin: 28px;
+}
+
+.instance-group--collapsed .instance-group__body {
+  grid-template-rows: 0fr;
+  margin-top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.instance-group--collapsed .instance-group__body > * {
+  overflow-clip-margin: 0px;
+}
+
+/* Grid of instances; the card style is a setting (data-cards: tile | card | slot). */
+.instance-grid--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+  padding: 4px;
+}
+
+:root[data-cards="card"] .instance-grid--grid {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+
+:root[data-cards="slot"] .instance-grid--grid {
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 6px;
+}
+
+.instance-grid--list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px;
+}
+
+/* --- Tile (default): icon on the left, text on the right ---------------------------- */
+.instance-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(15, 12, 21, 0.74);
+  border: 2px solid rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  cursor: var(--cursor-hand);
+  outline: none;
+  transition: transform 200ms var(--ease-out), border-color var(--duration-fast), background var(--duration-fast);
+}
+
+.instance-card:hover {
+  transform: translateY(-2px);
+  background: rgba(23, 19, 34, 0.86);
+}
+
+.instance-card:focus-visible,
+.instance-card--selected {
+  border-color: rgba(var(--accent-rgb), 0.7);
+  background: rgba(var(--accent-rgb), 0.07);
+}
+
+.instance-card__art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.instance-card__icon {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.45));
+  transition: opacity 160ms, transform 220ms var(--ease-out);
+}
+
+/* Play button covers the icon on hover. */
+.instance-card__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  /* A small play button in the middle, the picture still seen (and hopping) around it. */
+  background: radial-gradient(circle, rgba(var(--accent-strong-rgb), 0.95) 0 15px, rgba(var(--accent-strong-rgb), 0.35) 16px, rgba(10, 8, 15, 0.18) 17px);
+  color: var(--color-text-on-accent);
+  opacity: 0;
+  transition: opacity 160ms;
+}
+
+.instance-card__play .icon {
+  transform: translateX(1px) scale(0.75);
+  width: 22px;
+  height: 22px;
+}
+
+.instance-card:hover .instance-card__play,
+.instance-card__play:focus-visible {
+  opacity: 1;
+}
+
+.instance-card__play:disabled {
+  background: rgba(56, 45, 82, 0.9);
+  color: #999;
+}
+
+.instance-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.instance-card__name {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instance-card__meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-text-soft);
+}
+
+.instance-card__status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+
+.instance-card__status-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instance-card__status .status-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 0;
+}
+
+.instance-card__progress {
+  height: 3px;
+  margin-top: 2px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.instance-card__bar {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 300ms var(--ease-out);
+}
+
+.instance-card__menu {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  opacity: 0;
+  transition: opacity 160ms;
+}
+
+.instance-card:hover .instance-card__menu {
+  opacity: 1;
+}
+
+.dots {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* --- Card: vertical, slim ------------------------------------------------------------- */
+:root[data-cards="card"] .instance-card--grid {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px;
+}
+
+:root[data-cards="card"] .instance-card--grid .instance-card__art {
+  width: 100%;
+  height: 76px;
+  background: radial-gradient(circle at 50% 60%, rgba(var(--accent-rgb), 0.14), transparent 70%), rgba(0, 0, 0, 0.3);
+}
+
+:root[data-cards="card"] .instance-card--grid .instance-card__icon {
+  width: 52px;
+  height: 52px;
+}
+
+:root[data-cards="card"] .instance-card--grid .instance-card__play {
+  inset: auto 6px 6px auto;
+  width: 34px;
+  height: 34px;
+}
+
+:root[data-cards="card"] .instance-card--grid .instance-card__menu {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+/* --- Slot: Minecraft inventory slot with the name below (like Prism's icon view) ------ */
+:root[data-cards="slot"] .instance-card--grid {
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 4px 10px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+:root[data-cards="slot"] .instance-card--grid:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-cards="slot"] .instance-card--grid.instance-card--selected {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+:root[data-cards="slot"] .instance-card--grid .instance-card__art {
+  width: 64px;
+  height: 64px;
+  border-radius: 0;
+  background: #8b8b8b;
+  box-shadow: inset 3px 3px 0 #34294b, inset -3px -3px 0 #ffffff;
+}
+
+:root[data-cards="slot"] .instance-card--grid .instance-card__icon {
+  width: 46px;
+  height: 46px;
+}
+
+:root[data-cards="slot"] .instance-card--grid .instance-card__body {
+  align-items: center;
+  width: 100%;
+}
+
+:root[data-cards="slot"] .instance-card--grid .instance-card__name {
+  max-width: 100%;
+  font-size: 13.5px;
+}
+
+:root[data-cards="slot"] .instance-card--grid .instance-card__meta {
+  justify-content: center;
+  font-size: 11px;
+}
+
+:root[data-cards="slot"] .instance-card--grid .instance-card__status {
+  display: none;
+}
+
+:root[data-cards="slot"] .instance-card--grid .instance-card__menu {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+}
+
+.instance-card--list .instance-card__menu {
+  opacity: 1;
+}
+
+.instance-card__extra {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.loader-tag {
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d8d8d8;
+}
+
+.loader-tag--fabric { background: rgba(219, 196, 152, 0.18); color: #e8d3a9; }
+.loader-tag--quilt { background: rgba(190, 120, 240, 0.18); color: #d6a8ff; }
+.loader-tag--forge { background: rgba(110, 140, 220, 0.2); color: #a9c0ff; }
+.loader-tag--neoforge { background: rgba(240, 140, 60, 0.18); color: #ffb57a; }
+.loader-tag--vanilla { background: rgba(120, 200, 100, 0.16); color: #a8e89a; }
+
+.empty-state--big {
+  padding: 56px 24px;
+  gap: 12px;
+}
+
+.empty-state--big h2 {
+  font-family: var(--font-display);
+}
+
+.empty-state__block {
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
+  animation: floatBlock 5s ease-in-out infinite;
+}
+
+/* --- Create instance --------------------------------------------------------------- */
+.create-instance {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.create-tab-host {
+  min-height: 420px;
+}
+
+.create-custom {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+}
+
+.create-custom__side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.create-custom__identity {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.icon-choice {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: var(--radius-md);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  transition: border-color 160ms, transform 200ms var(--ease-spring);
+}
+
+.icon-choice:hover {
+  border-color: var(--color-accent);
+  transform: rotate(-4deg) scale(1.05);
+}
+
+.icon-choice__img {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.loader-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.loader-button {
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--color-text-soft);
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  transition: all 160ms;
+}
+
+.loader-button:hover {
+  color: var(--color-text);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.loader-button[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--color-accent);
+}
+
+.create-custom__versions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.create-custom__version-tools {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.version-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 380px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(0, 0, 0, 0.5);
+}
+
+.version-picker__item {
+  display: grid;
+  grid-template-columns: 1fr auto auto 140px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.version-picker__item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.version-picker__item[aria-selected="true"] {
+  background: rgba(var(--accent-rgb), 0.16);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.version-picker__id {
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.version-picker__type,
+.version-picker__date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.version-picker__date {
+  text-align: right;
+}
+
+.create-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.create-file {
+  display: grid;
+  place-items: center;
+  min-height: 380px;
+}
+
+.create-file__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 50px 70px;
+  border: 3px dashed rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.create-file__drop .icon {
+  width: 40px;
+  height: 40px;
+  color: var(--color-accent);
+}
+
+/* Icon picker */
+.icon-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.icon-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 6px;
+}
+
+.icon-picker__item {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: rgba(52, 41, 75, 0.45);
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.5), inset -2px -2px 0 rgba(255, 255, 255, 0.1);
+  transition: transform 160ms var(--ease-spring), border-color 120ms;
+}
+
+.icon-picker__item:hover {
+  transform: scale(1.1);
+  border-color: #fff;
+}
+
+.icon-picker__item--current {
+  border-color: var(--color-accent);
+}
+
+.icon-picker__img {
+  width: 40px;
+  height: 40px;
+  image-rendering: pixelated;
+}
+
+/* Instances: groups and drag and drop */
+.instance-card[draggable="true"] {
+  cursor: grab;
+}
+
+.instance-card--dragging {
+  opacity: 0.4;
+}
+
+.instance-group {
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.instance-groups--dragging .instance-group {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.06);
+}
+
+.instance-group--drop {
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.55) !important;
+}
+
+.instance-group--drag-only {
+  display: none;
+}
+
+.instance-groups--dragging .instance-group--drag-only {
+  display: block;
+}
+
+.instance-group__empty {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  margin: 4px 0 8px;
+  border: 2px dashed rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* --- Moving instances from other launchers --------------------------------------------- */
+.launcher-import {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.launcher-import__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: rise 320ms var(--ease-out) both;
+}
+
+.launcher-import__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.launcher-import__head .text-muted {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.launcher-import__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.launcher-import__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--color-text);
+  text-align: left;
+  cursor: var(--cursor-hand);
+  transition: border-color var(--duration-fast), background var(--duration-fast), transform var(--duration-fast);
+}
+
+.launcher-import__item:hover {
+  transform: translateX(2px);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.launcher-import__item--on {
+  border-color: rgba(var(--accent-rgb), 0.8);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.launcher-import__item input {
+  pointer-events: none;
+}
+
+.launcher-import__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.launcher-import__text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.launcher-import__text .text-muted,
+.launcher-import__count {
+  font-size: 11.5px;
+}
+
+/* Which instance Home plays is chosen in the play bar: no card stands out. */
+.instance-card--selected,
+:root[data-cards="slot"] .instance-card--grid.instance-card--selected {
+  border-color: rgba(0, 0, 0, 0.55);
+  background: rgba(15, 12, 21, 0.74);
+}
+
+/* "Новая группа": the instances to put in it at once. */
+.group-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.group-pick__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: var(--cursor-hand);
+  transition: background 120ms steps(2, end);
+}
+
+.group-pick__item:hover {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.group-pick__item:has(input:checked) {
+  background: rgba(var(--accent-rgb), 0.16);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.5);
+}
+
+.group-pick__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.group-pick__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.group-pick__text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}

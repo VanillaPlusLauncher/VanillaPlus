@@ -1,7 +1,8 @@
 /* The soft look (Settings → Interface → Кнопки: "Мягкие", data-style="soft"; the default). Raised
    plates that cast a shadow down-right and catch light up-left on lighter violet-grey panels, chosen
    things pressed in, round corners, no frames or bevel lines: the shape is the shadow. Everything here
-   is scoped to :root[data-style="soft"]; the pixel look is features.css alone. Loaded after it.
+   is scoped to :root[data-style="soft"]; the pixel look is css/features/ alone (pixel.css over the
+   screens' files). Loaded after them.
 
    Sections: 1 tokens · 2 shape · 3 panels and cards · 4 buttons · 5 chosen things · 6 rows, bars and
    fields · 7 controls · 8 small things. The look guide is docs/LOOK.md. */
@@ -22,7 +23,7 @@
      the plates around it, so it would read as raised); its text takes the theme colour. */
   --soft-chosen: #16121e;
 
-  /* The components' own rounding (features.css squares every corner only in the pixel look). */
+  /* The components' own rounding (features/pixel.css squares every corner only in the pixel look). */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -98,8 +99,8 @@
 
 /* A dialog's scroll area leaves room round its content, so the plates' shadows are not cut off. */
 :root[data-style="soft"] .modal__body {
-  margin: -6px -10px 0;
-  padding: 6px 10px 12px;
+  margin: -8px -22px 0;
+  padding: 8px 22px 14px;
 }
 
 /* Cards: plates of the panel colour. */
@@ -231,7 +232,7 @@
 }
 
 /* The shine: one soft band of light crosses every plate you can press when the pointer comes — the
-   buttons (features.css runs it for .btn; quiet buttons get it too) and the small plates below. */
+   buttons (features/pixel.css runs it for .btn; quiet buttons get it too) and the small plates below. */
 :root[data-style="soft"] .btn::after {
   width: 60%;
   background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.13) 50%, transparent 80%);
@@ -540,7 +541,7 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-:root[data-style="soft"] :is(.wardrobe__frame, .background-option__preview) {
+:root[data-style="soft"] .background-option__preview {
   overflow: hidden;
 }
 

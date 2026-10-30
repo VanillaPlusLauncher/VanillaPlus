@@ -1,0 +1,309 @@
+/* Controls shared by every screen: links, ticks, small switches and chips, dropdowns, fields, path
+   rows, segmented controls, dialog footers and tabs. */
+
+.link-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--color-accent);
+  font-size: 13px;
+  cursor: var(--cursor-hand);
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text-soft);
+  cursor: var(--cursor-hand);
+}
+
+.check-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent-strong);
+}
+
+.select--compact {
+  width: auto;
+  min-height: 40px;
+}
+
+.page-header__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.plus {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.toggle--small {
+  width: 42px;
+  height: 24px;
+}
+
+.toggle--small .toggle__thumb {
+  width: 16px;
+  height: 16px;
+}
+
+.toggle--small input:checked + .toggle__track + .toggle__thumb {
+  transform: translateX(18px);
+}
+
+.status-dot--ok {
+  background: var(--color-success);
+}
+
+.status-dot--running {
+  background: var(--color-accent);
+}
+
+.chip--static {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  cursor: var(--cursor-arrow);
+}
+
+.chip--small {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12.5px;
+}
+
+/* --- Dropdowns (components/dropdown.js) ------------------------------------------------- */
+.dropdown__native {
+  display: none !important;
+}
+
+.dropdown__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  font: inherit;
+  cursor: var(--cursor-hand);
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.dropdown__button:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.dropdown__button:disabled {
+  opacity: 0.55;
+  cursor: var(--cursor-arrow);
+}
+
+.dropdown__button--open {
+  border-color: rgba(var(--accent-rgb), 0.8);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+}
+
+.dropdown__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pixel chevron: two squares of an arrow, turned over when open. */
+.dropdown__chevron {
+  flex: none;
+  width: 10px;
+  height: 6px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 2px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 2px 2px / 2px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 4px 4px / 2px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 6px 2px / 2px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 8px 0 / 2px 2px no-repeat;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+
+.dropdown__button--open .dropdown__chevron {
+  transform: rotate(180deg);
+}
+
+.dropdown__menu {
+  position: fixed;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  background: #110e19;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.6);
+  font-family: var(--font-ui);
+  animation: dropdown-in 0.12s ease-out;
+  transform-origin: top center;
+}
+
+.dropdown__menu--up {
+  transform-origin: bottom center;
+}
+
+.dropdown__menu--closing {
+  animation: dropdown-out 0.12s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.96);
+  }
+}
+
+@keyframes dropdown-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.96);
+  }
+}
+
+.dropdown__search {
+  flex: none;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 3px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--color-text);
+  font: inherit;
+  outline: none;
+}
+
+.dropdown__search:focus {
+  border-color: rgba(var(--accent-rgb), 0.7);
+}
+
+.dropdown__list {
+  min-height: 0;
+  overflow-y: auto;
+  outline: none;
+}
+
+.dropdown__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 12px 6px 16px;
+  border-radius: 3px;
+  color: var(--color-text-soft);
+  cursor: var(--cursor-hand);
+  white-space: nowrap;
+}
+
+.dropdown__item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown__item--active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.dropdown__item--selected {
+  color: rgb(var(--accent-rgb));
+}
+
+.dropdown__item--selected::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  background: rgb(var(--accent-rgb));
+  box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.8);
+}
+
+.dropdown__item--disabled {
+  opacity: 0.4;
+  cursor: var(--cursor-arrow);
+}
+
+.dropdown__empty {
+  padding: 10px 12px;
+  color: var(--color-text-muted);
+}
+
+/* Buttons: the old surface pictures (border-image) had light corners; the colour comes from the background now. */
+.btn--primary,
+.btn--primary:hover:not(:disabled),
+.btn--primary:active:not(:disabled),
+.btn--primary:disabled,
+.btn--secondary,
+.btn--secondary:hover:not(:disabled),
+.btn--secondary:active:not(:disabled) {
+  border-image: none;
+}
+
+/* No resize grip in the corner of text fields: Windows' little corner mark does not belong in the
+   pixel interface, and the fields have their size already. */
+textarea,
+.textarea {
+  resize: none !important;
+}
+
+/* A path row (a list or a field, then a button): a long Java path shortens with "…" instead of
+   pushing the button out of the card. */
+.path-row > .input,
+.path-row > .select {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.path-row > .btn {
+  flex: none;
+}
+
+/* A segmented control stretched to a row's width shares it among its options, instead of leaving an
+   empty tail after them (accounts, friends, "При запуске игры"). */
+.segmented button {
+  flex: 1 0 auto;
+}
+
+.friends-add .segmented {
+  display: flex;
+  width: 100%;
+}
+
+/* A field and its buttons in one row are one height. */
+.path-row > .btn,
+.path-row > .icon-button {
+  align-self: stretch;
+  height: auto;
+}
+
+/* A dialog without footer buttons ends with its content, not with an empty strip. */
+.modal__footer:empty {
+  display: none;
+}
+
+/* Tabs in a dialog (Аккаунты: Microsoft / Ely.by / Офлайн) share its width the same way. */
+.modal .tabs__button {
+  flex: 1;
+  justify-content: center;
+}

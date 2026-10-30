@@ -26,7 +26,7 @@ export function openOptimizeDialog(instance, onDone) {
 
   const chip = (label, value) => h('div', { class: 'optimize__chip' }, h('span', { class: 'text-muted' }, label), h('b', { title: value }, value));
 
-  // Sections and rows come in one after another, a short wave (index → delay, see features.css).
+  // Sections and rows come in one after another, a short wave (index → delay, see features/instance.css).
   let wave = 0;
   function section(title, ...rows) {
     return h('section', { class: 'optimize__section optimize-in', style: { '--i': wave++ } }, h('div', { class: 'optimize__title' }, title), ...rows);

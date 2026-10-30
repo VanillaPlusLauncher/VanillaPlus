@@ -1,0 +1,560 @@
+/* Friends: the list, the conversation and its input bar, invites, sharing an instance in the chat. */
+
+/* --- Friends: list on the left, conversation on the right ------------------------------ */
+.friends-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 14px;
+  height: calc(100vh - 230px);
+  min-height: 440px;
+}
+
+.friends-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  /* It scrolls, so it clips: room for the buttons' shadows. */
+  padding: 16px 20px 20px;
+}
+
+.friends-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+
+.friends-add {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.friends-add__row {
+  display: flex;
+  gap: 6px;
+}
+
+.friends-add__row .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.friends-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.friends-block__title {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.friend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--color-text);
+  text-align: left;
+  animation: rise 320ms var(--ease-out) both;
+}
+
+.friend--button {
+  width: 100%;
+  cursor: var(--cursor-hand);
+  transition: background var(--duration-fast), border-color var(--duration-fast), transform var(--duration-fast);
+}
+
+.friend--button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(2px);
+}
+
+.friend--active {
+  border-color: rgba(var(--accent-rgb), 0.7);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.friend--request {
+  flex-wrap: wrap;
+}
+
+.friend--request .friend__actions {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.friend__head {
+  position: relative;
+  flex: none;
+  line-height: 0;
+}
+
+.friend__img {
+  border-radius: 4px;
+  image-rendering: pixelated;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.friend__dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid #15111e;
+  border-radius: 50%;
+  background: #6b6b6b;
+}
+
+.friend__dot--online {
+  background: #5fd35f;
+}
+
+.friend__dot--playing {
+  background: #f2c94c;
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  50% { box-shadow: 0 0 0 4px rgba(242, 201, 76, 0.18); }
+}
+
+.friend__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.friend__text b {
+  font-size: 13.5px;
+}
+
+.friend__status {
+  overflow: hidden;
+  color: var(--color-text-soft);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend__actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.friend__badge {
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--color-accent);
+  color: #110e19;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  animation: pop-in 260ms var(--ease-spring) both;
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.4); opacity: 0; }
+}
+
+.friends-empty {
+  padding: 16px 8px;
+  color: var(--color-text-soft);
+  text-align: center;
+}
+
+/* Conversation */
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chat__head:empty,
+.chat--empty .chat__composer {
+  display: none;
+}
+
+.chat__log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.chat__placeholder {
+  margin: auto;
+  color: var(--color-text-soft);
+  text-align: center;
+}
+
+.chat__more {
+  align-self: center;
+}
+
+.chat__message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 72%;
+  animation: chat-in 220ms var(--ease-out) both;
+}
+
+.chat__message--mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+@keyframes chat-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+.chat__bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px 12px 12px 4px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.chat__message--mine .chat__bubble {
+  border-radius: 12px 12px 4px 12px;
+  background: rgba(var(--accent-rgb), 0.2);
+}
+
+.chat__message--image .chat__bubble {
+  padding: 4px;
+}
+
+.chat__text {
+  white-space: pre-wrap;
+}
+
+.chat__image {
+  display: block;
+  width: 320px;
+  max-width: 100%;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  object-fit: cover;
+  cursor: zoom-in;
+  transition: transform var(--duration-fast);
+}
+
+.chat__image:hover {
+  transform: scale(1.015);
+}
+
+.chat__image-full {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.chat__message--invite .chat__bubble {
+  border: 2px solid rgba(var(--accent-rgb), 0.5);
+}
+
+.chat__invite-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.chat__time {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+
+/* The input bar: everything 42px high, text centred in the field, the tools as equal squares. */
+.chat__composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.chat__input {
+  flex: 1;
+  box-sizing: border-box;
+  height: 42px;
+  min-height: 42px;
+  max-height: 120px;
+  padding: 10px 12px;
+  line-height: 18px;
+  overflow-y: hidden;
+  resize: none;
+}
+
+.chat__composer .btn {
+  flex: none;
+  height: 42px;
+  padding: 0 18px;
+}
+
+.chat__tool {
+  display: grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.25);
+  transition: border-color var(--duration-fast), background var(--duration-fast), transform var(--duration-fast);
+}
+
+.chat__tool:hover {
+  border-color: rgba(var(--accent-rgb), 0.7);
+  background: rgba(var(--accent-rgb), 0.1);
+  transform: translateY(-1px);
+}
+
+.chat__tool .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.shot-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.shot-picker__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--color-text-soft);
+  font-size: 11px;
+  cursor: var(--cursor-hand);
+  transition: border-color var(--duration-fast), transform var(--duration-fast);
+}
+
+.shot-picker__item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--accent-rgb), 0.7);
+}
+
+.shot-picker__item img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+@media (max-width: 1000px) {
+  .friends-layout {
+    grid-template-columns: 290px minmax(0, 1fr);
+  }
+}
+
+.chat__link {
+  color: var(--color-accent);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+/* Friends: why an offline player has a code after the name. */
+.friends-tag-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* --- Chat: "Поделиться сборкой" — any instance, one click ------------------------------------------- */
+.pack-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.pack-picker__item {
+  --c: 3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 2px var(--color-border), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  color: var(--color-text);
+  text-align: left;
+  cursor: var(--cursor-hand);
+  clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c)));
+}
+
+.pack-picker__item:hover,
+.pack-picker__item:focus-visible {
+  outline: none;
+  background: rgba(var(--accent-rgb), 0.12);
+  box-shadow: inset 0 0 0 2px rgba(var(--accent-rgb), 0.7), inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.pack-picker__icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.pack-picker__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.pack-picker__text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.pack-picker + .share-upload {
+  margin-top: 12px;
+}
+
+/* --- "Пригласить друга": the friends, one button each (components/friendPicker.js) ---------------------- */
+.friend-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.friend-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.friend-picker__row .friend__text {
+  flex: 1;
+}
+
+/* --- An invite in the chat as a card: the instance's picture, name and version ---------------------------- */
+.invite-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 260px;
+}
+
+.invite-card__body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.invite-card__icon {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.invite-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.invite-card__text b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.invite-card__built {
+  color: var(--color-accent);
+  font-size: 12px;
+}
+
+.invite-card__progress {
+  color: var(--color-text-soft);
+  font-size: 12.5px;
+}
+
+.invite-card--world .invite-card__head b::before,
+.invite-card--server .invite-card__head b::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  background: #6ee07a;
+  vertical-align: 1px;
+}
+
+.segmented--nowrap {
+  flex: none;
+}
+
+.segmented--nowrap button {
+  white-space: nowrap;
+}
+
+.friends-add__row .input,
+.friends-add__row .btn {
+  min-height: 42px;
+}
