@@ -140,12 +140,13 @@
   color: var(--color-text-muted);
 }
 
-/* Mods, packs and shaders (contentList.js): rows two in a line ("Подробно"; one in a narrow window); the
-   compact and tile looks are further down. A row: the tick, the switch, the picture, the name with the
-   version and a line of who made it and its file, where it is needed, where it comes from, the actions. */
+/* Mods, packs and shaders (contentList.js): one row a mod across the whole width ("Подробно"; two in a
+   line cut the names to a letter or two); the compact and tile looks are further down. A row: the tick,
+   the switch, the picture, the name with the version and a line of who made it and its file, where it
+   is needed, where it comes from, the actions. */
 .content-rows {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(max(440px, 40%), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -726,11 +727,37 @@
   line-height: 1.35;
 }
 
+/* Always one line: when it is tight, the counter and "Автообновление" give way first (their words cut
+   short), so "⋯" never drops onto a line of its own. */
 .content-toolbar--secondary {
+  flex-wrap: nowrap;
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.32);
   border: 2px solid rgba(0, 0, 0, 0.35);
+}
+
+.content-toolbar--secondary > * {
+  flex: none;
+}
+
+.content-toolbar--secondary > :is(.content-counter, .auto-update) {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.content-toolbar--secondary > .content-toolbar__spacer {
+  flex: 1 1 0;
+}
+
+.content-toolbar--secondary :is(.content-counter, .auto-update > span:last-child) {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.content-toolbar--secondary .auto-update > .toggle {
+  flex: none;
 }
 
 /* --- Updates ---------------------------------------------------------------------------- */
@@ -1850,18 +1877,22 @@
   height: 28px;
 }
 
-/* Tiles: the picture fills the square tile, the name sits on a dark shade at the bottom (like the news on
-   the home page), the switch in the top right corner. The tick and "⋯ ×" (under the switch) show under
-   the pointer; a chosen tile keeps its tick lit and gets a ring in the theme colour. */
+/* Tiles: the picture fills the square tile; at the bottom, on a dark shade, "Клиент" or "Сервер" over the
+   name (like "JAVA EDITION" over the news on the home page). One line of controls along the top: the
+   tick on the left, "⋯ ×" and the switch on the right; the tick and "⋯ ×" show under the pointer, a
+   chosen tile keeps its tick lit and gets a ring in the theme colour. */
 .content-rows--grid {
   grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
   gap: 10px;
 }
 
 .content-rows--grid .content-row {
-  display: block;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 6px;
   aspect-ratio: 1;
-  padding: 0;
+  padding: 0 12px 10px;
   overflow: hidden;
   contain-intrinsic-size: auto 176px;
 }
@@ -1870,11 +1901,21 @@
   transform: translateY(-3px);
 }
 
-.content-rows--grid .content-row::after {
+/* The shade under the words at the bottom. */
+.content-rows--grid .content-row::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
+  background: linear-gradient(transparent 42%, rgba(0, 0, 0, 0.85));
+  pointer-events: none;
+}
+
+.content-rows--grid .content-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
   border-radius: inherit;
   box-shadow: inset 0 0 0 2px transparent;
   pointer-events: none;
@@ -1908,13 +1949,22 @@
   transform: scale(1.06);
 }
 
+.content-rows--grid :is(.content-row__meta, .side-tag) {
+  position: relative;
+  z-index: 2;
+}
+
 .content-rows--grid .content-row__meta {
-  position: absolute;
-  inset: auto 0 0;
-  z-index: 1;
-  padding: 36px 12px 10px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
-  pointer-events: none;
+  flex: none;
+  width: 100%;
+}
+
+/* Over the name, on the shade: a solid plate, so it reads on any picture. */
+.content-rows--grid .side-tag {
+  order: -1;
+  padding: 1px 7px;
+  font-size: 11px;
+  background: rgba(12, 9, 18, 0.78);
 }
 
 .content-rows--grid .content-row__title {
@@ -1932,7 +1982,7 @@
   overflow-wrap: anywhere;
 }
 
-.content-rows--grid :is(.content-row__version, .content-row__sub, .side-tag, .badge, .content-row__update) {
+.content-rows--grid :is(.content-row__version, .content-row__sub, .badge, .content-row__update) {
   display: none;
 }
 
@@ -1941,7 +1991,7 @@
   position: absolute;
   top: 9px;
   left: 9px;
-  z-index: 2;
+  z-index: 3;
   opacity: 0;
   transition: opacity 160ms ease, transform 160ms var(--ease-spring);
 }
@@ -1960,15 +2010,15 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 2;
+  z-index: 3;
 }
 
+/* In the same line as the switch, to its left (the switch is 42 px wide), centred on it. */
 .content-rows--grid .content-row__actions {
   position: absolute;
-  top: 40px;
-  right: 8px;
-  z-index: 2;
-  flex-direction: column;
+  top: 6px;
+  right: 56px;
+  z-index: 3;
   gap: 4px;
   opacity: 0;
   transition: opacity 160ms ease;
