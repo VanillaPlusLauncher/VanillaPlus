@@ -11,7 +11,7 @@ unless the owner asks otherwise. Backups of this state: the git tags `look-soft-
 | Chosen things | **Pressed in**: darker than the plates around, inner shadow, text in the theme colour; never shown by an outline. The same in tab bars and switches: the group is one raised plate, the chosen option is pressed into it | `soft.css` §5 |
 | Motion | Choices fade over 220 ms; switches' plates slide; the catalog dims the old cards while loading and the new ones rise in as the list glides to its height; cards lean towards the pointer (wide ones only slightly) | `soft.css`, `features/alive.css`, `features/catalog.css`, `core/effects.js resizeSmoothly`, `components/alive.js` |
 | Font | **Tiny5, the Minecraft pixel font** (default). Settings → Оформление → Шрифт offers 11 | `tokens.css` `data-font` |
-| Icons on buttons and in lists | **Smooth and coloured**, the colours of items in the inventory | `css/icons.css`, `assets/ui/*.smooth.svg` |
+| Icons on buttons and in lists | **Real 3D**: models built and rendered in Blender (glossy plastic, metal, glass, studio light), in the colours of items in the inventory; "Одноцветные" shows their smooth silhouettes | `css/icons.css`, `assets/ui/*.3d.png` (`installer/tools/make-3d-icons.py`) |
 | Sidebar | **Minecraft pictures** (items and blocks of the game) — never replaced by drawn icons | `layout/shell.js` |
 | Theme colour tiles | **Minecraft blocks** (amethyst, honeycomb, cherry…); a colour gem only if the game file is missing | `settingsPage.js`, `core/mc.js mcPictureOr` |
 | Hover on a button | Its own icon moves its own way (Играть dashes off and back, download drops, folder opens, gear turns, wardrobe figure turns, cross spins…); others hop with a tilt | `css/motion.css` |
@@ -53,13 +53,18 @@ Rules for new styles: a screen's rule goes into that screen's file in `features/
 of the same element (one rule per selector in a file: add to it rather than writing it again further
 down); a soft-look rule goes into the matching section of `soft.css` and starts with
 `:root[data-style="soft"]`; a new chosen state is added to the one list in §5, not given its own
-colours; a new icon gets its picture in both generators and a line in `icons.css` and `motion.css`.
+colours; a new icon gets its picture in all three generators (pixel, smooth, 3D) and a line in
+`icons.css` and `motion.css`.
 
 ## Icons
 
 - `installer/tools/make-pixel-icons.js` — pixel art from `src/assets/ui/pixel-icons.txt` →
   `<name>.svg` (one colour) and `<name>.color.svg` (coloured).
-- `installer/tools/make-smooth-icons.js` → `<name>.smooth.svg`.
+- `installer/tools/make-3d-icons.py` (Blender 4.2+, Cycles) → `<name>.3d.png`, 96 × 96: each icon a
+  model of its own (the head a ball, the magnifier's lens glass, the house walls and a roof…).
+  `blender -b --factory-startup -P installer/tools/make-3d-icons.py` rebuilds all; names after `--`
+  rebuild only those.
+- `installer/tools/make-smooth-icons.js` → `<name>.smooth.svg` (the silhouettes used as masks).
 - Window buttons (—, ▢, ×) and arrows stay in the text colour.
 
 ## Checking a change
