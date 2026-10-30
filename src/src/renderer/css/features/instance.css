@@ -140,35 +140,34 @@
   color: var(--color-text-muted);
 }
 
-/* Mods, packs and shaders (contentList.js): cards side by side, two or three in a line ("Список"); the
-   compact and tile looks are further down. A card: the picture with its tick on the corner, the name and
-   version, a line of where it comes from and its file; the actions show under the pointer, the switch
-   always. */
+/* Mods, packs and shaders (contentList.js): rows two in a line ("Подробно"; one in a narrow window); the
+   compact and tile looks are further down. A row: the tick, the switch, the picture, the name with the
+   version and a line of who made it and its file, where it is needed, where it comes from, the actions. */
 .content-rows {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(max(440px, 40%), 1fr));
+  gap: 8px;
 }
 
 .content-row {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
-  padding: 10px 12px 10px 10px;
+  padding: 10px 14px;
   border-radius: var(--radius-md);
   background: rgba(15, 12, 21, 0.72);
   border: 2px solid rgba(0, 0, 0, 0.5);
-  /* Cards off screen are not laid out or painted: long mod lists scroll smoothly. */
+  /* Rows off screen are not laid out or painted: long mod lists scroll smoothly. */
   content-visibility: auto;
-  contain-intrinsic-size: auto 68px;
+  contain-intrinsic-size: auto 66px;
   transition: opacity 200ms, background 220ms var(--ease-out), border-color 220ms var(--ease-out), transform 220ms var(--ease-out), box-shadow 220ms;
 }
 
 .content-row:hover {
   background: rgba(25, 20, 36, 0.85);
-  transform: translateY(-2px);
+  transform: translateX(3px);
 }
 
 .content-row--disabled {
@@ -179,15 +178,10 @@
   filter: grayscale(1);
 }
 
-.content-row__pic {
-  position: relative;
-  flex: none;
-}
-
 .content-row__icon {
-  display: block;
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
+  flex: none;
   border-radius: var(--radius-sm);
   object-fit: cover;
   image-rendering: auto;
@@ -201,32 +195,7 @@
   color: var(--color-text-muted);
 }
 
-.content-row__icon--empty .icon {
-  width: 62%;
-  height: 62%;
-}
-
-/* The tick sits on the picture's corner: under the pointer, or on every card while some are chosen.
-   (Written strongly enough to beat the ticks' own `position: relative` in pixel.css.) */
-.content-row .content-row__pic > input.content-check {
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  opacity: 0;
-  transition: opacity 160ms ease, transform 160ms var(--ease-spring);
-}
-
-.content-row:hover .content-row__pic > input.content-check,
-.content-row--selected .content-row__pic > input.content-check,
-.content-rows--choosing .content-row__pic > input.content-check,
-.content-row .content-row__pic > input.content-check:focus-visible {
-  opacity: 1;
-}
-
 .content-row__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
   flex: 1;
   min-width: 0;
 }
@@ -247,38 +216,15 @@
 }
 
 .content-row__version {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 45%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  flex: none;
   font-size: 12px;
   font-weight: 400;
   color: var(--color-text-muted);
 }
 
 .content-row__sub {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
   font-size: 12px;
   color: var(--color-text-muted);
-}
-
-.content-row__sub .platform-logo {
-  width: 13px;
-  height: 13px;
-}
-
-.content-row__sub .side-tag {
-  padding: 0 6px;
-  font-size: 10.5px;
-}
-
-.content-row__file {
-  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -289,27 +235,10 @@
   color: #ffd479;
 }
 
-/* "⋯" and "×": there all the time (the card keeps its shape), seen under the pointer. */
 .content-row__actions {
   display: flex;
   flex: none;
-  gap: 6px;
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-
-.content-row:hover .content-row__actions,
-.content-row:focus-within .content-row__actions {
-  opacity: 1;
-}
-
-.content-row__actions .icon-button {
-  width: 32px;
-  height: 32px;
-}
-
-.content-row > .toggle {
-  flex: none;
+  gap: 8px;
 }
 
 .content-hint {
@@ -1884,30 +1813,24 @@
     linear-gradient(currentColor, currentColor) 0 12px / 100% 2px no-repeat;
 }
 
-/* Compact: small cards, three or four in a line — the picture, the name, the switch. */
+/* Compact: one short line a mod, three or four in a line — small picture, no file line. */
 .content-rows--compact {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 6px;
 }
 
 .content-rows--compact .content-row {
   gap: 10px;
-  padding: 6px 10px 6px 8px;
-  contain-intrinsic-size: auto 44px;
+  padding: 4px 10px;
+  contain-intrinsic-size: auto 40px;
 }
 
 .content-rows--compact .content-row__icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
-.content-rows--compact .content-row__pic > input.content-check {
-  top: -7px;
-  left: -7px;
-  transform: scale(0.85);
-}
-
-.content-rows--compact :is(.content-row__sub, .content-row__version, .content-row__update) {
+.content-rows--compact :is(.content-row__sub, .content-row__version, .content-row__update, .badge) {
   display: none;
 }
 
@@ -1924,8 +1847,8 @@
   height: 28px;
 }
 
-/* Tiles, like CurseForge's icons: a square card with the picture in the middle and the name under it;
-   along the top edge the tick (left), the actions under the pointer and the switch (right). */
+/* Tiles, like CurseForge's icons: the picture, the name under it; the tick, the actions (under the
+   pointer) and the switch along the top edge. */
 .content-rows--grid {
   grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
   gap: 10px;
@@ -1937,7 +1860,7 @@
   gap: 10px;
   padding: 44px 12px 14px;
   text-align: center;
-  contain-intrinsic-size: auto 196px;
+  contain-intrinsic-size: auto 176px;
 }
 
 .content-rows--grid .content-row:hover {
@@ -1950,18 +1873,12 @@
   border-radius: var(--radius-md);
 }
 
-/* The tick goes to the card's corner, not the picture's. */
-.content-rows--grid .content-row__pic {
-  position: static;
-}
-
-.content-rows--grid .content-row__pic > input.content-check {
-  top: 12px;
-  left: 12px;
+.content-rows--grid .content-row__icon--empty .icon {
+  width: 62%;
+  height: 62%;
 }
 
 .content-rows--grid .content-row__meta {
-  align-items: center;
   width: 100%;
 }
 
@@ -1980,12 +1897,15 @@
   overflow-wrap: anywhere;
 }
 
-.content-rows--grid .content-row__sub {
-  justify-content: center;
+.content-rows--grid :is(.content-row__version, .content-row__sub, .side-tag, .badge, .content-row__update) {
+  display: none;
 }
 
-.content-rows--grid :is(.content-row__version, .content-row__file, .content-row__update) {
-  display: none;
+/* (Written strongly enough to beat the ticks' own `position: relative` in pixel.css.) */
+.content-rows--grid .content-row > input.content-check {
+  position: absolute;
+  top: 12px;
+  left: 12px;
 }
 
 .content-rows--grid .content-row > .toggle {
@@ -1999,6 +1919,12 @@
   top: 8px;
   right: 58px;
   gap: 4px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.content-rows--grid .content-row:is(:hover, :focus-within) .content-row__actions {
+  opacity: 1;
 }
 
 .content-rows--grid .content-row__actions .icon-button {
