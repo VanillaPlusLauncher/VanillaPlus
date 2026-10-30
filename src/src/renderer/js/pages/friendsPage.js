@@ -5,6 +5,7 @@ import { LOADER_LABELS } from '../core/content.js';
 import { iconImage } from '../core/mc.js';
 import { defaultHead, headFromSkin } from '../core/skinHead.js';
 import { sfx } from '../core/sound.js';
+import { morph } from '../core/effects.js';
 import { store } from '../state/appStore.js';
 import { playInstance, refreshInstances } from '../state/actions.js';
 import { go } from '../core/nav.js';
@@ -513,11 +514,13 @@ export function createFriendsPage() {
       options: [{ value: 'world', label: 'В мой мир' }, { value: 'own', label: 'На мой сервер' }, { value: 'server', label: 'По адресу' }],
       value: mode,
       onChange: (value) => {
-        mode = value;
-        worldPanel.hidden = value !== 'world';
-        ownPanel.hidden = value !== 'own';
-        serverPanel.hidden = value !== 'server';
-        refreshButton();
+        morph(() => {
+          mode = value;
+          worldPanel.hidden = value !== 'world';
+          ownPanel.hidden = value !== 'own';
+          serverPanel.hidden = value !== 'server';
+          refreshButton();
+        }, { panel: worldPanel.closest('.modal') });
       },
     });
     api.friends

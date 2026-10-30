@@ -3,6 +3,7 @@ import { h, icon } from '../core/dom.js';
 import { errorMessage, formatGigabytes } from '../core/format.js';
 import { getMcManifest, iconImage, mcPictureOr, mcUrl, onMcReady } from '../core/mc.js';
 import { configureSound, presetFor, previewSound, SOUND_ACTIONS, SOUND_PRESETS } from '../core/sound.js';
+import { morph } from '../core/effects.js';
 import { store } from '../state/appStore.js';
 import { saveSettings } from '../state/actions.js';
 import { toast } from '../components/toast.js';
@@ -65,6 +66,11 @@ export function createSettingsPage() {
     h('header', { class: 'page-header' }, h('div', null, h('h1', { class: 'page-title' }, 'Настройки'), h('p', { class: 'page-subtitle' }, 'Изменения сохраняются сразу. Сборки могут переопределять игровые настройки на своей странице.'))),
     h('div', { class: 'settings-layout' }, h('nav', { class: 'settings-nav surface' }, navButtons), sectionHost),
   );
+
+  /** A change of the launcher's look (colour, font, buttons, icons, sidebar, size) crossfades the whole window. */
+  function restyle(patch) {
+    return morph(() => save(patch));
+  }
 
   async function save(patch, quiet = true) {
     try {
@@ -151,7 +157,7 @@ export function createSettingsPage() {
             class: `accent-option accent-option--${accent.value}`,
             type: 'button',
             'aria-pressed': String(ui.accent === accent.value),
-            onclick: () => save({ ui: { accent: accent.value } }),
+            onclick: () => restyle({ ui: { accent: accent.value } }),
           },
           mcPictureOr(`block:${accent.block}`, 'accent-option__block', h('span', { class: 'accent-option__swatch', style: `--swatch: ${accent.colour}` })),
           h('span', null, accent.label),
@@ -192,7 +198,7 @@ export function createSettingsPage() {
       FONTS.map((font) =>
         h(
           'button',
-          { class: 'font-option', type: 'button', style: { fontFamily: font.family }, 'aria-pressed': String(ui.font === font.value), onclick: () => save({ ui: { font: font.value } }) },
+          { class: 'font-option', type: 'button', style: { fontFamily: font.family }, 'aria-pressed': String(ui.font === font.value), onclick: () => restyle({ ui: { font: font.value } }) },
           h('span', { class: 'font-option__sample', 'data-i18n': 'off' }, 'Аа Сборки'),
           h('span', { class: 'font-option__name', 'data-i18n': font.value === 'pixel' ? null : 'off' }, font.label),
         ),
@@ -201,24 +207,24 @@ export function createSettingsPage() {
     const sidebar = createSegmented({
       options: [{ value: 'labels', label: 'С подписями' }, { value: 'hotbar', label: 'Хотбар' }, { value: 'icons', label: 'Только иконки' }],
       value: ui.sidebar ?? 'labels',
-      onChange: (value) => save({ ui: { sidebar: value } }),
+      onChange: (value) => restyle({ ui: { sidebar: value } }),
     });
     const cards = createSegmented({
       options: [{ value: 'tile', label: 'Плитка' }, { value: 'card', label: 'Карточка' }, { value: 'slot', label: 'Слот' }],
       value: ui.cards ?? 'tile',
-      onChange: (value) => save({ ui: { cards: value } }),
+      onChange: (value) => restyle({ ui: { cards: value } }),
     });
     const style = createSegmented({
       options: [{ value: 'soft', label: 'Мягкие' }, { value: 'pixel', label: 'Пиксельные' }],
       value: ui.style ?? 'soft',
-      onChange: (value) => save({ ui: { style: value } }),
+      onChange: (value) => restyle({ ui: { style: value } }),
     });
     const icons = createSegmented({
       options: [{ value: 'color', label: 'Цветные' }, { value: 'mono', label: 'Одноцветные' }],
       value: ui.icons ?? 'color',
-      onChange: (value) => save({ ui: { icons: value } }),
+      onChange: (value) => restyle({ ui: { icons: value } }),
     });
-    const scale = createSegmented({ options: [80, 90, 100, 110, 125].map((value) => ({ value, label: `${value}%` })), value: ui.scale, onChange: (value) => save({ ui: { scale: value } }) });
+    const scale = createSegmented({ options: [80, 90, 100, 110, 125].map((value) => ({ value, label: `${value}%` })), value: ui.scale, onChange: (value) => restyle({ ui: { scale: value } }) });
     // Language names stay in their own language (data-i18n=off), whatever the interface language is.
     const languageSelect = h('select', { class: 'select', 'data-i18n': 'off', 'aria-label': 'Язык · Language', onchange: (event) => save({ ui: { language: event.target.value } }) }, LANGUAGES.map((entry) => h('option', { value: entry.code }, entry.label)));
     languageSelect.value = currentLanguage();

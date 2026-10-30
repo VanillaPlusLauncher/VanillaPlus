@@ -15,6 +15,7 @@ unless the owner asks otherwise. Backups of this state: the git tags `look-soft-
 | Sidebar | **Minecraft pictures** (items and blocks of the game) — never replaced by drawn icons | `layout/shell.js` |
 | Theme colour tiles | **Minecraft blocks** (amethyst, honeycomb, cherry…); a colour gem only if the game file is missing | `settingsPage.js`, `core/mc.js mcPictureOr` |
 | Hover on a button | Its own icon moves its own way (Играть dashes off and back, download drops, folder opens, gear turns full round, wardrobe figure turns, cross spins…); others hop with a tilt. A move always plays to its end and ends where it began (the 3D icons are lit from one side) | `css/motion.css`, `components/alive.js` |
+| Switches | Never a jump: tiles ↔ list, an order, a filter or a search — each card glides to its new place and shape; a tab or mode in a dialog — the dialog grows or shrinks to it while the old content fades into the new; the look, colour or font — the window crossfades. Any new switch goes through `morph()` | `core/effects.js morph` (View Transitions), `features/alive.css` |
 | Mods, packs, shaders | Cards two or three in a line ("Подробно"), three or four ("Компактно"), square tiles ("Плитка"); the tick on the picture's corner, "⋯" and "×" under the pointer, the switch always | `features/instance.css`, `components/contentList.js` |
 | Shine | A soft band of light crosses a button under the pointer | `features/pixel.css` runs it, `soft.css` §4 paints it |
 | Press | The button sinks in | `soft.css` §4 |

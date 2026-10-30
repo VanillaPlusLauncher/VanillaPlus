@@ -1,4 +1,5 @@
 import { api } from '../services/api.js';
+import { morph } from '../core/effects.js';
 import { h, icon } from '../core/dom.js';
 import { store } from '../state/appStore.js';
 import { refreshAccounts } from '../state/actions.js';
@@ -121,6 +122,15 @@ export function openAccountsModal() {
   const panelHost = h('div', { class: 'auth-host' });
 
   function setMethod(value) {
+    // The dialog grows or shrinks to the new form while the old one fades into it (the first time it just appears).
+    if (method !== value && panelHost.isConnected) {
+      morph(() => showMethod(value), { panel: panelHost.closest('.modal') });
+      return;
+    }
+    showMethod(value);
+  }
+
+  function showMethod(value) {
     method = value;
     tabButtons.forEach((button, index) => button.setAttribute('aria-selected', String(['microsoft', 'ely', 'offline'][index] === value)));
     panelHost.replaceChildren(panels[value]);

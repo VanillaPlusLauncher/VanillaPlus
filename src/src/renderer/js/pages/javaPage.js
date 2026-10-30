@@ -1,6 +1,7 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage } from '../core/format.js';
+import { morph } from '../core/effects.js';
 import { store } from '../state/appStore.js';
 import { refreshJavaRuntimes, saveSettings } from '../state/actions.js';
 import { toast } from '../components/toast.js';
@@ -76,7 +77,8 @@ export function createJavaPage({ embedded = false } = {}) {
   );
 
   function changeMode(mode) {
-    saveSettings({ javaMode: mode }).catch((error) => toast(errorMessage(error), 'error'));
+    // The mode's card grows to show the path row (or shrinks) instead of jumping.
+    morph(() => saveSettings({ javaMode: mode }).catch((error) => toast(errorMessage(error), 'error')), { panel: pathRow.parentElement });
     if (mode === 'custom' && !store.get().settings.javaPath) {
       toast('Выберите java.exe или нажмите «Использовать» у одной из найденных', 'info');
     }

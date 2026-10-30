@@ -7,7 +7,7 @@ import { errorMessage } from '../core/format.js';
 import { formatAgo, formatPlayTime, LOADER_LABELS } from '../core/content.js';
 import { iconImage } from '../core/mc.js';
 import { openInstance } from '../core/nav.js';
-import { pixelBurst } from '../core/effects.js';
+import { morph, pixelBurst } from '../core/effects.js';
 import { store } from '../state/appStore.js';
 import { playInstance, refreshInstances, saveSettings, stopGame, updateInstance } from '../state/actions.js';
 import { openCreateInstanceModal, existingGroups } from '../components/createInstanceModal.js';
@@ -45,13 +45,18 @@ export function createInstancesPage() {
   let cards = new Map();
   let renderedKey = '';
 
+  // Typing filters a moment after the last letter, so the cards glide once instead of at every key.
+  let searchTimer = 0;
   const searchInput = h('input', {
     class: 'input',
     type: 'search',
     placeholder: 'Поиск сборки',
     oninput: (event) => {
-      state.query = event.target.value.trim().toLowerCase();
-      render();
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        state.query = event.target.value.trim().toLowerCase();
+        render();
+      }, 160);
     },
   });
   const sortSelect = h('select', { class: 'select select--compact', onchange: (event) => { state.sort = event.target.value; render(); } }, SORTS.map((sort) => h('option', { value: sort.value }, sort.label)));
@@ -427,6 +432,13 @@ export function createInstancesPage() {
     }
     const firstRender = renderedKey === '';
     renderedKey = key;
+    // The first time the cards just come in; after that (tiles ↔ list, an order, a filter, a search)
+    // each card glides from where it was to where it lands.
+    if (firstRender) build(true);
+    else morph(() => build(false), { cards: () => content.querySelectorAll('.instance-card') });
+  }
+
+  function build(firstRender) {
     cards = new Map();
     const { instancesStatus, instances, settings } = store.get();
     const view = settings?.instanceView ?? 'grid';

@@ -253,3 +253,34 @@
   z-index: 3000;
   pointer-events: none;
 }
+
+/* --- Passages (core/effects.js morph): a card glides to its new place and takes its new shape, a dialog
+   or a tab's box grows to its new size, the rest crossfades. --------------------------------------------- */
+::view-transition-group(*) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 260ms;
+}
+
+/* Nothing is stretched while a box changes size (a wide row and a tile have different shapes; scaled to
+   the moving box, the old picture blew up): the box itself grows or shrinks, clipped round, and the old
+   and new content, each at its own size from the top left, fade into each other inside it. */
+::view-transition-group(*.morph-card),
+::view-transition-group(*.morph-panel) {
+  overflow: clip;
+  border-radius: var(--radius-lg);
+}
+
+::view-transition-old(*.morph-card),
+::view-transition-new(*.morph-card),
+::view-transition-old(*.morph-panel),
+::view-transition-new(*.morph-panel) {
+  width: auto;
+  height: auto;
+  object-fit: none;
+  object-position: left top;
+}

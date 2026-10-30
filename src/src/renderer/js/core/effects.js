@@ -148,7 +148,6 @@ export function installClickSparks(isOn) {
   });
 }
 
-/** Counts a number up with an ease-out, for statistics. */
 /**
  * Runs `change` (which replaces an element's content) and lets the element's height glide from the old
  * one to the new one instead of jumping. With animations off the content simply changes.
@@ -172,6 +171,63 @@ export function resizeSmoothly(element, change, duration = 340) {
   );
 }
 
+/*
+ * A change shown as a passage instead of a jump (the browser's View Transitions): `change` runs between
+ * a picture of the page before and after it (it may return a promise: a setting saved first).
+ *  - `cards`: a function giving the cards of a list; each card (found again by `key`, its data-id by
+ *    default) glides from where it was to where it lands and takes its new shape — grid ↔ list, a new
+ *    order, a filter. Only cards on screen take part (a long list stays light).
+ *  - `panel`: an element (a dialog, a tab's box) that grows or shrinks to its new size while its old
+ *    content fades into the new.
+ * Everything else crossfades. With animations off, or while the page is hidden, it simply changes.
+ * css/features/alive.css sets the timing.
+ */
+let passage = null;
+
+export function morph(change, { cards = null, panel = null, key = (card) => card.dataset.id } = {}) {
+  const shown = (element) => {
+    const box = element.getBoundingClientRect();
+    return box.width > 0 && box.bottom > 0 && box.top < window.innerHeight;
+  };
+  if (!animationsEnabled() || !document.startViewTransition || document.hidden || (panel && !shown(panel)) || (!panel && cards && ![...cards()].some(shown))) {
+    return Promise.resolve(change());
+  }
+  passage?.skipTransition();
+  const names = new Map();
+  const named = new Set();
+  const name = (element, value, kind) => {
+    element.style.viewTransitionName = value;
+    element.style.viewTransitionClass = kind;
+    named.add(element);
+  };
+  // A card keeps its name from before to after, so the browser knows it is the same card; one that
+  // comes into view gets a new name and fades in, one that leaves fades out.
+  const nameAll = () => {
+    if (panel?.isConnected) name(panel, 'morph-panel', 'morph-panel');
+    for (const card of cards ? [...cards()] : []) {
+      const id = key(card);
+      if (!id || !shown(card)) continue;
+      if (!names.has(id)) names.set(id, `morph-card-${names.size}`);
+      name(card, names.get(id), 'morph-card');
+    }
+  };
+  nameAll();
+  const current = document.startViewTransition(async () => {
+    await change();
+    nameAll();
+  });
+  passage = current;
+  current.finished.finally(() => {
+    for (const element of named) {
+      element.style.viewTransitionName = '';
+      element.style.viewTransitionClass = '';
+    }
+    if (passage === current) passage = null;
+  });
+  return current.updateCallbackDone.catch(() => {});
+}
+
+/** Counts a number up with an ease-out, for statistics. */
 export function countUp(element, target, { duration = 900, format = (value) => String(value) } = {}) {
   if (!animationsEnabled()) {
     element.textContent = format(target);

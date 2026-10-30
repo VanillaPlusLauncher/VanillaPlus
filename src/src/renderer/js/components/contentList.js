@@ -5,6 +5,7 @@ import { errorMessage } from '../core/format.js';
 import { formatBytes, PLATFORM_LABELS } from '../core/content.js';
 import { browseFor } from '../core/nav.js';
 import { sfx } from '../core/sound.js';
+import { morph } from '../core/effects.js';
 import { confirmDialog, openModal } from './modal.js';
 import { createSegmented } from './controls.js';
 import { confirmCompatibility } from './compatDialog.js';
@@ -90,7 +91,7 @@ export function createContentList(getInstance, type) {
     view: remembered(VIEW_KEY, 'list', VIEWS),
     sort: remembered(SORT_KEY, 'az', SORTS),
   };
-  const sortSelect = h('select', { class: 'select select--compact', 'aria-label': 'Порядок', onchange: (event) => { state.sort = event.target.value; remember(SORT_KEY, state.sort); renderRows(); } }, SORTS.map((entry) => h('option', { value: entry.value }, entry.label)));
+  const sortSelect = h('select', { class: 'select select--compact', 'aria-label': 'Порядок', onchange: (event) => { state.sort = event.target.value; remember(SORT_KEY, state.sort); relayout(); } }, SORTS.map((entry) => h('option', { value: entry.value }, entry.label)));
   sortSelect.value = state.sort;
   const viewButtons = VIEWS.map((entry) =>
     h('button', { class: 'icon-button view-toggle', type: 'button', title: entry.title, 'data-view': entry.value, 'aria-pressed': String(entry.value === state.view), onclick: () => setView(entry.value) }, h('span', { class: `view-icon view-icon--${entry.value}` })),
@@ -100,16 +101,27 @@ export function createContentList(getInstance, type) {
     remember(VIEW_KEY, view);
     viewButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
     rows.classList.remove('content-rows--enter');
-    renderRows();
+    relayout();
   }
+
+  /** The list drawn again with every card gliding from where it was to its new place and shape. */
+  function relayout() {
+    morph(() => renderRows(), { cards: () => rows.querySelectorAll('.content-row') });
+  }
+
+  // Typing filters a moment after the last letter, so the cards glide once instead of at every key.
+  let filterTimer = 0;
 
   const filterInput = h('input', {
     class: 'input',
     type: 'search',
     placeholder: 'Фильтр',
     oninput: (event) => {
-      state.query = event.target.value.trim().toLowerCase();
-      renderRows();
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => {
+        state.query = event.target.value.trim().toLowerCase();
+        relayout();
+      }, 160);
     },
   });
   const counter = h('span', { class: 'content-counter' });
@@ -140,7 +152,7 @@ export function createContentList(getInstance, type) {
   );
   const isMods = type === 'mod';
   const sideSelect = isMods
-    ? h('select', { class: 'select select--compact', 'aria-label': 'Где нужны моды', onchange: () => { state.side = sideSelect.value; renderRows(); } }, SIDE_FILTERS.map((entry) => h('option', { value: entry.value }, entry.label)))
+    ? h('select', { class: 'select select--compact', 'aria-label': 'Где нужны моды', onchange: () => { state.side = sideSelect.value; relayout(); } }, SIDE_FILTERS.map((entry) => h('option', { value: entry.value }, entry.label)))
     : null;
   const serverButton = isMods ? h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Включить или выключить моды по стороне', onclick: (event) => openSideMenu(event.currentTarget) }, 'Клиент / сервер ▾') : null;
   const autoUpdateInput = h('input', { type: 'checkbox', onchange: (event) => setAutoUpdate(event.target.checked) });
@@ -291,7 +303,7 @@ export function createContentList(getInstance, type) {
     // from and what file it is, then the actions (shown under the pointer) and the switch.
     const element = h(
       'div',
-      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) } },
+      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) }, 'data-id': item.file.replace(/\.disabled$/, '') },
       h(
         'div',
         { class: 'content-row__pic' },
@@ -336,7 +348,7 @@ export function createContentList(getInstance, type) {
       // (that made every switch jump). Only the order "enabled first" needs the whole list.
       const entry = rowElements.get(before);
       if (!entry || state.sort === 'enabled') {
-        renderRows();
+        relayout();
         return;
       }
       rowElements.delete(before);

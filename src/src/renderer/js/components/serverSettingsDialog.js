@@ -1,4 +1,5 @@
 import { api } from '../services/api.js';
+import { morph } from '../core/effects.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage } from '../core/format.js';
 import { iconUrl } from '../core/mc.js';
@@ -386,7 +387,7 @@ export function openServerSettings(instance, { onRestart } = {}) {
     value: part,
     onChange: (next) => {
       part = next;
-      render();
+      morph(() => render(), { panel: body.closest('.modal') });
     },
   });
 

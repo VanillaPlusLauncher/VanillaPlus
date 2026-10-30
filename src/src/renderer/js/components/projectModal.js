@@ -1,4 +1,5 @@
 import { api } from '../services/api.js';
+import { morph } from '../core/effects.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage, formatReleaseDate } from '../core/format.js';
 import { renderDescription } from '../core/markdown.js';
@@ -33,6 +34,14 @@ export function openProjectModal(hit, { instance = null, type = 'mod', onInstall
   );
 
   function showTab(key) {
+    if (tabHost.isConnected) {
+      morph(() => openTab(key), { panel: tabHost.closest('.modal') });
+      return;
+    }
+    openTab(key);
+  }
+
+  function openTab(key) {
     tabs.forEach(([tabKey], index) => tabButtons[index].setAttribute('aria-selected', String(tabKey === key)));
     tabHost.replaceChildren(tabs.find(([tabKey]) => tabKey === key)[2]);
     if (key === 'versions' && !versionsHost.dataset.loaded) {

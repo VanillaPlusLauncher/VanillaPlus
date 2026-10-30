@@ -3,6 +3,7 @@ import { locale } from '../core/i18n.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage } from '../core/format.js';
 import { formatBytes } from '../core/content.js';
+import { morph } from '../core/effects.js';
 import { store } from '../state/appStore.js';
 import { openModal, confirmDialog } from './modal.js';
 import { toast } from './toast.js';
@@ -322,7 +323,8 @@ export function createServersTab(getInstance, { onPlay } = {}) {
       { value: 'export', label: 'Для хостинга' },
     ],
     value: current,
-    onChange: (value) => show(value),
+    // The box grows or shrinks to the part shown while the old part fades into it.
+    onChange: (value) => morph(() => show(value), { panel: host }),
   });
   function show(value) {
     current = value;

@@ -1,4 +1,5 @@
 import { api } from '../services/api.js';
+import { morph } from '../core/effects.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage } from '../core/format.js';
 import { LOADER_LABELS, formatBytes } from '../core/content.js';
@@ -130,8 +131,10 @@ export function openShareDialog(instance) {
     ],
     value: 'code',
     onChange: (value) => {
-      codePanel.hidden = value !== 'code';
-      filePanel.hidden = value !== 'file';
+      morph(() => {
+        codePanel.hidden = value !== 'code';
+        filePanel.hidden = value !== 'file';
+      }, { panel: codePanel.closest('.modal') });
     },
   });
 

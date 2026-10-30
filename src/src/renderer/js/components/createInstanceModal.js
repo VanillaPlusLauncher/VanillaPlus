@@ -4,7 +4,7 @@ import { errorMessage, formatReleaseDate, VERSION_TYPE_LABELS } from '../core/fo
 import { LOADER_LABELS } from '../core/content.js';
 import { iconImage } from '../core/mc.js';
 import { openInstance } from '../core/nav.js';
-import { pixelBurst } from '../core/effects.js';
+import { morph, pixelBurst } from '../core/effects.js';
 import { store } from '../state/appStore.js';
 import { loadCatalog, refreshInstances, saveSettings } from '../state/actions.js';
 import { openModal } from './modal.js';
@@ -161,6 +161,14 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
   const footer = h('div', { class: 'create-footer' }, createButton);
 
   function showTab(key) {
+    if (key !== state.tab && tabHost.isConnected) {
+      morph(() => openTab(key), { panel: tabHost.closest('.modal') });
+      return;
+    }
+    openTab(key);
+  }
+
+  function openTab(key) {
     state.tab = key;
     tabs.forEach(([tabKey], index) => tabButtons[index].setAttribute('aria-selected', String(tabKey === key)));
     tabHost.replaceChildren(tabs.find(([tabKey]) => tabKey === key)[2]());
