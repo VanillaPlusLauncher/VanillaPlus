@@ -1,7 +1,7 @@
 """
 The launcher's icons as real 3D models, rendered in Blender (Cycles): the same set and colours as the
 smooth icons (make-smooth-icons.js), each one built from shapes with thickness and rounded edges, glossy
-plastic, metal and glass, lit like a studio and seen a little from above and to the right.
+plastic, metal and glass, lit like a studio and seen straight on.
 
 Usage (Blender 4.2 or newer):
   blender -b --factory-startup -P installer/tools/make-3d-icons.py -- [--size 96] [--out <folder>] [names…]
@@ -81,7 +81,9 @@ camera = bpy.data.objects.new('camera', bpy.data.cameras.new('camera'))
 camera.data.lens = 85
 scene.collection.objects.link(camera)
 scene.camera = camera
-YAW, PITCH = math.radians(20), math.radians(17)
+# Straight on: an icon that turns in the interface (the gear, the cross) turns round its own middle
+# and looks the same after a full turn; the depth shows in the rounded edges, the light and the shine.
+YAW, PITCH = 0.0, 0.0
 VIEW = Vector((math.sin(YAW) * math.cos(PITCH), -math.cos(YAW) * math.cos(PITCH), math.sin(PITCH)))
 
 icon_collection = bpy.data.collections.new('icon')
@@ -348,7 +350,7 @@ def icon_stack():
     for index, colour in enumerate(('#e6e6f4', '#a6a6c6', '#6f6f96')):
         layer = box('layer', (1.25, 1.25, 0.2), plastic(colour), (0, 0, 0.36 - index * 0.36), (0, 0, math.radians(45)), radius=0.07)
         layer.parent = pivot
-    pivot.rotation_euler = (math.radians(26), 0, 0)
+    pivot.rotation_euler = (math.radians(42), 0, 0)
 
 
 def icon_home():

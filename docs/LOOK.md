@@ -14,7 +14,8 @@ unless the owner asks otherwise. Backups of this state: the git tags `look-soft-
 | Icons on buttons and in lists | **Real 3D**: models built and rendered in Blender (glossy plastic, metal, glass, studio light), in the colours of items in the inventory; "Одноцветные" shows their smooth silhouettes | `css/icons.css`, `assets/ui/*.3d.png` (`installer/tools/make-3d-icons.py`) |
 | Sidebar | **Minecraft pictures** (items and blocks of the game) — never replaced by drawn icons | `layout/shell.js` |
 | Theme colour tiles | **Minecraft blocks** (amethyst, honeycomb, cherry…); a colour gem only if the game file is missing | `settingsPage.js`, `core/mc.js mcPictureOr` |
-| Hover on a button | Its own icon moves its own way (Играть dashes off and back, download drops, folder opens, gear turns, wardrobe figure turns, cross spins…); others hop with a tilt | `css/motion.css` |
+| Hover on a button | Its own icon moves its own way (Играть dashes off and back, download drops, folder opens, gear turns full round, wardrobe figure turns, cross spins…); others hop with a tilt. A move always plays to its end and ends where it began (the 3D icons are lit from one side) | `css/motion.css`, `components/alive.js` |
+| Mods, packs, shaders | Cards two or three in a line ("Подробно"), three or four ("Компактно"), square tiles ("Плитка"); the tick on the picture's corner, "⋯" and "×" under the pointer, the switch always | `features/instance.css`, `components/contentList.js` |
 | Shine | A soft band of light crosses a button under the pointer | `features/pixel.css` runs it, `soft.css` §4 paints it |
 | Press | The button sinks in | `soft.css` §4 |
 

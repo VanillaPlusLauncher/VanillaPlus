@@ -353,11 +353,6 @@
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.45);
 }
 
-:root[data-style="soft"] .content-row--selected {
-  background: linear-gradient(rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.12)), var(--color-surface-strong);
-  box-shadow: var(--soft-sink);
-}
-
 :root[data-style="soft"] .context-menu__item--active {
   background: rgba(255, 255, 255, 0.06);
   box-shadow: none;
@@ -404,6 +399,12 @@
 
 :root[data-style="soft"] .content-row:hover {
   background: rgba(46, 38, 64, 0.94);
+}
+
+/* A chosen mod card is pressed in and tinted (after the two rules above, which set the plain plate). */
+:root[data-style="soft"] .content-row.content-row--selected {
+  background: linear-gradient(rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.12)), var(--soft-chosen);
+  box-shadow: var(--soft-sink);
 }
 
 :root[data-style="soft"] .content-toolbar--secondary {

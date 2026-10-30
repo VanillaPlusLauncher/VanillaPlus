@@ -1,10 +1,13 @@
 /*
  * The launcher answers the mouse everywhere: a card under the pointer leans towards it in 3D with a
- * soft light following the pointer, and the title-screen panorama behind everything drifts a little
- * the other way, as if you looked around. Turned off with the animations (data-animations="off").
+ * soft light following the pointer, the title-screen panorama behind everything drifts a little the
+ * other way, as if you looked around, and a button's icon makes its own move (css/motion.css) when the
+ * pointer comes. Turned off with the animations (data-animations="off").
  */
 
 const TILT_SELECTOR = '.recent-card, .news-tile, .instance-card, .accent-option, .wardrobe__step, .panorama-option, .runtime-card';
+/** Buttons whose icon moves when the pointer comes onto them. */
+const MOVING_ICON_SELECTOR = '.btn, .icon-button:not(.icon-button--window), .chip, .tabs__button, .context-menu__item';
 /** How far a card leans at its edge, in degrees (a card up to TILT_SIZE px across; wider ones lean less). */
 const MAX_TILT = 7;
 const TILT_SIZE = 280;
@@ -85,4 +88,27 @@ export function installAliveUi() {
   window.addEventListener('blur', release);
   // Scrolling moves the card away from its measured box: let it go, the next move measures again.
   document.addEventListener('scroll', release, { capture: true, passive: true });
+
+  // The icon's move plays to its end once it has started, also when the pointer leaves at once: a move
+  // cut off by :hover ending jumped back to the start in one frame.
+  document.addEventListener(
+    'pointerover',
+    (event) => {
+      if (off() || !(event.target instanceof Element)) return;
+      const button = event.target.closest(MOVING_ICON_SELECTOR);
+      if (!button || button.disabled || (event.relatedTarget instanceof Node && button.contains(event.relatedTarget))) return;
+      const icon = button.querySelector('.icon');
+      if (!icon || icon.classList.contains('is-moving')) return;
+      icon.classList.add('is-moving');
+      const done = (end) => {
+        if (end.target !== icon) return;
+        icon.classList.remove('is-moving');
+        icon.removeEventListener('animationend', done);
+        icon.removeEventListener('animationcancel', done);
+      };
+      icon.addEventListener('animationend', done);
+      icon.addEventListener('animationcancel', done);
+    },
+    { passive: true },
+  );
 }

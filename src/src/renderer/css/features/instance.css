@@ -140,29 +140,35 @@
   color: var(--color-text-muted);
 }
 
+/* Mods, packs and shaders (contentList.js): cards side by side, two or three in a line ("Список"); the
+   compact and tile looks are further down. A card: the picture with its tick on the corner, the name and
+   version, a line of where it comes from and its file; the actions show under the pointer, the switch
+   always. */
 .content-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 10px;
 }
 
 .content-row {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px 10px 10px;
   border-radius: var(--radius-md);
   background: rgba(15, 12, 21, 0.72);
   border: 2px solid rgba(0, 0, 0, 0.5);
-  /* Rows off screen are not laid out or painted: long mod lists scroll smoothly. */
+  /* Cards off screen are not laid out or painted: long mod lists scroll smoothly. */
   content-visibility: auto;
-  contain-intrinsic-size: auto 66px;
+  contain-intrinsic-size: auto 68px;
   transition: opacity 200ms, background 220ms var(--ease-out), border-color 220ms var(--ease-out), transform 220ms var(--ease-out), box-shadow 220ms;
 }
 
 .content-row:hover {
   background: rgba(25, 20, 36, 0.85);
-  transform: translateX(3px);
+  transform: translateY(-2px);
 }
 
 .content-row--disabled {
@@ -173,10 +179,15 @@
   filter: grayscale(1);
 }
 
-.content-row__icon {
-  width: 42px;
-  height: 42px;
+.content-row__pic {
+  position: relative;
   flex: none;
+}
+
+.content-row__icon {
+  display: block;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-sm);
   object-fit: cover;
   image-rendering: auto;
@@ -190,7 +201,32 @@
   color: var(--color-text-muted);
 }
 
+.content-row__icon--empty .icon {
+  width: 62%;
+  height: 62%;
+}
+
+/* The tick sits on the picture's corner: under the pointer, or on every card while some are chosen.
+   (Written strongly enough to beat the ticks' own `position: relative` in pixel.css.) */
+.content-row .content-row__pic > input.content-check {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms var(--ease-spring);
+}
+
+.content-row:hover .content-row__pic > input.content-check,
+.content-row--selected .content-row__pic > input.content-check,
+.content-rows--choosing .content-row__pic > input.content-check,
+.content-row .content-row__pic > input.content-check:focus-visible {
+  opacity: 1;
+}
+
 .content-row__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   flex: 1;
   min-width: 0;
 }
@@ -199,28 +235,81 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
+  min-width: 0;
   font-weight: 600;
+}
+
+.content-row__name {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .content-row__version {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 12px;
   font-weight: 400;
   color: var(--color-text-muted);
 }
 
 .content-row__sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   font-size: 12px;
   color: var(--color-text-muted);
+}
+
+.content-row__sub .platform-logo {
+  width: 13px;
+  height: 13px;
+}
+
+.content-row__sub .side-tag {
+  padding: 0 6px;
+  font-size: 10.5px;
+}
+
+.content-row__file {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .content-row__update {
+  flex: none;
   color: #ffd479;
+}
+
+/* "⋯" and "×": there all the time (the card keeps its shape), seen under the pointer. */
+.content-row__actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.content-row:hover .content-row__actions,
+.content-row:focus-within .content-row__actions {
+  opacity: 1;
+}
+
+.content-row__actions .icon-button {
+  width: 32px;
+  height: 32px;
+}
+
+.content-row > .toggle {
+  flex: none;
 }
 
 .content-hint {
@@ -1795,24 +1884,30 @@
     linear-gradient(currentColor, currentColor) 0 12px / 100% 2px no-repeat;
 }
 
-/* Compact: one short line a mod, small icon, no file line. */
+/* Compact: small cards, three or four in a line — the picture, the name, the switch. */
 .content-rows--compact {
-  gap: 2px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 6px;
 }
 
 .content-rows--compact .content-row {
   gap: 10px;
-  padding: 4px 10px;
-  contain-intrinsic-size: auto 36px;
+  padding: 6px 10px 6px 8px;
+  contain-intrinsic-size: auto 44px;
 }
 
 .content-rows--compact .content-row__icon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 
-.content-rows--compact .content-row__sub,
-.content-rows--compact .badge {
+.content-rows--compact .content-row__pic > input.content-check {
+  top: -7px;
+  left: -7px;
+  transform: scale(0.85);
+}
+
+.content-rows--compact :is(.content-row__sub, .content-row__version, .content-row__update) {
   display: none;
 }
 
@@ -1820,77 +1915,95 @@
   font-size: 13.5px;
 }
 
-/* Tiles, like CurseForge's icons: the picture, the name under it, the switch and the menu on top. */
+.content-rows--compact .content-row__actions {
+  gap: 4px;
+}
+
+.content-rows--compact .content-row__actions .icon-button {
+  width: 28px;
+  height: 28px;
+}
+
+/* Tiles, like CurseForge's icons: a square card with the picture in the middle and the name under it;
+   along the top edge the tick (left), the actions under the pointer and the switch (right). */
 .content-rows--grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: 10px;
 }
 
 .content-rows--grid .content-row {
-  position: relative;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 34px 10px 12px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 44px 12px 14px;
   text-align: center;
-  contain-intrinsic-size: auto 150px;
-  padding-bottom: 36px;
+  contain-intrinsic-size: auto 196px;
+}
+
+.content-rows--grid .content-row:hover {
+  transform: translateY(-3px);
 }
 
 .content-rows--grid .content-row__icon {
-  width: 64px;
-  height: 64px;
+  width: 76px;
+  height: 76px;
+  border-radius: var(--radius-md);
+}
+
+/* The tick goes to the card's corner, not the picture's. */
+.content-rows--grid .content-row__pic {
+  position: static;
+}
+
+.content-rows--grid .content-row__pic > input.content-check {
+  top: 12px;
+  left: 12px;
 }
 
 .content-rows--grid .content-row__meta {
+  align-items: center;
   width: 100%;
 }
 
 .content-rows--grid .content-row__title {
-  display: block;
-  text-align: center;
+  justify-content: center;
   font-size: 13px;
 }
 
-.content-rows--grid .content-row__version,
-.content-rows--grid .content-row__sub,
-.content-rows--grid .side-tag,
-.content-rows--grid .badge,
-.content-rows--grid .content-row__update {
+/* The name may take two lines here. */
+.content-rows--grid .content-row__name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.content-rows--grid .content-row__sub {
+  justify-content: center;
+}
+
+.content-rows--grid :is(.content-row__version, .content-row__file, .content-row__update) {
   display: none;
 }
 
-.content-rows--grid .content-row > .content-check {
-  position: absolute !important;
-  top: 8px;
-  left: 8px;
-  margin: 0;
-}
-
 .content-rows--grid .content-row > .toggle {
-  position: absolute !important;
-  top: 8px;
-  right: 8px;
-}
-
-/* The menu and delete buttons sit at the bottom corners, shown on hover. */
-.content-rows--grid .content-row > .icon-button {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
-  opacity: 0;
-  transition: opacity 120ms steps(2, end);
+  top: 10px;
+  right: 10px;
 }
 
-.content-rows--grid .content-row > .content-row__more {
-  right: auto;
-  left: 4px;
+.content-rows--grid .content-row__actions {
+  position: absolute;
+  top: 8px;
+  right: 58px;
+  gap: 4px;
 }
 
-.content-rows--grid .content-row:hover > .icon-button,
-.content-rows--grid .content-row:focus-within > .icon-button {
-  opacity: 1;
+.content-rows--grid .content-row__actions .icon-button {
+  width: 28px;
+  height: 28px;
 }
 
 .content-rows--grid .content-row:hover .content-row__icon {

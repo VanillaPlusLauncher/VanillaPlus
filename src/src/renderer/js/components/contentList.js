@@ -226,6 +226,8 @@ export function createContentList(getInstance, type) {
     if (open) selectionText.textContent = `Выбрано: ${state.selected.size}`;
     selectAll.checked = state.items.length > 0 && state.selected.size === state.items.length;
     selectAll.indeterminate = state.selected.size > 0 && state.selected.size < state.items.length;
+    // While something is chosen every card shows its tick, not only the one under the pointer.
+    rows.classList.toggle('content-rows--choosing', open);
     for (const [file, entry] of rowElements) {
       const selected = state.selected.has(file);
       entry.check.checked = selected;
@@ -285,26 +287,40 @@ export function createContentList(getInstance, type) {
     );
     const selected = state.selected.has(item.file);
     const check = h('input', { type: 'checkbox', class: 'content-check', checked: selected, title: 'Выбрать', onchange: (event) => { if (event.target.checked) state.selected.add(item.file); else state.selected.delete(item.file); syncSelection(); } });
+    // A card: the picture (its tick on the corner), the name with the version, a line of where it comes
+    // from and what file it is, then the actions (shown under the pointer) and the switch.
     const element = h(
       'div',
-      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) }, title: state.view === 'grid' ? item.title : null },
-      check,
-      toggle,
-      // Folders (unpacked packs) are only named on disk; everything else may find its picture elsewhere.
-      item.folder ? h('div', { class: 'content-row__icon content-row__icon--empty' }, icon('cube')) : projectIcon({ iconUrl: item.icon, title: item.title, type }, 'content-row__icon'),
+      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) } },
+      h(
+        'div',
+        { class: 'content-row__pic' },
+        // Folders (unpacked packs) are only named on disk; everything else may find its picture elsewhere.
+        item.folder ? h('div', { class: 'content-row__icon content-row__icon--empty' }, icon('cube')) : projectIcon({ iconUrl: item.icon, title: item.title, type }, 'content-row__icon'),
+        check,
+      ),
       h(
         'div',
         { class: 'content-row__meta' },
-        h('div', { class: 'content-row__title' }, item.title, item.version ? h('span', { class: 'content-row__version' }, item.version) : null),
-        h('div', { class: 'content-row__sub' }, [item.authors?.length ? item.authors.slice(0, 2).join(', ') : null, item.file, item.folder ? 'папка' : formatBytes(item.size)].filter(Boolean).join(' · ')),
+        h('div', { class: 'content-row__title' }, h('span', { class: 'content-row__name', title: item.title }, item.title), item.version ? h('span', { class: 'content-row__version' }, item.version) : null),
+        h(
+          'div',
+          { class: 'content-row__sub' },
+          item.platform ? h('span', { class: `platform-logo platform-logo--${item.platform}`, title: PLATFORM_LABELS[item.platform] }) : null,
+          item.side && item.side !== 'both' ? h('span', { class: `side-tag side-tag--${item.side}`, title: item.side === 'client' ? 'Нужен только в игре: на сервер ставить не надо' : 'Нужен только на сервере' }, SIDE_LABELS[item.side]) : null,
+          h('span', { class: 'content-row__file' }, [item.authors?.length ? item.authors.slice(0, 2).join(', ') : null, item.file, item.folder ? 'папка' : formatBytes(item.size)].filter(Boolean).join(' · ')),
+        ),
       ),
-      item.side && item.side !== 'both' ? h('span', { class: `side-tag side-tag--${item.side}`, title: item.side === 'client' ? 'Нужен только в игре: на сервер ставить не надо' : 'Нужен только на сервере' }, SIDE_LABELS[item.side]) : null,
-      item.platform ? h('span', { class: `badge badge--${item.platform}` }, h('span', { class: `platform-logo platform-logo--${item.platform}` }), PLATFORM_LABELS[item.platform]) : null,
       update
         ? h('button', { class: 'btn btn--secondary btn--compact content-row__update', type: 'button', title: `Обновить до ${update.version.versionNumber}`, onclick: (event) => applyUpdate(item, update, event.currentTarget) }, '↑ ', update.version.versionNumber)
         : null,
-      h('button', { class: 'icon-button content-row__more', type: 'button', title: 'Действия', onclick: (event) => openRowMenu(item, event.currentTarget) }, h('span', { class: 'dots' }, '⋯')),
-      h('button', { class: 'icon-button', type: 'button', title: 'Удалить', onclick: () => remove(item) }, icon('close')),
+      h(
+        'div',
+        { class: 'content-row__actions' },
+        h('button', { class: 'icon-button content-row__more', type: 'button', title: 'Действия', onclick: (event) => openRowMenu(item, event.currentTarget) }, h('span', { class: 'dots' }, '⋯')),
+        h('button', { class: 'icon-button content-row__remove', type: 'button', title: 'Удалить', onclick: () => remove(item) }, icon('close')),
+      ),
+      toggle,
     );
     rowElements.set(item.file, { element, check, toggle });
     return element;

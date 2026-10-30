@@ -1,9 +1,11 @@
-/* Every icon moves in its own way when its button is under the pointer (both looks, only with
-   Settings → Animations on). One rule plays the icon's --icon-motion; each icon names its motion
-   below; icons without one hop with a tilt, like the instance icons on their cards (icon-hop,
-   features/alive.css). Only the icon of the button under the pointer moves. Loaded after icons.css. */
+/* Every icon moves in its own way when the pointer comes onto its button (both looks, only with
+   Settings → Animations on). components/alive.js marks the icon .is-moving and takes the mark off when
+   the move ends, so a move always plays to its end; every move ends where it started (the 3D icons are
+   lit from one side, so a half turn would not look the same). One rule plays the icon's --icon-motion;
+   each icon names its motion below; icons without one hop with a tilt, like the instance icons on
+   their cards (icon-hop, features/alive.css). Loaded after icons.css. */
 
-:root[data-animations="on"] :is(.btn, .icon-button:not(.icon-button--window), .chip, .tabs__button, .context-menu__item):hover:not(:disabled) .icon {
+:root[data-animations="on"] .icon.is-moving {
   animation: var(--icon-motion, icon-hop 620ms var(--ease-spring));
 }
 
@@ -57,9 +59,11 @@
   100% { transform: perspective(40px) rotateX(0); }
 }
 
-/* Settings: the gear turns half round (it looks the same after). */
+/* Settings: the gear turns once round, a little past and back. */
 @keyframes icon-turn {
-  to { transform: rotate(180deg); }
+  0% { transform: rotate(0); }
+  80% { transform: rotate(372deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Search: the magnifier looks round in a small circle. */
@@ -70,11 +74,11 @@
   75% { transform: translate(3px, 1px) rotate(8deg); }
 }
 
-/* Close / delete: the cross spins away and back. */
+/* Close / delete: the cross spins away, smaller, and comes back round. */
 @keyframes icon-spin-away {
   0% { transform: rotate(0) scale(1); }
-  60% { transform: rotate(120deg) scale(0.8); }
-  100% { transform: rotate(180deg) scale(1); }
+  55% { transform: rotate(220deg) scale(0.78); }
+  100% { transform: rotate(360deg) scale(1); }
 }
 
 /* "Гардероб": the figure turns round as if in front of a mirror. */
@@ -84,12 +88,12 @@
   100% { transform: perspective(60px) rotateY(360deg); }
 }
 
-/* Instances: the block jumps and lands on another face. */
+/* Instances: the block jumps, turns over in the air and lands with a squash. */
 @keyframes icon-flip {
   0% { transform: translateY(0) rotate(0); }
-  45% { transform: translateY(-6px) rotate(-45deg); }
-  80% { transform: translateY(1px) rotate(-90deg) scale(1.05, 0.95); }
-  100% { transform: translateY(0) rotate(-90deg); }
+  45% { transform: translateY(-7px) rotate(-200deg); }
+  80% { transform: translateY(1px) rotate(-360deg) scale(1.08, 0.9); }
+  100% { transform: translateY(0) rotate(-360deg); }
 }
 
 /* Rename: the pencil scribbles. */
