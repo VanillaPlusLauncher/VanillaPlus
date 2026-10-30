@@ -229,6 +229,22 @@ export function createContentList(getInstance, type) {
 
   /** Rows on screen by file: ticking changes them in place instead of drawing the whole list again. */
   const rowElements = new Map();
+  const itemOfRow = new WeakMap();
+  /** The mod last chosen by a click or its tick: Shift+click chooses every row between it and the new one. */
+  let anchor = null;
+
+  function choose(item, range) {
+    const order = [...rows.querySelectorAll('.content-row')].map((element) => itemOfRow.get(element));
+    const from = range ? order.indexOf(anchor) : -1;
+    if (from >= 0) {
+      const to = order.indexOf(item);
+      for (const other of order.slice(Math.min(from, to), Math.max(from, to) + 1)) state.selected.add(other.file);
+    } else if (!state.selected.delete(item.file)) {
+      state.selected.add(item.file);
+    }
+    anchor = item;
+    syncSelection();
+  }
 
   /** The selection shown: the bar, "select all" and each row's tick and highlight (no re-render). */
   function syncSelection() {
@@ -296,12 +312,18 @@ export function createContentList(getInstance, type) {
       h('span', { class: 'toggle__thumb' }),
     );
     const selected = state.selected.has(item.file);
-    const check = h('input', { type: 'checkbox', class: 'content-check', checked: selected, title: 'Выбрать', onchange: (event) => { if (event.target.checked) state.selected.add(item.file); else state.selected.delete(item.file); syncSelection(); } });
+    const check = h('input', { type: 'checkbox', class: 'content-check', checked: selected, title: 'Выбрать', onchange: (event) => { if (event.target.checked) state.selected.add(item.file); else state.selected.delete(item.file); anchor = item; syncSelection(); } });
     // A row: the tick, the switch, the picture, the name with the version and a line of who made it and
     // what file it is, where it is needed, where it comes from, then the update and the actions.
+    // A click anywhere else on it chooses it, like in Prism Launcher.
     const element = h(
       'div',
-      { class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`, style: { '--row': String(Math.min(rowElements.size, 14)) }, 'data-id': item.file.replace(/\.disabled$/, '') },
+      {
+        class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`,
+        style: { '--row': String(Math.min(rowElements.size, 14)) },
+        'data-id': item.file.replace(/\.disabled$/, ''),
+        onclick: (event) => { if (!event.target.closest('button, label, input, a')) choose(item, event.shiftKey); },
+      },
       check,
       toggle,
       // Folders (unpacked packs) are only named on disk; everything else may find its picture elsewhere.
@@ -325,6 +347,7 @@ export function createContentList(getInstance, type) {
       ),
     );
     rowElements.set(item.file, { element, check, toggle });
+    itemOfRow.set(element, item);
     return element;
   }
 

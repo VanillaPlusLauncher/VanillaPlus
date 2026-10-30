@@ -159,6 +159,9 @@
   border-radius: var(--radius-md);
   background: rgba(15, 12, 21, 0.72);
   border: 2px solid rgba(0, 0, 0, 0.5);
+  /* A click chooses the row (Shift+click several), so it takes the hand and selects no text. */
+  cursor: var(--cursor-hand);
+  user-select: none;
   /* Rows off screen are not laid out or painted: long mod lists scroll smoothly. */
   content-visibility: auto;
   contain-intrinsic-size: auto 66px;
