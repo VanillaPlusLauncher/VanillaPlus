@@ -185,7 +185,11 @@ export function resizeSmoothly(element, change, duration = 340) {
 let passage = null;
 
 export function morph(change, { cards = null, panel = null, key = (card) => card.dataset.id } = {}) {
+  // A page that is not the current one is only see-through (layout.css), not gone: its cards still have
+  // a place. A passage there froze the whole window over the page just opened (opening an instance from
+  // "Сборки" saves it as selected, and the list redrew behind it).
   const shown = (element) => {
+    if (element.closest('.page:not(.page--active)')) return false;
     const box = element.getBoundingClientRect();
     return box.width > 0 && box.bottom > 0 && box.top < window.innerHeight;
   };
