@@ -310,7 +310,8 @@
 }
 
 /* --- 5. Chosen things: pressed in and tinted, never a frame line ----------------------------------------- */
-:root[data-style="soft"] :is(.accent-option[aria-pressed="true"], .background-option[aria-pressed="true"], .font-option[aria-pressed="true"], .vendor-option[aria-pressed="true"], .loader-button[aria-pressed="true"], .chip[aria-pressed="true"], .view-toggle[aria-pressed="true"], .settings-nav__item[aria-current="true"], .instance-card:focus-visible, .instance-card--selected, .recent-card--selected, .account-row--selected, .dropdown__button--open) {
+/* Not the instance Home plays: it is chosen in the play bar, and its card looks like the others. */
+:root[data-style="soft"] :is(.accent-option[aria-pressed="true"], .background-option[aria-pressed="true"], .font-option[aria-pressed="true"], .vendor-option[aria-pressed="true"], .loader-button[aria-pressed="true"], .chip[aria-pressed="true"], .view-toggle[aria-pressed="true"], .settings-nav__item[aria-current="true"], .instance-card:focus-visible, .account-row--selected, .dropdown__button--open) {
   border-color: transparent;
   background: var(--soft-chosen);
   box-shadow: var(--soft-sink);

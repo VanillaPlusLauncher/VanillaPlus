@@ -608,15 +608,18 @@
 }
 
 /* The catalog while it looks for something else: the cards shown wait dimmed in place, then the new
-   ones come in. */
+   ones come in. The dimming fades in (after a moment, so a quick answer never flickers), and the slow
+   breathing starts only once it has: an animation from the start would cut the fade into a jump. */
 .project-grid.is-refreshing {
   opacity: 0.45;
   filter: saturate(0.7) blur(1px);
   pointer-events: none;
-  animation: grid-wait 1.1s ease-in-out infinite alternate;
+  transition-delay: 120ms;
+  animation: grid-wait 1.1s ease-in-out 340ms infinite alternate;
 }
 
 @keyframes grid-wait {
+  from { opacity: 0.45; }
   to { opacity: 0.28; }
 }
 
