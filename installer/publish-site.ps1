@@ -29,7 +29,8 @@ if (-not $token) { throw 'Нет токена сайта: создайте ег�
 $path = (Resolve-Path $File).Path
 $name = [IO.Path]::GetFileName($path)
 $size = (Get-Item $path).Length
-if (-not $Channel) { $Channel = if ($name -match '-beta\.') { 'beta' } else { 'release' } }
+# "-beta.28" and the newer "1.7.1-beta" / "1.7.1-beta-mac-arm64" names alike.
+if (-not $Channel) { $Channel = if ($name -match '-beta\b') { 'beta' } else { 'release' } }
 
 $client = New-Object System.Net.Http.HttpClient
 $client.Timeout = [TimeSpan]::FromMinutes(5)
