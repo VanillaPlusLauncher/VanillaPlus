@@ -22,6 +22,8 @@
   /* Accent: the theme colour chosen in Settings → Appearance (amethyst by default). */
   --accent-rgb: 190, 160, 255;
   --accent-strong-rgb: 150, 112, 245;
+  /* The theme colour's hue: the soft look tints its plates and panels with it (soft.css). */
+  --accent-hue: 257.1;
   --color-accent: rgb(var(--accent-rgb));
   --color-accent-strong: rgb(var(--accent-strong-rgb));
   --color-accent-deep: #4b2e9e;
@@ -55,16 +57,16 @@
 }
 
 /* Theme colours. Amethyst, the default, matches the X of the logo. */
-:root[data-accent="amethyst"] { --accent-rgb: 190, 160, 255; --accent-strong-rgb: 150, 112, 245; --color-accent-deep: #4b2e9e; --color-text-on-accent: #1c0e3a; }
-:root[data-accent="vanilla"] { --accent-rgb: 247, 215, 148; --accent-strong-rgb: 236, 186, 92; --color-accent-deep: #8a5a1c; --color-text-on-accent: #2b1a08; }
-:root[data-accent="berry"] { --accent-rgb: 255, 138, 168; --accent-strong-rgb: 242, 88, 128; --color-accent-deep: #8c1f42; --color-text-on-accent: #2b0812; }
-:root[data-accent="lavender"] { --accent-rgb: 194, 176, 255; --accent-strong-rgb: 150, 122, 250; --color-accent-deep: #45318f; --color-text-on-accent: #140b2e; }
+:root[data-accent="amethyst"] { --accent-rgb: 190, 160, 255; --accent-strong-rgb: 150, 112, 245; --accent-hue: 257.1; --color-accent-deep: #4b2e9e; --color-text-on-accent: #1c0e3a; }
+:root[data-accent="vanilla"] { --accent-rgb: 247, 215, 148; --accent-strong-rgb: 236, 186, 92; --accent-hue: 39.2; --color-accent-deep: #8a5a1c; --color-text-on-accent: #2b1a08; }
+:root[data-accent="berry"] { --accent-rgb: 255, 138, 168; --accent-strong-rgb: 242, 88, 128; --accent-hue: 344.4; --color-accent-deep: #8c1f42; --color-text-on-accent: #2b0812; }
+:root[data-accent="lavender"] { --accent-rgb: 194, 176, 255; --accent-strong-rgb: 150, 122, 250; --accent-hue: 253.1; --color-accent-deep: #45318f; --color-text-on-accent: #140b2e; }
 
-:root[data-accent="diamond"] { --accent-rgb: 124, 236, 255; --accent-strong-rgb: 74, 214, 238; --color-accent-deep: #1d7f92; }
-:root[data-accent="gold"] { --accent-rgb: 255, 216, 107; --accent-strong-rgb: 246, 192, 64; --color-accent-deep: #9a6f12; }
-:root[data-accent="redstone"] { --accent-rgb: 255, 120, 112; --accent-strong-rgb: 236, 72, 64; --color-accent-deep: #8f1d16; }
-:root[data-accent="lapis"] { --accent-rgb: 138, 172, 255; --accent-strong-rgb: 88, 128, 242; --color-accent-deep: #233f96; }
-:root[data-accent="copper"] { --accent-rgb: 255, 176, 128; --accent-strong-rgb: 226, 128, 80; --color-accent-deep: #8a4320; }
+:root[data-accent="diamond"] { --accent-rgb: 124, 236, 255; --accent-strong-rgb: 74, 214, 238; --accent-hue: 188.8; --color-accent-deep: #1d7f92; }
+:root[data-accent="gold"] { --accent-rgb: 255, 216, 107; --accent-strong-rgb: 246, 192, 64; --accent-hue: 42.2; --color-accent-deep: #9a6f12; }
+:root[data-accent="redstone"] { --accent-rgb: 255, 120, 112; --accent-strong-rgb: 236, 72, 64; --accent-hue: 2.8; --color-accent-deep: #8f1d16; }
+:root[data-accent="lapis"] { --accent-rgb: 138, 172, 255; --accent-strong-rgb: 88, 128, 242; --accent-hue: 224.4; --color-accent-deep: #233f96; }
+:root[data-accent="copper"] { --accent-rgb: 255, 176, 128; --accent-strong-rgb: 226, 128, 80; --accent-hue: 19.7; --color-accent-deep: #8a4320; }
 
 /* The interface font (Settings → Appearance → Font): Inter ("clean") unless another is chosen. */
 :root[data-font="pixel"] {

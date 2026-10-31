@@ -9,10 +9,27 @@
 
 /* --- 1. Tokens ------------------------------------------------------------------------------------------ */
 :root[data-style="soft"] {
+  /* Every plate, panel, pit and soft text takes the hue of the theme colour (tokens.css --accent-hue)
+     at its own depth: violet with Amethyst, golden with Gold, teal with Diamond. The pictures (logo,
+     Minecraft icons, panoramas) keep their own colours. */
   /* Plates a little lighter than the panels, so they stand out of them; pits a little darker. */
-  --soft-face: #2d2541;
-  --soft-face-hover: #352b4c;
-  --soft-pit: #201a2d;
+  --soft-face: hsl(var(--accent-hue) 27.5% 20%);
+  --soft-face-hover: hsl(var(--accent-hue) 27.7% 23.3%);
+  --soft-pit: hsl(var(--accent-hue) 26.8% 13.9%);
+  /* Plates over the panorama (more opaque), a lifted card, a quiet button, a row under the pointer. */
+  --soft-plate-hover: hsl(var(--accent-hue) 26.1% 21.8% / 0.95);
+  --soft-ghost: hsl(var(--accent-hue) 27.5% 20% / 0.95);
+  --soft-row-hover: hsl(var(--accent-hue) 25.5% 20% / 0.94);
+  --soft-sidebar: hsl(var(--accent-hue) 26.5% 13.3% / 0.94);
+  --soft-dim: hsl(var(--accent-hue) 30.4% 9% / 0.45);
+  --soft-track: hsl(var(--accent-hue) 28.2% 7.6%);
+  /* Light knobs and the log's text. */
+  --soft-knob: hsl(var(--accent-hue) 28% 85.3%);
+  --soft-knob-light: hsl(var(--accent-hue) 51.5% 93.5%);
+  --soft-log-text: hsl(var(--accent-hue) 42.4% 88.4%);
+  --color-text: hsl(var(--accent-hue) 57.9% 96.3%);
+  --color-text-soft: hsl(var(--accent-hue) 27.1% 79%);
+  --color-text-muted: hsl(var(--accent-hue) 14.3% 57.5%);
   --soft-raise: 6px 6px 14px rgba(0, 0, 0, 0.5), -4px -4px 10px rgba(255, 255, 255, 0.07);
   --soft-raise-sm: 4px 4px 9px rgba(0, 0, 0, 0.48), -3px -3px 7px rgba(255, 255, 255, 0.065);
   --soft-sink: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -3px -3px 7px rgba(255, 255, 255, 0.06);
@@ -21,18 +38,18 @@
   --soft-edge: inset 0 1px 0 rgba(255, 255, 255, 0.13);
   /* What is chosen: pressed in, darker than any plate or field (any tint would make it lighter than
      the plates around it, so it would read as raised); its text takes the theme colour. */
-  --soft-chosen: #16121e;
+  --soft-chosen: hsl(var(--accent-hue) 25% 9.4%);
 
   /* The components' own rounding (features/pixel.css squares every corner only in the pixel look). */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  --color-surface: rgba(39, 32, 54, 0.9);
-  --color-surface-strong: rgba(41, 34, 57, 0.98);
+  --color-surface: hsl(var(--accent-hue) 25.6% 16.9% / 0.9);
+  --color-surface-strong: hsl(var(--accent-hue) 25.3% 17.8% / 0.98);
   --color-surface-hover: rgba(255, 255, 255, 0.05);
-  --color-border: rgba(226, 214, 255, 0.07);
-  --color-border-strong: rgba(226, 214, 255, 0.12);
+  --color-border: hsl(var(--accent-hue) 100% 92% / 0.07);
+  --color-border-strong: hsl(var(--accent-hue) 100% 92% / 0.12);
 }
 
 /* --- 2. Shape: round corners, no pixel-cut steps and no pixel-frame worklet --------------------------- */
@@ -112,7 +129,7 @@
 
 :root[data-style="soft"] :is(.instance-card, .recent-card, .project-card, .vendor-option, .wardrobe__step):hover {
   border-color: transparent;
-  background: rgba(50, 41, 70, 0.95);
+  background: var(--soft-plate-hover);
 }
 
 :root[data-style="soft"] .news-tile,
@@ -203,7 +220,7 @@
 /* Quiet buttons: the same plate with a smaller relief, see-through, so they still read as buttons on
    a panel, in a dialog's footer and over the panorama. */
 :root[data-style="soft"] .btn--ghost {
-  background: rgba(45, 37, 65, 0.95);
+  background: var(--soft-ghost);
   color: var(--color-text);
   box-shadow: var(--soft-raise-sm), var(--soft-edge);
 }
@@ -301,12 +318,12 @@
   min-height: 44px;
   padding: 0 22px;
   font-size: 14px;
-  background: rgba(39, 32, 54, 0.92);
+  background: hsl(var(--accent-hue) 25.6% 16.9% / 0.92);
   backdrop-filter: blur(10px);
 }
 
 :root[data-style="soft"] .home-side__wardrobe:hover:not(:disabled) {
-  background: rgba(50, 41, 70, 0.95);
+  background: var(--soft-plate-hover);
 }
 
 /* --- 5. Chosen things: pressed in and tinted, never a frame line ----------------------------------------- */
@@ -321,7 +338,7 @@
 /* The sidebar: a panel of its own colour with a soft shadow instead of the black edge line, so the
    current page can sit pressed into it. */
 :root[data-style="soft"] .sidebar {
-  background: rgba(31, 25, 43, 0.94);
+  background: var(--soft-sidebar);
   border-right: 0;
   box-shadow: 6px 0 18px rgba(0, 0, 0, 0.35);
 }
@@ -351,6 +368,10 @@
 :root[data-style="soft"] .account-row--selected .account-row__check {
   background: radial-gradient(circle, #fff 0 3px, var(--color-accent-strong) 4px);
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-style="soft"] .tooltip {
+  background: hsl(var(--accent-hue) 28% 9.8% / 0.96);
 }
 
 :root[data-style="soft"] .context-menu__item--active {
@@ -398,7 +419,7 @@
 }
 
 :root[data-style="soft"] .content-row:hover {
-  background: rgba(46, 38, 64, 0.94);
+  background: var(--soft-row-hover);
 }
 
 /* A chosen mod card is pressed in and tinted (after the two rules above, which set the plain plate). */
@@ -412,7 +433,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50% !important;
-  background: rgba(20, 16, 30, 0.45);
+  background: var(--soft-dim);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6);
 }
 
@@ -456,7 +477,7 @@
 }
 
 :root[data-style="soft"] .log-view {
-  color: #ddd5ee;
+  color: var(--soft-log-text);
   font-size: 12.5px;
 }
 
@@ -464,7 +485,7 @@
 /* Switches: a round pit (deep enough to see when off) and a round knob. */
 :root[data-style="soft"] .toggle__track,
 :root[data-style="soft"] .toggle:hover .toggle__track {
-  background: #120e19;
+  background: var(--soft-track);
   box-shadow: var(--soft-sink);
 }
 
@@ -474,7 +495,7 @@
 }
 
 :root[data-style="soft"] .toggle__thumb {
-  background: #d6cfe4;
+  background: var(--soft-knob);
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
@@ -530,7 +551,7 @@
 :root[data-style="soft"] .range::-webkit-slider-thumb {
   width: 20px;
   height: 20px;
-  background: #ece6f7;
+  background: var(--soft-knob-light);
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.45);
 }
 
