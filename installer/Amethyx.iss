@@ -55,7 +55,10 @@ SolidCompression=yes
 MinVersion=6.1sp1
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-CloseApplications=yes
+; An open launcher is closed before its files are replaced. Asked politely only, Windows cannot close
+; it: its helper processes (pages, graphics) have no window to be asked, and Setup stopped with
+; "could not close all applications". Force asks first and ends what is left.
+CloseApplications=force
 
 [Languages]
 Name: "ru"; MessagesFile: "compiler:Languages\Russian.isl"
