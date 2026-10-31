@@ -150,21 +150,25 @@ function cloud_path(): string {
   return $path === '' ? '/' : $path;
 }
 
-// The client's address. nginx in front of Apache connects from this machine (127.0.0.1, or the
-// server's own address on some hostings): then, and only then, the address nginx passes on counts,
-// X-Real-IP or the last X-Forwarded-For entry (the one nginx added; the ones before it come from
-// the client and may be anything).
+// The client's address. Requests reach PHP through the hosting's own proxies: nginx on this
+// machine (127.0.0.1, or the server's own address on some hostings) and, on the site's hosting, a
+// front server in its private network. A request from such an address came through them, and the
+// client is then the last public address in X-Forwarded-For (every proxy adds the one it saw at
+// the end; the entries before come from the client and may be anything), else X-Real-IP.
 function cloud_client_ip(): string {
   $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
-  if ($ip === '127.0.0.1' || $ip === '::1' || ($ip !== '' && $ip === (string) ($_SERVER['SERVER_ADDR'] ?? ''))) {
-    $forwarded = trim((string) ($_SERVER['HTTP_X_REAL_IP'] ?? ''));
-    if ($forwarded === '') {
-      $list = explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-      $forwarded = trim((string) end($list));
-    }
-    if (filter_var($forwarded, FILTER_VALIDATE_IP)) $ip = $forwarded;
+  if (cloud_public_ip($ip) && $ip !== (string) ($_SERVER['SERVER_ADDR'] ?? '')) return $ip;
+  $hops = array_reverse(explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '')));
+  $hops[] = (string) ($_SERVER['HTTP_X_REAL_IP'] ?? '');
+  foreach ($hops as $hop) {
+    if (cloud_public_ip(trim($hop))) return trim($hop);
   }
   return $ip;
+}
+
+// Not loopback, private (10/8, 172.16/12, 192.168/16, fc00::/7) or otherwise reserved.
+function cloud_public_ip(string $ip): bool {
+  return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
 }
 
 // ---- Databases ------------------------------------------------------------

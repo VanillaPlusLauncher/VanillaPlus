@@ -154,7 +154,7 @@ after(async () => {
 let addresses = 0;
 function nextAddress() {
   addresses += 1;
-  return `10.${(addresses >> 16) & 255}.${(addresses >> 8) & 255}.${addresses & 255}`;
+  return `11.${(addresses >> 16) & 255}.${(addresses >> 8) & 255}.${addresses & 255}`;
 }
 
 /** A call to /cloud/…; a string body is sent as it is (file parts, SQL). */
@@ -221,12 +221,16 @@ test('php -l passes on every PHP file of cloud/', () => {
 test('the server answers, /ip gives the address nginx passed on', async () => {
   let r = await call('GET', '/');
   assert.deepEqual(r.body, { name: 'Amethyx server', api: 1 });
-  r = await call('GET', '/ip', undefined, null, { ip: '10.1.2.3' });
+  r = await call('GET', '/ip', undefined, null, { ip: '11.1.2.3' });
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body, { ip: '10.1.2.3' });
+  assert.deepEqual(r.body, { ip: '11.1.2.3' });
   assert.equal(r.headers.get('cache-control'), 'no-store');
-  r = await call('GET', '/ip', undefined, null, { ip: '6.6.6.6, 10.9.9.9' });
-  assert.equal(r.body.ip, '10.9.9.9', 'the last X-Forwarded-For entry is the one nginx added');
+  r = await call('GET', '/ip', undefined, null, { ip: '6.6.6.6, 7.7.7.7' });
+  assert.equal(r.body.ip, '7.7.7.7', 'the last X-Forwarded-For entry is the one nginx added');
+  r = await call('GET', '/ip', undefined, null, { ip: '6.6.6.6, 7.7.7.7, 192.168.1.20' });
+  assert.equal(r.body.ip, '7.7.7.7', 'a front server of the hosting (a private address) is passed over');
+  r = await call('GET', '/ip', undefined, null, { ip: '10.9.9.9', headers: { 'X-Real-IP': '8.8.4.4' } });
+  assert.equal(r.body.ip, '8.8.4.4', 'X-Real-IP when X-Forwarded-For has no public address');
   r = await call('GET', '/ip', undefined, null, { ip: false });
   assert.equal(r.body.ip, '127.0.0.1');
   r = await call('GET', '/nothing');
@@ -644,7 +648,7 @@ test('tunnels and the live socket are gone: 410', async () => {
 });
 
 test('rate limit: 60 a minute per address on /v1 and /ip; file parts and updates apart', async () => {
-  const ip = '10.250.0.1';
+  const ip = '11.250.0.1';
   let limited = null;
   for (let count = 1; count <= 130 && !limited; count += 1) {
     const r = await call('GET', '/v1/me', undefined, s.steve, { ip });
