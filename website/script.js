@@ -31,7 +31,7 @@
     'f7.title': 'Fast and always fresh',
     'f7.text': 'Files download in several streams, all mods update at once. And the launcher keeps itself up to date too.',
     'f8.title': 'Beautiful and clear',
-    'f8.text': 'The amethyst pixel style, lively animations, panoramas and sounds. A short tour for newcomers and several languages to choose from.',
+    'f8.text': 'A soft amethyst look with 3D icons, lively animations, panoramas and sounds. A short tour for newcomers and several languages to choose from.',
     'shots.title': 'Screenshots',
     'shots.mods': 'Instance mods',
     'shots.library': 'Modrinth and CurseForge library',
