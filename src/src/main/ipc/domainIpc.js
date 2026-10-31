@@ -268,6 +268,14 @@ function registerDomainHandlers(handle) {
     return result;
   });
   handle(CHANNELS.content.installDatapack, async (_event, request) => contentService.installDatapack(await settings(), request ?? {}));
+  // A map: a new world in the instance; Minecraft Inside's maps are downloaded by the player on its page.
+  handle(CHANNELS.content.installWorld, async (_event, request) => {
+    const result = request?.platform === 'mcinside'
+      ? await require('../content/insideSite').installInsideMap(await settings(), request ?? {})
+      : await contentService.installWorld(await settings(), request ?? {});
+    if (result.worlds?.length) instancesChanged(request?.instanceId);
+    return result;
+  });
   // Instances of other launchers on this computer, and moving one into Amethyx.
   handle(CHANNELS.content.scanLaunchers, () => require('../content/launcherImport').scanLaunchers());
   handle(CHANNELS.content.importFromLauncher, async (_event, request) => {
@@ -292,7 +300,7 @@ function registerDomainHandlers(handle) {
   handle(CHANNELS.content.identify, async (_event, instanceId, type) => contentService.identifyContent(await settings(), instanceId, type));
   handle(CHANNELS.content.checkUpdates, async (_event, instanceId, type) => contentService.checkUpdates(await settings(), instanceId, type));
   handle(CHANNELS.content.findIcon, async (_event, query) =>
-    contentService.findIcon(await settings(), { title: String(query?.title ?? '').slice(0, 100), slug: String(query?.slug ?? '').slice(0, 100), type: ['mod', 'resourcepack', 'shader', 'modpack', 'datapack'].includes(query?.type) ? query.type : 'mod' }));
+    contentService.findIcon(await settings(), { title: String(query?.title ?? '').slice(0, 100), slug: String(query?.slug ?? '').slice(0, 100), type: ['mod', 'resourcepack', 'shader', 'modpack', 'datapack', 'world'].includes(query?.type) ? query.type : 'mod' }));
   handle(CHANNELS.content.updateMany, async (_event, instanceId, type, updates) => contentService.updateMany(await settings(), instanceId, type, Array.isArray(updates) ? updates.slice(0, 1000) : []));
   handle(CHANNELS.content.setEnabledMany, async (_event, instanceId, type, files, enabled) => {
     if (gameService.isInstanceRunning(instanceId)) {

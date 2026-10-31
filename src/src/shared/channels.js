@@ -81,6 +81,7 @@ const CHANNELS = Object.freeze({
     resolveSides: 'content:resolve-sides',
     checkCompatibility: 'content:check-compatibility',
     installDatapack: 'content:install-datapack',
+    installWorld: 'content:install-world',
     optimize: 'content:optimize',
     optimizeApply: 'content:optimize-apply',
     optimizeUndo: 'content:optimize-undo',

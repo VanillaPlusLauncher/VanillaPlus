@@ -107,6 +107,7 @@ const bridge = {
     resolveSides: (instanceId) => invoke(CHANNELS.content.resolveSides, instanceId),
     checkCompatibility: (request) => invoke(CHANNELS.content.checkCompatibility, request),
     installDatapack: (request) => invoke(CHANNELS.content.installDatapack, request),
+    installWorld: (request) => invoke(CHANNELS.content.installWorld, request),
     optimize: (instanceId) => invoke(CHANNELS.content.optimize, instanceId),
     optimizeApply: (instanceId, choices) => invoke(CHANNELS.content.optimizeApply, instanceId, choices ?? {}),
     optimizeUndo: (instanceId) => invoke(CHANNELS.content.optimizeUndo, instanceId),

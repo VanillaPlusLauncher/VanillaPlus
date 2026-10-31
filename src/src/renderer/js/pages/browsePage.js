@@ -12,8 +12,9 @@ import { toast } from '../components/toast.js';
 import { beginInstall } from '../core/installQueue.js';
 
 /**
- * Library: modpacks, mods, resource packs, shaders and data packs from Modrinth and CurseForge.
- * Everything except modpacks goes into the chosen instance (data packs into one of its worlds).
+ * Library: modpacks, mods, resource packs, shaders and data packs from Modrinth and CurseForge, and
+ * maps from CurseForge and Minecraft Inside. Everything except modpacks goes into the chosen instance
+ * (data packs into one of its worlds, maps as new worlds).
  */
 export function createBrowsePage() {
   let type = 'mod';
@@ -34,7 +35,7 @@ export function createBrowsePage() {
     targetIcon,
     h('div', { class: 'target-picker__text' }, h('span', { class: 'target-picker__label' }, 'Устанавливать в сборку'), targetSelect, targetMeta),
     worldField,
-    h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => targetId && openInstance(targetId, type === 'modpack' ? 'mod' : type === 'datapack' ? 'worlds' : type) }, 'Открыть сборку'),
+    h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => targetId && openInstance(targetId, type === 'modpack' ? 'mod' : type === 'datapack' || type === 'world' ? 'worlds' : type) }, 'Открыть сборку'),
   );
   const noInstances = h(
     'div',
@@ -58,7 +59,7 @@ export function createBrowsePage() {
     h(
       'header',
       { class: 'page-header' },
-      h('div', null, h('h1', { class: 'page-title' }, 'Библиотека'), h('p', { class: 'page-subtitle' }, 'Модпаки, моды, ресурспаки, шейдеры и датапаки с Modrinth и CurseForge.')),
+      h('div', null, h('h1', { class: 'page-title' }, 'Библиотека'), h('p', { class: 'page-subtitle' }, 'Модпаки, моды, ресурспаки, шейдеры и датапаки с Modrinth и CurseForge, карты с CurseForge и Minecraft Inside.')),
     ),
     h('div', { class: 'tabs browse-tabs', role: 'tablist' }, typeButtons),
     targetPicker,
@@ -105,7 +106,7 @@ export function createBrowsePage() {
     const ask = ++installedAsk;
     const current = target();
     installed = new Set();
-    if (!current || type === 'modpack' || type === 'datapack') {
+    if (!current || type === 'modpack' || type === 'datapack' || type === 'world') {
       browser.markInstalled();
       return;
     }
@@ -151,6 +152,14 @@ export function createBrowsePage() {
       }
       const result = await api.content.installDatapack({ instanceId: current.id, world: worldSelect.value, platform: hit.platform, projectId: hit.id, versionId, gameVersion: filters?.gameVersion ?? null });
       toast(`«${hit.title}» → мир «${result.world}»`, 'success', 4800, { title: 'Датапак установлен', icon: 'map', group: 'mods' });
+      return;
+    }
+    if (type === 'world') {
+      // From Minecraft Inside: its page opens, and the map comes in once the player downloads it there.
+      if (hit.platform === 'mcinside') toast('Нажмите «Скачать» на странице карты — лаунчер сам поставит её в сборку.', 'info', 6000, { silent: true });
+      const result = await api.content.installWorld({ instanceId: current.id, platform: hit.platform, projectId: hit.id, versionId, gameVersion: filters?.gameVersion ?? null, title: hit.title });
+      if (result.cancelled) throw new Error('Окно сайта закрыто — карта не скачана.');
+      toast(`«${hit.title}» → ${current.name}`, 'success', 5200, { title: 'Карта добавлена', icon: 'map', group: 'mods' });
       return;
     }
     const request = { instanceId: current.id, platform: hit.platform, projectId: hit.id, versionId, type, title: hit.title, iconUrl: hit.iconUrl, filters };

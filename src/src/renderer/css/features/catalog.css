@@ -119,11 +119,18 @@
   height: 10px;
 }
 
+.platform-button[aria-pressed="true"].platform-button--mcinside {
+  background: rgba(79, 179, 255, 0.16);
+  color: #4fb3ff;
+}
+
 .platform-button__dot--modrinth { background: #1bd96a; }
 .platform-button__dot--curseforge { background: #f16436; }
+.platform-button__dot--mcinside { background: #4fb3ff; }
 
 .badge--modrinth { background: rgba(27, 217, 106, 0.14); color: #1bd96a; }
 .badge--curseforge { background: rgba(241, 100, 54, 0.14); color: #ff8a5c; }
+.badge--mcinside { background: rgba(79, 179, 255, 0.14); color: #7cc8ff; }
 .badge--microsoft { background: rgba(100, 170, 255, 0.14); color: #8ec5ff; }
 .badge--ely { background: rgba(32, 201, 151, 0.16); color: #4fe3b0; }
 .badge--offline { background: rgba(255, 255, 255, 0.06); color: var(--color-text-muted); }
@@ -576,6 +583,7 @@
 
 .platform-logo--modrinth { background-image: url("../../../../assets/platforms/modrinth.svg"); }
 .platform-logo--curseforge { background-image: url("../../../../assets/platforms/curseforge.svg"); }
+.platform-logo--mcinside { background-image: url("../../../../assets/platforms/mcinside.svg"); }
 
 /* Library: back to the instance's version and loader */
 .browser-toolbar__reset {
@@ -596,6 +604,7 @@
 
 .platform-switch[data-platform="modrinth"] .platform-switch__thumb { background-color: rgba(27, 217, 106, 0.16); }
 .platform-switch[data-platform="curseforge"] .platform-switch__thumb { background-color: rgba(241, 100, 54, 0.16); }
+.platform-switch[data-platform="mcinside"] .platform-switch__thumb { background-color: rgba(79, 179, 255, 0.16); }
 
 .platform-switch .platform-button {
   position: relative;

@@ -3,7 +3,7 @@ import { locale } from './i18n.js';
 /** Shared labels and helpers for mods, packs and loaders. */
 
 export const LOADER_LABELS = { vanilla: 'Vanilla', fabric: 'Fabric', quilt: 'Quilt', forge: 'Forge', neoforge: 'NeoForge' };
-export const PLATFORM_LABELS = { modrinth: 'Modrinth', curseforge: 'CurseForge' };
+export const PLATFORM_LABELS = { modrinth: 'Modrinth', curseforge: 'CurseForge', mcinside: 'Minecraft Inside' };
 export const CONTENT_TYPES = [
   { type: 'modpack', label: 'Модпаки', short: 'Модпаки', folder: null },
   { type: 'mod', label: 'Моды', short: 'Моды', folder: 'mods' },
@@ -11,6 +11,8 @@ export const CONTENT_TYPES = [
   { type: 'shader', label: 'Шейдеры', short: 'Шейдеры', folder: 'shaderpacks' },
   // Data packs go into one world of the instance (saves/<world>/datapacks).
   { type: 'datapack', label: 'Датапаки', short: 'Датапаки', folder: null },
+  // Maps are new worlds of the instance (saves/<map>), from CurseForge and Minecraft Inside.
+  { type: 'world', label: 'Карты', short: 'Карты', folder: 'saves' },
 ];
 export const SORTS = [
   { value: 'relevance', label: 'По релевантности' },

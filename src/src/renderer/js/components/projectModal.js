@@ -74,7 +74,7 @@ export function openProjectModal(hit, { instance = null, type = 'mod', onInstall
       'div',
       { class: 'project-header__meta' },
       h('div', { class: 'project-header__title' }, hit.title, h('span', { class: `badge badge--${hit.platform}` }, h('span', { class: `platform-logo platform-logo--${hit.platform}` }), PLATFORM_LABELS[hit.platform])),
-      h('div', { class: 'project-header__sub' }, hit.author ? `от ${hit.author}` : '', ' · ', `${formatCount(hit.downloads)} загрузок`),
+      h('div', { class: 'project-header__sub' }, hit.author ? `от ${hit.author}` : '', hit.downloads != null ? ` · ${formatCount(hit.downloads)} загрузок` : ''),
       h('p', { class: 'project-header__summary' }, hit.description),
       h('div', { class: 'project-header__chips' }, (hit.categories ?? []).slice(0, 6).map((category) => h('span', { class: 'chip chip--static' }, category))),
     ),

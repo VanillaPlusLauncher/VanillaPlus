@@ -41,6 +41,7 @@
 - Better at telling client-only mods: mods not installed through the launcher are recognised on Modrinth by their file, Forge/NeoForge "clientSideOnly" is read, and well-known client mods (Sodium, Iris, minimaps, Mod Menu…) are known by name
 - "Export": a short code (Instances → "Paste code") or a file — Modrinth (.mrpack), CurseForge (.zip), plain .zip
 - "Library" instead of "Mods": modpacks, mods, resource packs, shaders and data packs; the game version and loader in filters can be changed by hand (for example, for Sinytra Connector)
+- "Library" → "Карты" (maps): maps from CurseForge and Minecraft Inside for the instance's version. A map goes into the instance as a new world: from CurseForge at once; for Minecraft Inside the launcher opens the map's page, and the archive downloaded there goes into the instance by itself (the site does not let programs download for the player). Zip and rar archives, the world in any folder, several worlds at once
 - Compatibility check before installing a mod (warnings can be turned off)
 - World backups before mod updates and version changes, restored in one click
 - Mods: select several at once, change a mod's version, mod page, export the list, "Folder" and "Configs" buttons

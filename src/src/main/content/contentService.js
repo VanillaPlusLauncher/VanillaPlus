@@ -2,6 +2,7 @@
 
 const fsp = require('node:fs/promises');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { downloadFile } = require('../core/fileDownloader');
 const { sha1File } = require('../core/hashing');
 const { readJsonFile, writeJsonFileAtomic } = require('../core/jsonFile');
@@ -14,6 +15,8 @@ const { readContentMetadata } = require('./modMetadata');
 const { fingerprintFile } = require('./curseFingerprint');
 const modrinth = require('./modrinth');
 const curseforge = require('./curseforge');
+const mcinside = require('./mcinside');
+const { importWorldArchive } = require('./worldImport');
 const instanceService = require('../minecraft/instanceService');
 
 /*
@@ -72,6 +75,14 @@ function entryKey(type, fileName) {
 // --- Searching ------------------------------------------------------------------
 
 function platformApi(settings, platform) {
+  if (platform === 'mcinside') {
+    return {
+      search: (params) => mcinside.search(params),
+      getProject: (id) => mcinside.getProject(id),
+      getVersions: (id, filters) => mcinside.getVersions(id, filters),
+      getVersion: (projectId, versionId) => mcinside.getVersion(projectId, versionId),
+    };
+  }
   if (platform === 'curseforge') {
     const key = curseforge.apiKey(settings);
     return {
@@ -322,6 +333,42 @@ async function installDatapack(settings, { instanceId, world, platform, projectI
   await downloadFile(file.url, path.join(worldDirectory, 'datapacks', fileName), { sha1: file.sha1 ?? undefined, size: file.size });
   log.info(`Датапак ${fileName} установлен в мир «${worldName}» сборки «${instance.name}»`);
   return { file: fileName, world: worldName };
+}
+
+/**
+ * A map from CurseForge goes into the instance as a new world (worldImport.js), downloaded with its
+ * progress in the top bar. Minecraft Inside's maps come through their page instead (insideSite.js).
+ * Resolves with { worlds: [names] }.
+ */
+async function installWorld(settings, { instanceId, platform, projectId, versionId, gameVersion, title }) {
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const api = platformApi(settings, platform);
+  const name = title || String(projectId);
+  const reporter = createTaskReporter({ taskId: `map:${instanceId}:${projectId}`, kind: 'content', label: name, instance: instance.name });
+  let archive = null;
+  try {
+    let version = versionId ? await api.getVersion(projectId, versionId) : null;
+    if (!version) {
+      // A map for this Minecraft version, else its newest one (most maps open in later versions too).
+      const fitting = await api.getVersions(projectId, { gameVersion: gameVersion || instance.minecraft, type: 'world' });
+      const versions = fitting.length ? fitting : await api.getVersions(projectId, { type: 'world' });
+      version = versions.find((candidate) => candidate.type === 'release') ?? versions[0] ?? null;
+    }
+    const file = version?.files.find((candidate) => candidate.primary) ?? version?.files[0];
+    if (!file) throw new Error(`У карты «${name}» нет файлов для загрузки.`);
+    archive = path.join(instance.directory, '.amethyx', `map-${crypto.randomUUID()}-${assertFileName(file.filename)}`);
+    reporter.report(name, 5, version.versionNumber);
+    await downloadFile(file.url, archive, { sha1: file.sha1 ?? undefined, size: file.size, onProgress: (received, total) => total && reporter.report(name, 5 + (received / total) * 80, version.versionNumber) });
+    reporter.report(name, 90, 'Распаковываем');
+    const worlds = await importWorldArchive(instance.directory, archive, name);
+    reporter.finish('done', worlds.join(', '));
+    return { worlds };
+  } catch (error) {
+    reporter.finish('error', error.message);
+    throw error;
+  } finally {
+    if (archive) await fsp.rm(archive, { force: true }).catch(() => {});
+  }
 }
 
 // --- Managing installed content ------------------------------------------------------
@@ -809,6 +856,7 @@ module.exports = {
   getVersions,
   installProject,
   installDatapack,
+  installWorld,
   installVersionFiles,
   listContent,
   setEnabled,

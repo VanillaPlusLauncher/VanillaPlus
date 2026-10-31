@@ -70,7 +70,9 @@ export function createProjectBrowser(options) {
     ['fabric', 'forge', 'neoforge', 'quilt'].map((loader) => h('option', { value: loader }, LOADER_LABELS[loader])),
   );
   const resetFilters = h('button', { class: 'btn btn--ghost btn--compact browser-toolbar__reset', type: 'button', hidden: true, title: 'Вернуть версию и загрузчик сборки', onclick: () => { state.filtersKey = null; reload(); } }, 'Как у сборки');
-  const PLATFORMS = ['modrinth', 'curseforge'];
+  const PLATFORMS = ['modrinth', 'curseforge', 'mcinside'];
+  // Modrinth has no maps; Minecraft Inside is a catalog of maps only.
+  const platformsFor = (type) => (type === 'world' ? ['curseforge', 'mcinside'] : ['modrinth', 'curseforge']);
   const platformButtons = PLATFORMS.map((platform) =>
     h(
       'button',
@@ -112,6 +114,23 @@ export function createProjectBrowser(options) {
   // Placed again whenever the switch gets its size (built while hidden, or the font changed).
   new ResizeObserver(() => movePlatformThumb()).observe(platformSwitch);
 
+  /** Only the sites that have this type; one that has none of it gives way to the first that has. */
+  function syncPlatforms() {
+    const available = platformsFor(state.type);
+    platformButtons.forEach((button, index) => {
+      button.hidden = !available.includes(PLATFORMS[index]);
+    });
+    if (!available.includes(state.platform)) {
+      state.platform = available[0];
+      platformButtons.forEach((button, index) => button.setAttribute('aria-pressed', String(PLATFORMS[index] === state.platform)));
+      platformSwitch.dataset.platform = state.platform;
+    }
+    // Minecraft Inside lists its maps newest first only.
+    sortSelect.disabled = state.platform === 'mcinside';
+    movePlatformThumb();
+  }
+  syncPlatforms();
+
   const observer = new IntersectionObserver((entries) => {
     if (entries.some((entry) => entry.isIntersecting) && !state.loading && state.hits.length < state.total) {
       loadMore();
@@ -147,7 +166,8 @@ export function createProjectBrowser(options) {
     return { gameVersion: filters.gameVersion, loader: filters.loader };
   }
 
-  const addLabel = () => h('span', { class: 'project-card__install-label' }, icon('download'), state.type === 'modpack' ? 'Установить' : 'Добавить');
+  // Minecraft Inside's maps are downloaded on its page (the launcher opens it and takes the file).
+  const addLabel = () => h('span', { class: 'project-card__install-label' }, icon('download'), state.type === 'modpack' ? 'Установить' : state.platform === 'mcinside' ? 'Скачать' : 'Добавить');
 
   function cardFor(hit, index) {
     const installed = options.installedProjects?.().has(hit.id);
@@ -192,7 +212,8 @@ export function createProjectBrowser(options) {
         h(
           'div',
           { class: 'project-card__meta' },
-          h('span', { title: 'Загрузки' }, icon('download'), formatCount(hit.downloads)),
+          hit.downloads != null ? h('span', { title: 'Загрузки' }, icon('download'), formatCount(hit.downloads)) : null,
+          state.type === 'world' && hit.gameVersions?.length ? h('span', { class: 'project-card__tag' }, hit.gameVersions.slice(0, 2).join(', ')) : null,
           hit.updatedAt ? h('span', { title: 'Обновлён' }, formatAgo(hit.updatedAt)) : null,
           ...(hit.categories ?? []).slice(0, 3).map((category) => h('span', { class: 'project-card__tag' }, category)),
         ),
@@ -288,17 +309,19 @@ export function createProjectBrowser(options) {
   function setType(type) {
     if (type !== state.type) {
       state.type = type;
+      syncPlatforms();
       reload();
     }
   }
 
   function setPlatform(platform, fromUser = false) {
-    if (platform === state.platform) {
+    if (platform === state.platform || !platformsFor(state.type).includes(platform)) {
       return;
     }
     state.platform = platform;
     platformButtons.forEach((button, index) => button.setAttribute('aria-pressed', String(PLATFORMS[index] === platform)));
     platformSwitch.dataset.platform = platform;
+    sortSelect.disabled = platform === 'mcinside';
     movePlatformThumb();
     if (fromUser) {
       options.onPlatformChange?.(platform);

@@ -29,7 +29,7 @@ function apiKey(settings) {
 
 const API = 'https://api.curseforge.com/v1';
 const MINECRAFT_GAME_ID = 432;
-const CLASS_IDS = { mod: 6, modpack: 4471, resourcepack: 12, shader: 6552, datapack: 6945 };
+const CLASS_IDS = { mod: 6, modpack: 4471, resourcepack: 12, shader: 6552, datapack: 6945, world: 17 };
 const TYPE_BY_CLASS = Object.fromEntries(Object.entries(CLASS_IDS).map(([type, id]) => [id, type]));
 const LOADER_IDS = { forge: 1, fabric: 4, quilt: 5, neoforge: 6 };
 const SORT_FIELDS = { relevance: 1, downloads: 6, follows: 2, newest: 11, updated: 3 };
