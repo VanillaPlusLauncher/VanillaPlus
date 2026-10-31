@@ -2,6 +2,7 @@ import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
 import { openImportCodeDialog, openShareDialog } from '../components/shareDialog.js';
 import { openLauncherImportDialog } from '../components/launcherImportDialog.js';
+import { closeAssistant, createAssistantButton } from '../components/assistant.js';
 import { changeInstanceIcon } from '../components/iconPicker.js';
 import { errorMessage } from '../core/format.js';
 import { formatAgo, formatPlayTime, LOADER_LABELS } from '../core/content.js';
@@ -81,6 +82,8 @@ export function createInstancesPage() {
       h(
         'div',
         { class: 'page-header__actions' },
+        // The selected instance first; the helper has its own list to pick another one.
+        createAssistantButton({ getInstance: () => store.get().instances.find((instance) => instance.id === store.get().settings?.selectedInstanceId) ?? null }),
         h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Prism, Modrinth App, CurseForge, Millida, TLauncher и другие', onclick: () => openLauncherImportDialog() }, icon('download'), 'Из других лаунчеров'),
         h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => importPack() }, icon('folder'), 'Импорт'),
         h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Собрать сборку по коду от друга', onclick: () => openImportCodeDialog() }, icon('file'), 'Вставить код'),
@@ -615,5 +618,6 @@ export function createInstancesPage() {
       render();
       refreshInstances().catch(() => {});
     },
+    onHide: () => closeAssistant(),
   };
 }

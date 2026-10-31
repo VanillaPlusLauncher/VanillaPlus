@@ -1,5 +1,6 @@
 import { h } from '../core/dom.js';
 import { go } from '../core/nav.js';
+import { iconImage } from '../core/mc.js';
 import { sfx } from '../core/sound.js';
 
 /*
@@ -33,6 +34,14 @@ const STEPS = [
     target: '[data-route="builds"]',
     title: 'Сборки',
     text: 'Сборка — это отдельная копия Minecraft: своя версия игры, свои моды, миры и настройки. Можно держать сколько угодно сборок, они не мешают друг другу.',
+  },
+  {
+    // The helper is shown here once; it never comes out by itself (components/assistant.js).
+    route: 'builds',
+    target: '.page--active .assistant-button',
+    picture: 'block:grass_block',
+    title: 'Умный помощник',
+    text: 'Этот травяной блок есть на странице сборок и в каждой сборке. Спросите его — проверит моды на конфликты, посоветует, что добавить, и найдёт обновления. Сам он не пристаёт: позвали — пришёл.',
   },
   {
     target: '[data-route="browse"]',
@@ -138,7 +147,7 @@ export function startTour() {
     const step = STEPS[index];
     if (step.route) go(step.route);
     counter.textContent = `${index + 1} из ${STEPS.length}`;
-    title.textContent = step.title;
+    title.replaceChildren(step.picture ? iconImage(step.picture, 'tour__picture') : '', step.title);
     text.textContent = step.text;
     back.hidden = index === 0;
     next.textContent = index === STEPS.length - 1 ? 'Понятно' : 'Дальше';

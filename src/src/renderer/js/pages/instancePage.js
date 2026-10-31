@@ -16,6 +16,7 @@ import { existingGroups } from '../components/createInstanceModal.js';
 import { confirmDialog } from '../components/modal.js';
 import { toast } from '../components/toast.js';
 import { createToggle } from '../components/controls.js';
+import { closeAssistant, createAssistantButton } from '../components/assistant.js';
 
 const TABS = [
   { key: 'mod', label: 'Моды' },
@@ -106,6 +107,8 @@ export function createInstancePage() {
         playButton,
         h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => openFolder() }, icon('folder'), 'Папка'),
         h('button', { class: 'btn btn--secondary btn--compact', type: 'button', title: 'Код сборки или файл: Modrinth, CurseForge или .zip', onclick: () => openShareDialog(instance()) }, icon('export'), 'Экспортировать'),
+        // Fixes and installs made by the helper show in the mod list at once.
+        createAssistantButton({ getInstance: instance, onChanged: (id) => id === instanceId && lists.mod.load({ quiet: true }) }),
       ),
     ),
     h('div', { class: 'tabs instance-tabs', role: 'tablist' }, tabButtons, settingsButton),
@@ -726,6 +729,7 @@ export function createInstancePage() {
     onHide: () => {
       logTab.hide();
       notesTab.hide();
+      closeAssistant();
     },
   };
 }

@@ -599,4 +599,4 @@ async function undo(settings, instanceId) {
   return { restored: true };
 }
 
-module.exports = { suggest, apply, undo, systemInfo, recommendRamMb, mergeJvmArgs };
+module.exports = { suggest, apply, undo, systemInfo, recommendRamMb, mergeJvmArgs, packContext, rangeCovers };

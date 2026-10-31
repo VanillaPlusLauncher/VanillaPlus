@@ -16,6 +16,8 @@ const { openZip } = require('../core/zipPeek');
 const MAX_ICON_BYTES = 96 * 1024;
 const MAX_CACHED = 6000;
 const SAVE_DELAY_MS = 2000;
+/** Raised when the readers learn something new: older entries are read again once. */
+const CACHE_VERSION = 2;
 const cache = new Map();
 let diskCacheFile = null;
 let diskLoaded = null;
@@ -179,8 +181,23 @@ async function readPack(zip) {
   return { description: description?.replace(/§./g, ''), icon: await iconDataUrl(zip, 'pack.png') };
 }
 
+/** The file each loader looks for in a mod jar. */
+const DESCRIPTORS = [
+  ['fabric.mod.json', 'fabric'],
+  ['quilt.mod.json', 'quilt'],
+  ['META-INF/neoforge.mods.toml', 'neoforge'],
+  ['META-INF/mods.toml', 'forge'],
+  ['mcmod.info', 'forge-legacy'],
+];
+
 async function readFrom(zip, type) {
-  return type === 'mod' ? ((await readFabric(zip)) ?? (await readQuilt(zip)) ?? (await readForge(zip)) ?? {}) : readPack(zip);
+  if (type !== 'mod') {
+    return readPack(zip);
+  }
+  const meta = (await readFabric(zip)) ?? (await readQuilt(zip)) ?? (await readForge(zip)) ?? {};
+  // Every loader the jar is made for: some jars carry several descriptors (one jar for Fabric and NeoForge).
+  const loaders = DESCRIPTORS.filter(([file]) => zip.size(file) !== null).map(([, loader]) => loader);
+  return loaders.length ? { ...meta, loaders } : meta;
 }
 
 /** The disk cache, read once (a missing or broken file is just an empty cache). */
@@ -191,7 +208,7 @@ function loadDiskCache() {
         const { app } = require('electron');
         diskCacheFile = path.join(app.getPath('userData'), 'cache', 'content-meta.json');
         const saved = JSON.parse(await fsp.readFile(diskCacheFile, 'utf8'));
-        if (saved?.version === 1) {
+        if (saved?.version === CACHE_VERSION) {
           for (const [key, value] of Object.entries(saved.entries ?? {})) if (!cache.has(key)) cache.set(key, value);
         }
       } catch {
@@ -208,7 +225,7 @@ function scheduleSave() {
     saveTimer = null;
     // The oldest entries go first when the cache is full.
     while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value);
-    const text = JSON.stringify({ version: 1, entries: Object.fromEntries(cache) });
+    const text = JSON.stringify({ version: CACHE_VERSION, entries: Object.fromEntries(cache) });
     fs.mkdirSync(path.dirname(diskCacheFile), { recursive: true });
     fsp.writeFile(`${diskCacheFile}.tmp`, text).then(() => fsp.rename(`${diskCacheFile}.tmp`, diskCacheFile)).catch(() => {});
   }, SAVE_DELAY_MS);

@@ -32,7 +32,7 @@ The pixel look (square, pixel-cut, Minecraft bevels) stays as a choice: Settings
 
    | File | What is in it |
    |---|---|
-   | `shell.css` | the window around the pages: first start, sidebar extras, context menu, tooltips, toasts, «Загрузка…», cursor, start screen, language picker, walk-through |
+   | `shell.css` | the window around the pages: first start, sidebar extras, context menu, tooltips, toasts, «Загрузка…», cursor, start screen, language picker, walk-through, the notification book, «Умный помощник» (the grass block's chat) |
    | `controls.css` | links, ticks, small switches and chips, dropdowns, fields, path rows, segmented controls, dialog footers and tabs |
    | `home.css` | Главная: logo, recent and news rows, play bar with its instance switcher, the player and «Гардероб» |
    | `instances.css` | Сборки: groups, the three card styles, «Новая сборка», icon picker, moving from other launchers |

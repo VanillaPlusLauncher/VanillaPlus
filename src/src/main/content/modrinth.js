@@ -35,13 +35,16 @@ function toHit(hit) {
   };
 }
 
-async function search({ type = 'mod', query = '', gameVersion, loader, sort = 'relevance', offset = 0, limit = 20 }) {
+async function search({ type = 'mod', query = '', gameVersion, loader, category = null, sort = 'relevance', offset = 0, limit = 20 }) {
   const facets = [[`project_type:${PROJECT_TYPES[type] ?? 'mod'}`]];
   if (gameVersion) {
     facets.push([`versions:${gameVersion}`]);
   }
   if (loader && loader !== 'vanilla' && LOADER_FILTERED_TYPES.has(type)) {
     facets.push([`categories:${loader}`]);
+  }
+  if (category) {
+    facets.push([`categories:${category}`]);
   }
   const params = new URLSearchParams({
     query,

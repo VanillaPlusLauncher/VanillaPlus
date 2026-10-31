@@ -21,6 +21,7 @@ const { broadcast } = require('../core/broadcast');
 const updateService = require('../updates/updateService');
 const shareService = require('../content/shareService');
 const optimizer = require('../content/optimizer');
+const assistant = require('../content/assistant');
 const shaderService = require('../content/shaderService');
 const serverService = require('../minecraft/serverService');
 
@@ -317,6 +318,10 @@ function registerDomainHandlers(handle) {
     instancesChanged(String(instanceId));
     return result;
   });
+  handle(CHANNELS.content.assistantCheck, async (_event, instanceId) => assistant.check(await settings(), String(instanceId)));
+  handle(CHANNELS.content.assistantSuggest, async (_event, instanceId, topic) =>
+    assistant.suggest(await settings(), String(instanceId), Object.hasOwn(assistant.TOPICS, String(topic)) ? String(topic) : null),
+  );
   handle(CHANNELS.content.shaderPlan, async (_event, instanceId) => shaderService.plan(await settings(), String(instanceId)));
   handle(CHANNELS.content.shaderApply, async (_event, instanceId, choices) => {
     const result = await shaderService.apply(await settings(), String(instanceId), {

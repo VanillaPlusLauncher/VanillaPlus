@@ -1054,6 +1054,14 @@ button:disabled {
   color: var(--color-text);
 }
 
+.tour__picture {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  vertical-align: -4px;
+}
+
 .tour__text {
   margin: 0 0 14px;
   color: var(--color-text-soft);
@@ -1093,4 +1101,392 @@ button:disabled {
 /* The scrollbar keeps its room, so a page does not shift sideways when it appears. */
 .page {
   scrollbar-gutter: stable;
+}
+
+/* --- "Умный помощник": the grass block and its little chat at the right edge (components/assistant.js) */
+.assistant-button__block {
+  width: 20px;
+  height: 20px;
+  margin: -2px 0;
+  transition: transform 260ms var(--ease-spring);
+}
+
+.assistant-button:hover .assistant-button__block {
+  transform: translateY(-3px) rotate(-8deg);
+}
+
+.assistant {
+  position: fixed;
+  top: calc(var(--topbar-height) + 10px);
+  right: 14px;
+  bottom: 14px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  width: min(390px, calc(100vw - 28px));
+  overflow: hidden;
+  border: 2px solid #000;
+  border-radius: var(--radius-lg);
+  background: rgba(17, 13, 24, 0.98);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), var(--shadow-card);
+}
+
+.assistant[hidden] {
+  display: none;
+}
+
+.assistant--in {
+  animation: assistant-in 260ms var(--ease-out) both;
+}
+
+.assistant--leaving {
+  opacity: 0;
+  translate: 18px 0;
+  transition: opacity 180ms, translate 180ms;
+}
+
+@keyframes assistant-in {
+  from { opacity: 0; translate: 24px 0; }
+}
+
+.assistant__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.assistant__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 70%, rgba(125, 230, 125, 0.22), transparent 70%);
+}
+
+/* The block breathes a little, hops when it says something and wobbles while it thinks. */
+.assistant__face {
+  width: 36px;
+  height: 36px;
+  animation: assistant-idle 3.2s ease-in-out infinite;
+}
+
+.assistant__face--hop {
+  animation: assistant-hop 520ms var(--ease-spring), assistant-idle 3.2s 520ms ease-in-out infinite;
+}
+
+.assistant--busy .assistant__face {
+  animation: assistant-think 900ms ease-in-out infinite;
+}
+
+@keyframes assistant-idle {
+  50% { translate: 0 -2px; }
+}
+
+@keyframes assistant-hop {
+  30% { translate: 0 -9px; rotate: -8deg; }
+  60% { translate: 0 0; rotate: 4deg; }
+}
+
+@keyframes assistant-think {
+  50% { translate: 0 -3px; rotate: 7deg; }
+}
+
+.assistant__who {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.assistant__who b {
+  font-size: 14px;
+}
+
+.assistant__instance {
+  max-width: 100%;
+}
+
+.assistant__close {
+  flex: none;
+  align-self: flex-start;
+}
+
+.assistant__log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.assistant-msg {
+  max-width: 94%;
+  padding: 9px 12px;
+  border-radius: 12px;
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.45;
+  animation: assistant-msg-in 240ms var(--ease-out) both;
+}
+
+.assistant-msg p {
+  margin: 0;
+}
+
+.assistant-msg > * + * {
+  margin-top: 8px;
+}
+
+.assistant-msg--bot {
+  align-self: flex-start;
+  border-top-left-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.assistant-msg--user {
+  align-self: flex-end;
+  border-top-right-radius: 4px;
+  background: rgba(var(--accent-rgb), 0.18);
+}
+
+.assistant-msg__muted {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+@keyframes assistant-msg-in {
+  from { opacity: 0; translate: 0 6px; }
+}
+
+.assistant-dots {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.assistant-dots i {
+  width: 6px;
+  height: 6px;
+  background: var(--color-text-muted);
+  animation: assistant-dot 1s ease-in-out infinite;
+}
+
+.assistant-dots i:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.assistant-dots i:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes assistant-dot {
+  0%, 100% { opacity: 0.3; translate: 0 0; }
+  40% { opacity: 1; translate: 0 -3px; }
+}
+
+/* A problem: yellow edge — better to fix, red — the game will not start; green once fixed. */
+.assistant-card {
+  padding: 9px 10px 9px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 3px 0 0 var(--color-warning);
+}
+
+.assistant-card--error {
+  box-shadow: inset 3px 0 0 var(--color-danger);
+}
+
+.assistant-card--done {
+  box-shadow: inset 3px 0 0 var(--color-success);
+}
+
+.assistant-card__title {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 13px;
+}
+
+.assistant-card p {
+  color: var(--color-text-soft);
+  font-size: 12.5px;
+}
+
+.assistant-card__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.assistant-card__done {
+  color: var(--color-success);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.assistant-msg .assistant-card__error {
+  margin-top: 6px;
+  color: var(--color-danger);
+  font-size: 12px;
+}
+
+.assistant-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assistant-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.assistant-group__all {
+  font-size: 12px;
+}
+
+/* A mod: the picture, the name and the button on top, why it is worth having under them, full width. */
+.assistant-mod {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.assistant-mod > .assistant-card__error {
+  grid-column: 1 / -1;
+}
+
+.assistant-mod--done {
+  opacity: 0.6;
+}
+
+.assistant-mod__icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  object-fit: cover;
+}
+
+.assistant-mod__title {
+  overflow: hidden;
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assistant-mod__why {
+  display: -webkit-box;
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.assistant-mod__why:empty {
+  display: none;
+}
+
+.assistant-updates {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.assistant-updates__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.assistant-updates__row b {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assistant-updates__row span {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.assistant-topics__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.assistant__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.assistant-chip {
+  padding: 5px 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+
+.assistant-chip:hover {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: rgba(var(--accent-rgb), 0.2);
+}
+
+.assistant-chip--small {
+  padding: 3px 9px;
+  font-size: 11.5px;
+}
+
+/* One question at a time: the questions wait while the block thinks. */
+.assistant--busy .assistant-chip,
+.assistant--busy .assistant__send {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.assistant__ask {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px 12px;
+}
+
+.assistant__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.assistant__send {
+  flex: none;
+  width: 38px;
+  padding: 0;
+  font-size: 18px;
 }

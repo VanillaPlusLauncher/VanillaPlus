@@ -84,6 +84,8 @@ const CHANNELS = Object.freeze({
     optimize: 'content:optimize',
     optimizeApply: 'content:optimize-apply',
     optimizeUndo: 'content:optimize-undo',
+    assistantCheck: 'content:assistant-check',
+    assistantSuggest: 'content:assistant-suggest',
     shaderPlan: 'content:shader-plan',
     shaderApply: 'content:shader-apply',
     scanLaunchers: 'content:scan-launchers',

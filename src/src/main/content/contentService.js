@@ -396,6 +396,7 @@ async function listContent(settings, instanceId, type) {
       versionId: indexed?.versionId ?? null,
       side: type === 'mod' ? sideOf(indexed, meta.environment, meta.modId) : null,
       modId: meta.modId ?? null,
+      loaders: meta.loaders ?? [],
       incompatible: meta.incompatible ?? [],
     });
   });
@@ -764,10 +765,16 @@ async function checkUpdates(settings, instanceId, type) {
     for (const item of fromModrinth) {
       hashes.set(await sha1File(path.join(instance.directory, FOLDERS[type], item.file)), item);
     }
-    const latest = await modrinth.latestForHashes([...hashes.keys()], { gameVersion: filters.gameVersion, loader: filters.loader });
+    // Modrinth answers with its newest release: for a beta that came out after it (JEI 19.70 beta →
+    // 19.64) that would be a step back, so a version older than the file's own is no update.
+    const [latest, own] = await Promise.all([
+      modrinth.latestForHashes([...hashes.keys()], { gameVersion: filters.gameVersion, loader: filters.loader }),
+      modrinth.versionsForHashes([...hashes.keys()]).catch(() => ({})),
+    ]);
     for (const [hash, version] of Object.entries(latest)) {
       const item = hashes.get(hash);
-      if (item && version.id !== item.versionId && !version.files.some((file) => file.sha1 === hash)) {
+      const older = own[hash]?.date && version.date && version.date <= own[hash].date;
+      if (item && !older && version.id !== item.versionId && !version.files.some((file) => file.sha1 === hash)) {
         updates.push({ file: item.file, title: item.title, icon: item.icon, platform: 'modrinth', projectId: item.projectId, currentVersion: item.version, version: { id: version.id, versionNumber: version.versionNumber } });
       }
     }
@@ -775,11 +782,17 @@ async function checkUpdates(settings, instanceId, type) {
 
   const fromCurseForge = items.filter((item) => item.platform === 'curseforge');
   if (fromCurseForge.length > 0 && curseforge.apiKey(settings)) {
+    // When each installed file came out: the newest release is no update for a newer beta.
+    const ownIds = fromCurseForge.map((item) => item.versionId).filter(Boolean);
+    const ownFiles = ownIds.length ? await curseforge.getFiles(curseforge.apiKey(settings), ownIds).catch(() => []) : [];
+    const ownDate = new Map(ownFiles.map((file) => [String(file.id), file.fileDate]));
     for (const item of fromCurseForge) {
       try {
         const versions = await curseforge.getVersions(curseforge.apiKey(settings), item.projectId, filters);
         const newest = versions.find((version) => version.type === 'release') ?? versions[0];
-        if (newest && newest.id !== item.versionId) {
+        const own = ownDate.get(String(item.versionId));
+        const older = own && newest?.date && newest.date <= own;
+        if (newest && !older && String(newest.id) !== String(item.versionId)) {
           updates.push({ file: item.file, title: item.title, icon: item.icon, platform: 'curseforge', projectId: item.projectId, currentVersion: item.version, version: { id: newest.id, versionNumber: newest.versionNumber } });
         }
       } catch (error) {

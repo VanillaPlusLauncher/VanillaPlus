@@ -30,6 +30,7 @@
 ### Instances and mods
 - Import from other launchers (Instances → "From other launchers"): Prism Launcher, ElyPrismLauncher, PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher and the official launcher are found automatically; the version, loader, mods, settings, resource packs, shaders, worlds and screenshots move over
 - One-click "Optimization": the launcher looks at memory, CPU, graphics card and monitor, finds conflicts, installs performance mods for the loader and version (Sodium, Lithium, FerriteCore, ModernFix and more), picks memory, Java flags and graphics settings. It reads what the instance's mods are incompatible with and never suggests such mods (for example, ScalableLux next to Create Aeronautics). "Undo" reverts everything
+- "Smart helper": a grass block on the Instances page and on each instance's page opens a small chat. Ask with a button or in your own words: it checks the mods for conflicts (the same mod twice, a mod for another loader or game version, mods their authors say do not work together, a required mod missing or switched off, two render engines and other known pairs) and fixes them with one button; suggests mods for speed and convenience, or the most downloaded ones on a topic (magic, technology, decoration, mobs…) that fit the instance; finds mod updates; opens "Optimization". No AI and nothing to pay: the checks are the launcher's own. It never pops up by itself — the first-start walk-through shows it once
 - Faster downloads everywhere: many files at once, and a file of 1 MB and more in several parts at the same time, like a browser does — both set in Settings → "Library" → "Downloads"
 - "Update all" updates every mod at once in parallel under one task in the top bar ("3 of 12"); the top bar also names the instance a download is for
 - Faster modpack installs and a shared mod cache
@@ -117,6 +118,7 @@
 
 ### Fixes
 - A long mod list (150 mods) no longer stutters while scrolling or switching looks
+- "Check for updates" no longer offers an older version as an update (a beta newer than the latest release, like JEI 19.70 → 19.64)
 - "Find mods" in an instance opens the Library for that instance, and "Installed" shows only what is in it (it showed the mods of the instance chosen before); a new instance becomes the chosen one
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")
 - Switching the loader from Vanilla to Fabric did nothing; affected instances repair themselves
