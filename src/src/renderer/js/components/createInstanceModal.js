@@ -33,7 +33,7 @@ export async function importModpackFiles(paths, fields = {}) {
     try {
       const instance = await api.content.importModpack(path, fields);
       await refreshInstances();
-      toast(`Сборка «${instance.name}» готова`, 'success', 5000, { title: 'Модпак установлен', icon: 'enchanted_book' });
+      toast(`Сборка «${instance.name}» готова`, 'success', 5000, { title: 'Модпак установлен', icon: 'enchanted_book', group: 'instances' });
       if (instance.failed?.length) {
         toast(`Не скачались: ${instance.failed.join(', ')}. Их автор запретил загрузку вне сайта CurseForge.`, 'error', 9000);
       }
@@ -125,7 +125,7 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
             group: groupName,
           });
           await refreshInstances();
-          toast(`Сборка «${instance.name}» готова к игре`, 'success', 5000, { title: 'Модпак установлен', icon: 'enchanted_book' });
+          toast(`Сборка «${instance.name}» готова к игре`, 'success', 5000, { title: 'Модпак установлен', icon: 'enchanted_book', group: 'instances' });
         },
       });
       packBrowsers[platform].refresh();
@@ -318,7 +318,7 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
       store.set({ browseInstanceId: instance.id });
       await saveSettings({ selectedInstanceId: instance.id });
       modal.close();
-      toast(`Сборка «${instance.name}» создана`, 'success', 4200, { title: 'Новая сборка', icon: 'diamond' });
+      toast(`Сборка «${instance.name}» создана`, 'success', 4200, { title: 'Новая сборка', icon: 'diamond', group: 'instances' });
       if (installNow.checked) {
         api.instances.install(instance.id).then(() => refreshInstances()).catch((error) => toast(errorMessage(error), 'error', 7000));
       }

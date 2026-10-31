@@ -138,7 +138,7 @@ export function createBrowsePage() {
       toast(`Устанавливаем модпак «${hit.title}». Прогресс — вверху окна.`, 'info', 4000, { silent: true });
       const instance = await api.content.installModpack({ platform: hit.platform, projectId: hit.id, versionId, title: hit.title, iconUrl: hit.iconUrl });
       await refreshInstances();
-      toast(`Сборка «${instance.name}» готова к игре`, 'success', 6000, { title: 'Модпак установлен', icon: 'enchanted_book' });
+      toast(`Сборка «${instance.name}» готова к игре`, 'success', 6000, { title: 'Модпак установлен', icon: 'enchanted_book', group: 'instances' });
       return;
     }
     const current = target();
@@ -150,7 +150,7 @@ export function createBrowsePage() {
         throw new Error('В этой сборке ещё нет миров: создайте мир в игре, и датапак можно будет поставить в него.');
       }
       const result = await api.content.installDatapack({ instanceId: current.id, world: worldSelect.value, platform: hit.platform, projectId: hit.id, versionId, gameVersion: filters?.gameVersion ?? null });
-      toast(`«${hit.title}» → мир «${result.world}»`, 'success', 4800, { title: 'Датапак установлен', icon: 'map' });
+      toast(`«${hit.title}» → мир «${result.world}»`, 'success', 4800, { title: 'Датапак установлен', icon: 'map', group: 'mods' });
       return;
     }
     const request = { instanceId: current.id, platform: hit.platform, projectId: hit.id, versionId, type, title: hit.title, iconUrl: hit.iconUrl, filters };
@@ -163,7 +163,7 @@ export function createBrowsePage() {
       const result = await api.content.install(request);
       installed.add(hit.id);
       const extra = result.installed.length > 1 ? ` и зависимости: ${result.installed.slice(1).join(', ')}` : '';
-      toast(`«${hit.title}»${extra} → ${current.name}`, 'success', 4800, { title: 'Установлено', icon: type === 'shader' ? 'ender_eye' : type === 'resourcepack' ? 'map' : 'enchanted_book', silent: true });
+      toast(`«${hit.title}»${extra} → ${current.name}`, 'success', 4800, { title: 'Установлено', icon: type === 'shader' ? 'ender_eye' : type === 'resourcepack' ? 'map' : 'enchanted_book', silent: true, group: 'mods' });
       if (result.skipped.length > 0) {
         toast(`Не найдены подходящие версии зависимостей: ${result.skipped.join(', ')}`, 'error', 7000);
       }

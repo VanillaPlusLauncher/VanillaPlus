@@ -404,7 +404,10 @@
 }
 
 /* --- Toasts pile up (components/toast.js): newest in front, older ones peek out behind ------------ */
+/* Only errors and notices with a button come as cards now, above the book in the corner. */
 .toast-stack.toast-pile {
+  right: 14px;
+  bottom: 62px;
   display: block;
   width: 420px;
   max-width: calc(100vw - 44px);
@@ -445,6 +448,243 @@
 
 @keyframes count-pop {
   from { opacity: 0; translate: 0 -3px; }
+}
+
+/* --- Notifications: a small book in the corner, a click opens the list (components/toast.js) ------ */
+.notify-corner {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 81;
+}
+
+.notify-corner[hidden] {
+  display: none;
+}
+
+.notify-book {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+}
+
+/* Everything seen: the book stays, quieter. */
+.notify-book:not(.notify-book--new, [aria-expanded="true"]) {
+  opacity: 0.7;
+}
+
+.notify-book__img {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.notify-book__count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-accent-strong);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.notify-book__count:empty {
+  display: none;
+}
+
+/* Something new: the book hops. */
+.notify-book--hop {
+  animation: book-hop 560ms var(--ease-spring);
+}
+
+@keyframes book-hop {
+  30% { translate: 0 -8px; rotate: -10deg; }
+  60% { translate: 0 0; rotate: 5deg; }
+}
+
+.notify-panel.context-menu {
+  right: 14px;
+  bottom: 62px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, calc(100vw - 28px));
+  max-height: min(70vh, 560px);
+  padding: 10px;
+  transform-origin: bottom right;
+}
+
+.notify-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px 0 4px;
+}
+
+.notify-panel__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.notify-panel__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notify-panel__empty {
+  margin: 6px 4px;
+  color: var(--color-text-muted);
+}
+
+/* A section: its name, how many and when the newest was; closed, a stack of notes, open, all of them. */
+.notify-group {
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.notify-group__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: var(--cursor-hand);
+}
+
+.notify-group__img,
+.notify-note__img {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
+}
+
+.notify-group__title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notify-group__count {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--color-accent);
+  font-size: 11px;
+}
+
+.notify-group__time {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.notify-group__chevron {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.notify-group__stack {
+  position: relative;
+  margin: 0 8px 8px;
+  cursor: var(--cursor-hand);
+}
+
+/* More than one: the edges of the notes under the top one show, like a stack of cards. */
+.notify-group__stack--more {
+  padding-bottom: 7px;
+}
+
+.notify-group__stack--more::before,
+.notify-group__stack--more::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  height: 10px;
+  border-radius: 0 0 10px 10px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.notify-group__stack--more::before {
+  left: 8px;
+  right: 8px;
+}
+
+.notify-group__stack--more::after {
+  left: 18px;
+  right: 18px;
+  bottom: -4px;
+  opacity: 0.6;
+}
+
+.notify-group__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 8px 8px;
+}
+
+.notify-note {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.notify-note__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.notify-note__title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.notify-note--error .notify-note__title {
+  color: #ff8a80;
+}
+
+.notify-note__text {
+  color: var(--color-text-soft);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.notify-note__action {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.notify-note__time {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 /* --- "Загрузка…" while a page waits for its first answer (components/controls.js) --------------- */

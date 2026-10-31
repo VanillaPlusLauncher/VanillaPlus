@@ -1,4 +1,5 @@
-import { h } from '../core/dom.js';
+import { h, icon } from '../core/dom.js';
+import { formatAgo } from '../core/content.js';
 import { getMcManifest, mcUrl } from '../core/mc.js';
 import { sfx } from '../core/sound.js';
 
@@ -10,10 +11,166 @@ const GAP = 10;
 /** More than this and the oldest ones go away at once. */
 const MAX_TOASTS = 12;
 
-/**
- * Toasts never cover each other: only the newest one shows, and when there are several a number in
- * its corner says how many. With the pointer on it they spread into a list and no toast leaves
- * while you read.
+/*
+ * Notifications. Every one goes into the book in the bottom-right corner: a small enchanted book that
+ * hops and counts what is new. A click opens the list in sections (mod downloads, instances, errors,
+ * the rest); each section is a stack showing its newest note, and opens to show all of them with how
+ * long ago each was. Only what needs an answer also shows as a card over the corner: an error, or a
+ * notice with a button ("Обновить", "Позже"…).
+ */
+const GROUPS = [
+  { key: 'mods', title: 'Загрузки модов', icon: 'enchanted_book' },
+  { key: 'instances', title: 'Сборки', icon: 'diamond_pickaxe' },
+  { key: 'errors', title: 'Ошибки', icon: 'redstone' },
+  { key: 'other', title: 'Прочее', icon: 'book' },
+];
+/** Notes kept for the list (this run of the launcher only). */
+const KEEP = 200;
+const notes = [];
+let unseen = 0;
+/** The corner holding the book (fixed; the book itself is an ordinary small button). */
+let corner = null;
+let book = null;
+let bookCount = null;
+let panel = null;
+/** Sections opened in the list (they stay open the next time the list opens). */
+const openGroups = new Set();
+
+/** An item picture from the game, when the game's files are there. */
+function itemPicture(name, className) {
+  return getMcManifest()?.textures.items.includes(name) ? h('img', { class: className, src: mcUrl(`item/${name}.png`), alt: '' }) : null;
+}
+
+function ensureBook() {
+  if (book) return;
+  bookCount = h('span', { class: 'notify-book__count', 'aria-hidden': 'true' });
+  book = h(
+    'button',
+    { class: 'icon-button notify-book', type: 'button', title: 'Уведомления', 'aria-label': 'Уведомления', onclick: () => (panel ? closePanel() : openPanel()) },
+    itemPicture('enchanted_book', 'notify-book__img') ?? icon('file'),
+  );
+  // The number sits on the corner, not in the button: the button cuts off what sticks out of it.
+  corner = h('div', { class: 'notify-corner', hidden: true }, book, bookCount);
+  document.body.append(corner);
+}
+
+/** The book hops and its number grows; it shows from the first note of this run. */
+function bump() {
+  ensureBook();
+  corner.hidden = false;
+  if (panel) {
+    renderPanel();
+    return;
+  }
+  unseen += 1;
+  bookCount.textContent = unseen > 99 ? '99+' : String(unseen);
+  book.classList.add('notify-book--new');
+  book.classList.remove('notify-book--hop');
+  void book.offsetWidth;
+  book.classList.add('notify-book--hop');
+}
+
+function record(message, type, options) {
+  const group = options.group ?? (type === 'error' ? 'errors' : 'other');
+  notes.push({ group, type, title: options.title ?? TITLES[type] ?? TITLES.info, text: String(message), icon: options.icon ?? ICONS[type], action: options.action ?? null, at: new Date().toISOString() });
+  if (notes.length > KEEP) notes.splice(0, notes.length - KEEP);
+  bump();
+}
+
+function noteRow(note) {
+  return h(
+    'div',
+    { class: `notify-note notify-note--${note.type}` },
+    itemPicture(note.icon, 'notify-note__img'),
+    h(
+      'div',
+      { class: 'notify-note__body' },
+      h('span', { class: 'notify-note__title' }, note.title),
+      h('span', { class: 'notify-note__text' }, note.text),
+      // The card's button ("Обновить"…) stays here once the card is gone.
+      note.action ? h('button', { class: 'btn btn--secondary btn--compact notify-note__action', type: 'button', onclick: (event) => { event.stopPropagation(); closePanel(); note.action.onClick(); } }, note.action.label) : null,
+    ),
+    h('span', { class: 'notify-note__time' }, formatAgo(note.at)),
+  );
+}
+
+function renderPanel() {
+  const sections = GROUPS.map((group) => {
+    const own = notes.filter((note) => note.group === group.key).reverse();
+    if (own.length === 0) return null;
+    const open = openGroups.has(group.key);
+    const head = h(
+      'button',
+      {
+        class: 'notify-group__head',
+        type: 'button',
+        'aria-expanded': String(open),
+        onclick: () => {
+          if (open) openGroups.delete(group.key);
+          else openGroups.add(group.key);
+          renderPanel();
+        },
+      },
+      itemPicture(group.icon, 'notify-group__img'),
+      h('span', { class: 'notify-group__title' }, group.title),
+      h('span', { class: 'notify-group__count' }, String(own.length)),
+      h('span', { class: 'notify-group__time' }, formatAgo(own[0].at)),
+      h('span', { class: 'notify-group__chevron', 'aria-hidden': 'true' }, open ? '▾' : '▸'),
+    );
+    // Closed, a section is a stack: its newest note on top, the others as edges under it.
+    const body = open
+      ? h('div', { class: 'notify-group__list' }, own.map(noteRow))
+      : h('div', { class: `notify-group__stack${own.length > 1 ? ' notify-group__stack--more' : ''}`, onclick: () => { openGroups.add(group.key); renderPanel(); } }, noteRow(own[0]));
+    return h('section', { class: `notify-group notify-group--${group.key}` }, head, body);
+  }).filter(Boolean);
+  panel.replaceChildren(
+    h(
+      'div',
+      { class: 'notify-panel__head' },
+      h('span', { class: 'notify-panel__title' }, 'Уведомления'),
+      h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => { notes.length = 0; closePanel(); corner.hidden = true; } }, 'Очистить'),
+    ),
+    sections.length ? h('div', { class: 'notify-panel__groups' }, sections) : h('p', { class: 'notify-panel__empty' }, 'Пока ничего'),
+  );
+}
+
+let ticker = 0;
+function onOutside(event) {
+  if (panel && !panel.contains(event.target) && !book.contains(event.target)) closePanel();
+}
+function onKey(event) {
+  if (event.key === 'Escape') closePanel();
+}
+
+function openPanel() {
+  panel = h('div', { class: 'context-menu notify-panel', role: 'dialog', 'aria-label': 'Уведомления' });
+  renderPanel();
+  document.body.append(panel);
+  // The cards say nothing the list does not: they go.
+  for (const entry of toasts) leave(entry);
+  unseen = 0;
+  bookCount.textContent = '';
+  book.classList.remove('notify-book--new');
+  book.setAttribute('aria-expanded', 'true');
+  // "минуту назад" stays true while the list is open.
+  ticker = setInterval(renderPanel, 30000);
+  setTimeout(() => document.addEventListener('pointerdown', onOutside, true));
+  document.addEventListener('keydown', onKey);
+}
+
+function closePanel() {
+  clearInterval(ticker);
+  document.removeEventListener('pointerdown', onOutside, true);
+  document.removeEventListener('keydown', onKey);
+  panel?.remove();
+  panel = null;
+  book?.setAttribute('aria-expanded', 'false');
+}
+
+/*
+ * Cards (an error, a notice with a button) never cover each other: only the newest one shows, and when
+ * there are several a number in its corner says how many. With the pointer on them they spread into a
+ * list and none leaves while you read.
  */
 const toasts = [];
 let stack = null;
@@ -96,11 +253,18 @@ function leave(entry) {
 }
 
 /**
- * Shows a short notification in the bottom-right corner, styled as a Minecraft advancement.
- * type: 'info' | 'success' | 'error'. `options.title` replaces the default heading, `options.icon`
- * is an item texture name, options.action = { label, onClick } adds a button.
+ * A notification. type: 'info' | 'success' | 'error'. `options.title` replaces the default heading,
+ * `options.icon` is an item texture name, `options.group` its section in the book ('mods',
+ * 'instances'; errors go to their own, the rest to "Прочее"), options.action = { label, onClick } adds
+ * a button. It goes into the book; an error or one with a button also shows as a card (the
+ * advancement look) in the bottom-right corner.
  */
 export function toast(message, type = 'info', duration = 4200, options = {}) {
+  record(message, type, options);
+  if (!options.silent) {
+    sfx(type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');
+  }
+  if (type !== 'error' && !options.action) return;
   ensureStack();
   const iconName = options.icon ?? ICONS[type];
   const hasIcon = getMcManifest()?.textures.items.includes(iconName);
@@ -140,7 +304,4 @@ export function toast(message, type = 'info', duration = 4200, options = {}) {
   toasts.filter((candidate) => !candidate.leaving).slice(0, -MAX_TOASTS).forEach((old) => leave(old));
   layout();
   if (!hovered) entry.resume();
-  if (!options.silent) {
-    sfx(type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');
-  }
 }

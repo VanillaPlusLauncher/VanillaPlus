@@ -429,7 +429,7 @@ export function createContentList(getInstance, type) {
     }
     try {
       const added = await api.content.addFiles(getInstance().id, type, files);
-      toast(`Добавлено: ${added.join(', ')}`, 'success');
+      toast(`Добавлено: ${added.join(', ')}`, 'success', 4200, { group: 'mods' });
       state.identified = false;
       await load({ quiet: true });
     } catch (error) {
@@ -514,7 +514,7 @@ export function createContentList(getInstance, type) {
       if (failed.length) {
         toast(`Обновлено: ${updated.length}, не удалось: ${failed.length} (${failed.map((entry) => entry.title).slice(0, 3).join(', ')})`, 'error', 7000);
       } else {
-        toast(`Обновлено: ${updated.length}`, 'success');
+        toast(`Обновлено: ${updated.length}`, 'success', 4200, { group: 'mods' });
       }
     } catch (error) {
       toast(errorMessage(error), 'error');
@@ -685,7 +685,7 @@ export function createContentList(getInstance, type) {
           iconUrl: item.icon?.startsWith('https://') ? item.icon : null,
           replaceFile: item.file,
         });
-        toast(`${item.title}: установлена ${version.versionNumber}`, 'success');
+        toast(`${item.title}: установлена ${version.versionNumber}`, 'success', 4200, { group: 'mods' });
         state.updates.delete(item.file);
         modal.close();
         await load({ quiet: true });

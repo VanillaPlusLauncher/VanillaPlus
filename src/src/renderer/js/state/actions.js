@@ -137,6 +137,10 @@ export function applyTaskEvent(event) {
   }
   if (event.state === 'done' && previous?.state === 'running' && ['instance', 'modpack', 'version'].includes(event.kind)) {
     sfx('installed');
+    // Into the book's "Сборки" (a modpack says so itself when it is ready).
+    if (event.kind !== 'modpack') {
+      toast(event.instance ? `${event.instance}: ${event.label}` : event.label, 'success', 0, { title: 'Скачано', icon: 'diamond_pickaxe', group: 'instances', silent: true });
+    }
   }
   if (event.state === 'done' && event.kind === 'version') {
     refreshInstalled().catch(() => {});
