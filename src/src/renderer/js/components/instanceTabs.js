@@ -667,8 +667,6 @@ function createServerListCard(getInstance, { onPlay } = {}) {
 // --- Own server (one click) ----------------------------------------------------------------
 
 const RAM_CHOICES = [2048, 3072, 4096, 6144, 8192];
-/** Tunnels a player can have for free (the Amethyx server, server/src/worker.js, has the same limit). */
-const FREE_TUNNELS = 5;
 // How invites go (Settings → "Друзья и скины"): with the instance's code, and with the author's own mods.
 const social = () => store.get().settings?.social ?? {};
 const inviteWithPack = () => social().inviteWithPack !== false;
@@ -714,7 +712,7 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
         h('div', { class: 'server-place' },
           h('button', { class: 'server-place__card', type: 'button', onclick: () => openCreate() },
             h('span', { class: 'server-place__title' }, icon('home'), 'На этом компьютере'),
-            h('span', { class: 'server-place__text' }, 'Бесплатно. Сервер работает, пока включён компьютер и открыт лаунчер. Друзья в одной сети заходят сразу, из интернета — через туннель.'),
+            h('span', { class: 'server-place__text' }, 'Бесплатно. Сервер работает, пока включён компьютер и открыт лаунчер. Друзья в одной сети заходят сразу, из интернета — напрямую, через «Доступ из интернета».'),
             h('span', { class: 'server-place__action' }, 'Создать сервер'),
           ),
           h('div', { class: 'server-place__card server-place__card--soon', 'aria-disabled': 'true' },
@@ -745,16 +743,15 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
   }
 
   /**
-   * "Доступ из интернета": the server's tunnel through the Amethyx server (cloud/tunnel.js). Friends
-   * with Amethyx join from anywhere by an invite in the chat — no public IP, no router setup. It
-   * opens whenever the server runs. Up to FREE_TUNNELS free (the Amethyx server keeps the limit).
+   * "Доступ из интернета": the server's port opened on the home router (cloud/tunnel.js), so friends
+   * join it directly by an invite in the chat. It opens whenever the server runs.
    */
   function tunnelBlock() {
     const instance = getInstance();
     const tunnel = state.tunnel ?? {};
     let text;
-    if (!tunnel.enabled) text = `Включите — и друзья с Amethyx зайдут к вам из любого города по приглашению в чате, без белого IP и настройки роутера. Бесплатно — до ${FREE_TUNNELS} туннелей.`;
-    else if (state.running && tunnel.hosting) text = 'Открыт: друзья заходят по приглашению. Позовите их кнопкой справа.';
+    if (!tunnel.enabled) text = 'Включите — лаунчер откроет порт сервера на роутере, и друзья зайдут к вам напрямую по приглашению в чате. Нужен роутер с UPnP и «белый» адрес от провайдера.';
+    else if (state.running && tunnel.hosting) text = `Открыт${tunnel.address ? `: ${tunnel.address}` : ''}. Друзья заходят по приглашению — позовите их кнопкой справа.`;
     else if (state.running) text = 'Открывается…';
     else text = 'Откроется вместе с сервером. Приглашение можно отправить заранее: друг зайдёт, как только сервер запустится.';
     const invite = () =>
@@ -878,7 +875,7 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
         ),
         h('label', { class: 'compat-dialog__remember' }, online, h('span', null, 'Только лицензия (online-mode): без этого заходят и офлайн-аккаунты')),
         h('label', { class: 'compat-dialog__remember' }, eula, h('span', null, 'Я принимаю ', h('button', { class: 'link-button', type: 'button', onclick: (event) => { event.preventDefault(); api.app.openExternal('https://aka.ms/MinecraftEULA'); } }, 'EULA Minecraft'), ' (без этого сервер Mojang не запускается)')),
-        h('p', { class: 'text-muted server-create__hint' }, 'Друзья в той же сети заходят по адресу из карточки сервера, из интернета — через «Доступ из интернета» (туннель Amethyx). Остальные настройки — кнопкой «Настройки» после создания.'),
+        h('p', { class: 'text-muted server-create__hint' }, 'Друзья в той же сети заходят по адресу из карточки сервера, из интернета — через «Доступ из интернета» (лаунчер откроет порт на роутере). Остальные настройки — кнопкой «Настройки» после создания.'),
       ),
       footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), createButton],
     });

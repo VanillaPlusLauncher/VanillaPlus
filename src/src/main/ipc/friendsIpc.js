@@ -36,18 +36,19 @@ function registerFriendsHandlers(handle) {
       withPack: invite?.withPack !== false,
       upload: invite?.upload === true,
       world: invite?.world === true,
-      // An own server of that instance, through its tunnel.
+      // An own server of that instance, joined directly at its outside address.
       ownServer: invite?.ownServer === true,
       // The code from the export dialog, when it already carries the author's files.
       code: typeof invite?.code === 'string' ? invite.code.slice(0, 60000) : null,
     }),
   );
-  // The world opened to LAN (the Amethyx tunnel takes it), and e4mc's public address when that mod is there.
+  // The world opened to LAN, and its address for friends: e4mc's when that mod is there, else the
+  // outside address once the port is open on the router (tunnel.js).
   handle(CHANNELS.friends.hostStatus, () => {
     const world = tunnel.worldStatus();
     if (!world) return null;
     const e4mc = worldShare.hostStatus();
-    return { ...world, address: e4mc?.kind === 'ready' ? e4mc.address : null };
+    return { ...world, address: e4mc?.kind === 'ready' ? e4mc.address : world.address ?? null };
   });
   handle(CHANNELS.friends.joinTunnel, (_event, tunnelId, name) => tunnel.joinTunnel(String(tunnelId), { name: String(name ?? '').slice(0, 64) }));
 

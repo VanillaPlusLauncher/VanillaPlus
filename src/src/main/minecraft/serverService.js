@@ -71,8 +71,8 @@ async function getServer(settings, instanceId) {
     loader: meta?.loader ?? null,
     minecraft: meta?.minecraft ?? null,
     createdAt: meta?.createdAt ?? null,
-    // "Доступ из интернета": friends with Amethyx come in through the tunnel (cloud/tunnel.js).
-    tunnel: { enabled: Boolean(meta?.tunnel?.enabled), hosting: require('../cloud/tunnel').isHostingServer(instanceId) },
+    // "Доступ из интернета": friends come in directly, through the port opened on the router (cloud/tunnel.js).
+    tunnel: { enabled: Boolean(meta?.tunnel?.enabled), hosting: require('../cloud/tunnel').isHostingServer(instanceId), address: require('../cloud/tunnel').serverAddress(instanceId) },
     lines: [...(consoles.get(instanceId) ?? [])],
   };
 }
@@ -288,15 +288,15 @@ async function startServer(settings, instanceId) {
     broadcast(CHANNELS.events.serverState, { instanceId, running: false });
   });
   pushLine(instanceId, `--- Запуск сервера на порту ${meta.port} ---`);
-  if (meta.tunnel?.enabled && meta.tunnel.id) {
+  if (meta.tunnel?.enabled) {
     const name = (await instanceService.getInstance(settings, instanceId).catch(() => null))?.name ?? instanceId;
     require('../cloud/tunnel')
-      .hostServer(instanceId, meta.tunnel.id, meta.port, name)
-      .then(() => {
-        pushLine(instanceId, '--- Туннель открыт: друзья с Amethyx заходят по приглашению ---');
+      .hostServer(instanceId, meta.port, name)
+      .then(({ address, manual }) => {
+        pushLine(instanceId, `--- Доступ из интернета: ${address}${manual ? ' (роутер не ответил: откройте порт в его настройках вручную)' : ''} ---`);
         broadcast(CHANNELS.events.serverState, { instanceId, running: running.has(instanceId) });
       })
-      .catch((error) => pushLine(instanceId, `--- Туннель не открылся: ${error.message} ---`));
+      .catch((error) => pushLine(instanceId, `--- Доступ из интернета не открылся: ${error.message} ---`));
   }
   broadcast(CHANNELS.events.serverState, { instanceId, running: true });
   return getServer(settings, instanceId);
@@ -512,17 +512,16 @@ async function setServerIcon(settings, instanceId, dataUrl) {
   await fsp.writeFile(path.join(directory, 'server-icon.png'), image.resize({ width: 64, height: 64, quality: 'best' }).toPNG());
 }
 
-/** "Доступ из интернета" on or off. On: the server keeps one tunnel; it opens whenever the server runs. */
+/** "Доступ из интернета" on or off. On: the server's port opens on the router whenever the server runs. */
 async function setServerTunnel(settings, instanceId, enabled) {
   const { directory, meta } = await requireMeta(settings, instanceId);
   const tunnel = require('../cloud/tunnel');
   if (enabled) {
-    const id = await tunnel.serverTunnelId(meta.tunnel?.id ?? null);
-    meta.tunnel = { id, enabled: true };
+    meta.tunnel = { enabled: true };
     await writeMeta(directory, meta);
     if (running.has(instanceId)) {
       const instance = await instanceService.getInstance(settings, instanceId);
-      await tunnel.hostServer(instanceId, id, meta.port, instance.name);
+      await tunnel.hostServer(instanceId, meta.port, instance.name);
     }
   } else {
     meta.tunnel = { ...(meta.tunnel ?? {}), enabled: false };
@@ -532,17 +531,23 @@ async function setServerTunnel(settings, instanceId, enabled) {
   return getServer(settings, instanceId);
 }
 
-/** The server's tunnel for an invite (switched on when it was off). Resolves with { id, name, running }. */
+/**
+ * The server's outside address for an invite ("Доступ из интернета" switched on when it was off; the
+ * port opens on the router now, so the address is known even before the server starts).
+ * Resolves with { address, manual, running }.
+ */
 async function serverInvite(settings, instanceId) {
   if (!(await readMeta(serverDirectory(settings, instanceId)))) {
     throw new Error('У этой сборки ещё нет своего сервера: создайте его на вкладке «Серверы» → «Свой сервер».');
   }
   let { meta } = await requireMeta(settings, instanceId);
-  if (!meta.tunnel?.enabled || !meta.tunnel.id) {
+  if (!meta.tunnel?.enabled) {
     await setServerTunnel(settings, instanceId, true);
     ({ meta } = await requireMeta(settings, instanceId));
   }
-  return { id: meta.tunnel.id, running: running.has(instanceId) };
+  const instance = await instanceService.getInstance(settings, instanceId);
+  const { address, manual } = await require('../cloud/tunnel').hostServer(instanceId, meta.port, instance.name);
+  return { address, manual, running: running.has(instanceId) };
 }
 
 /** Sends a console command ("stop", "op Steve", "say привет"). */

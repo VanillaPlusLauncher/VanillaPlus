@@ -8,23 +8,25 @@ const { createLogger } = require('../core/logger');
 const { CHANNELS } = require('../../shared/channels');
 const { getSettings } = require('../settings/settingsService');
 const { loadAccountStore } = require('../accounts/accountStore');
-const { serverUrl, sessionFor } = require('./cloudClient');
+const { serverUrl, callAs } = require('./cloudClient');
 
 /*
- * The live connection to the Amethyx server (a WebSocket per open launcher): new messages,
- * friend requests and read marks arrive at once. Events go to the window; when the window is not
- * in focus Amethyx's own notice card (notice.js) shows the message. Reconnects by itself with a growing pause.
+ * News from the Amethyx server for the selected account: new messages and read marks. The server
+ * lives on ordinary hosting that cannot hold a connection open, so the launcher asks it every few
+ * seconds (GET /v1/updates?since=…) and a little less often while it does not answer. Events go to
+ * the window; when the window is not in focus Amethyx's own notice card (notice.js) shows the message.
  */
 
-const PING_MS = 45 * 1000;
+const EVERY_MS = 6000;
 const MAX_PAUSE_MS = 2 * 60 * 1000;
 const log = createLogger('live');
-let socket = null;
 let accountId = null;
-let pingTimer = null;
-let retryTimer = null;
-let pause = 5000;
+let timer = null;
+let pause = EVERY_MS;
 let stopped = true;
+/** Server time of the last answer: the next one brings only what came after it. */
+let since = 0;
+let failing = false;
 
 function mainWindow() {
   return getMainWindow();
@@ -66,87 +68,67 @@ function onEvent(event) {
   });
 }
 
-function clearTimers() {
-  clearInterval(pingTimer);
-  clearTimeout(retryTimer);
-  pingTimer = null;
-  retryTimer = null;
-}
-
-function scheduleRetry() {
+function schedule(delay) {
   if (stopped) return;
-  clearTimeout(retryTimer);
-  retryTimer = setTimeout(connect, pause);
-  pause = Math.min(pause * 2, MAX_PAUSE_MS);
+  clearTimeout(timer);
+  timer = setTimeout(poll, delay);
 }
 
-async function connect() {
-  clearTimers();
+/** No server or no account right now: asked again this much later (one may be added meanwhile). */
+const IDLE_MS = 30 * 1000;
+
+async function poll() {
+  timer = null;
+  let next = pause;
   try {
     const settings = await getSettings();
     const { selectedId } = await loadAccountStore();
-    if (stopped || !serverUrl(settings) || !selectedId) return;
-    accountId = selectedId;
-    const { base, token } = await sessionFor(selectedId);
-    const url = `${base.replace(/^http/, 'ws')}/v1/live?token=${encodeURIComponent(token)}`;
-    const current = new WebSocket(url);
-    socket = current;
-    current.addEventListener('open', () => {
-      pause = 5000;
-      log.info('Живое соединение с сервером Amethyx открыто');
-      pingTimer = setInterval(() => current.readyState === WebSocket.OPEN && current.send('ping'), PING_MS);
-    });
-    current.addEventListener('message', (message) => {
-      if (message.data === 'pong') return;
-      try {
-        onEvent(JSON.parse(String(message.data)));
-      } catch {
-        // Not an event.
+    if (!serverUrl(settings) || !selectedId) {
+      next = IDLE_MS;
+    } else {
+      if (selectedId !== accountId) {
+        accountId = selectedId;
+        since = 0;
       }
-    });
-    current.addEventListener('close', () => {
-      if (socket !== current) return;
-      socket = null;
-      clearInterval(pingTimer);
-      scheduleRetry();
-    });
-    current.addEventListener('error', () => {
-      // "close" follows and schedules the next try.
-    });
+      const answer = await callAs(selectedId, 'GET', `/v1/updates?since=${since}`);
+      if (!stopped && selectedId === accountId) {
+        // The first answer only sets the clock: what came before was seen in the chat lists already.
+        if (since) (answer?.events ?? []).forEach(onEvent);
+        since = Number(answer?.now) || since;
+      }
+      pause = EVERY_MS;
+      next = pause;
+      if (failing) log.info('Сервер Amethyx снова отвечает');
+      failing = false;
+    }
   } catch (error) {
-    log.warn(`Живое соединение не открыто: ${error.message}`);
-    scheduleRetry();
+    if (!failing) log.warn(`Новости с сервера Amethyx не пришли: ${error.message}`);
+    failing = true;
+    pause = Math.min(pause * 2, MAX_PAUSE_MS);
+    next = pause;
   }
+  schedule(next);
 }
 
-function stopSocket() {
-  clearTimers();
-  const current = socket;
-  socket = null;
-  try {
-    current?.close();
-  } catch {
-    // Already closed.
-  }
-}
-
-/** Starts (or, after an account switch or a settings change, restarts) the live connection. */
+/** Starts (or, after an account switch or a settings change, restarts) asking for news. */
 function startLive() {
   stopped = false;
-  pause = 5000;
-  stopSocket();
-  connect();
+  pause = EVERY_MS;
+  accountId = null;
+  since = 0;
+  schedule(0);
 }
 
 function stopLive() {
   stopped = true;
-  stopSocket();
+  clearTimeout(timer);
+  timer = null;
 }
 
-/** After switching accounts: the connection follows the selected account. */
+/** After switching accounts: the news follow the selected account. */
 async function followAccount() {
   const { selectedId } = await loadAccountStore().catch(() => ({ selectedId: null }));
-  if (stopped || (selectedId === accountId && socket)) return;
+  if (stopped || selectedId === accountId) return;
   startLive();
 }
 

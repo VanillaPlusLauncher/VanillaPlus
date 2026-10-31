@@ -20,8 +20,12 @@ const { loadAccountStore, encryptSecret, decryptSecret } = require('../accounts/
  * Tokens and secrets are kept encrypted (Windows DPAPI) in cloud.json.
  */
 
-/** The Amethyx server built into releases (server/ deployed to Cloudflare, see server/README.md). */
-const BUILT_IN_SERVER = 'https://vanillaplus.vanillaplus-server.workers.dev';
+/**
+ * The Amethyx server built into releases: website/cloud on the site's own hosting (no Cloudflare,
+ * which is blocked for players in Russia). A session is kept per server, so after the move every
+ * account signs in there by itself.
+ */
+const BUILT_IN_SERVER = 'https://launcher.x-world.plus/cloud';
 const JOIN_URL = {
   microsoft: 'https://sessionserver.mojang.com/session/minecraft/join',
   ely: 'https://authserver.ely.by/session/join',

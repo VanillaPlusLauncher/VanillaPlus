@@ -344,7 +344,7 @@ export function createSettingsPage() {
         h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Свой сервер Amethyx (необязательно)'), serverInput),
       ),
       // How invites go out and what a click on a friend's invite does.
-      card('Приглашения друзей', 'Друг заходит в ваш мир или на ваш сервер через туннель Amethyx: без белого IP, настройки роутера и модов. Вместе с приглашением уходит сборка — друг соберёт её одной кнопкой.',
+      card('Приглашения друзей', 'Друг заходит в ваш мир или на ваш сервер напрямую: лаунчер сам откроет порт на роутере (UPnP), моды не нужны. Вместе с приглашением уходит сборка — друг соберёт её одной кнопкой.',
         row('Отправлять сборку с приглашением', 'Друг получит те же версию, загрузчик и моды. Если сборка у него уже есть, она не собирается заново.', toggle(social.inviteWithPack !== false, (value) => update({ inviteWithPack: value }), 'Сборка с приглашением')),
         row('Моды не с Modrinth и CurseForge', 'Свои моды и моды из файлов загружаются на сервер Amethyx, чтобы друг их получил.', nowrap(createSegmented({
           options: [{ value: 'always', label: 'Загружать' }, { value: 'ask', label: 'Спрашивать' }, { value: 'never', label: 'Нет' }],

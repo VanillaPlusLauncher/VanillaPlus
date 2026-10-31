@@ -277,9 +277,10 @@ function sanitize(input, defaults) {
     skinsInMods: typeof input.social?.skinsInMods === 'boolean' ? input.social.skinsInMods : defaults.social.skinsInMods,
     online: typeof input.social?.online === 'boolean' ? input.social.online : defaults.social.online,
     shareActivity: typeof input.social?.shareActivity === 'boolean' ? input.social.shareActivity : defaults.social.shareActivity,
-    // https only; plain http just for a server on this computer (testing `wrangler dev`).
+    // https only; plain http just for a server on this computer (testing website/cloud, which lives
+    // under a path: http://127.0.0.1:8830/cloud).
     serverUrl:
-      typeof input.social?.serverUrl === 'string' && /^(https:\/\/\S+|http:\/\/(127\.0\.0\.1|localhost)(:\d+)?)?$/i.test(input.social.serverUrl.trim())
+      typeof input.social?.serverUrl === 'string' && /^(https:\/\/\S+|http:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/\S*)?)?$/i.test(input.social.serverUrl.trim())
         ? input.social.serverUrl.trim().replace(/\/+$/, '').slice(0, 300)
         : defaults.social.serverUrl,
     inviteWithPack: typeof input.social?.inviteWithPack === 'boolean' ? input.social.inviteWithPack : defaults.social.inviteWithPack,

@@ -73,7 +73,7 @@ function worldCard() {
   if (world?.kind === 'ready') {
     parts.push(
       h('div', { class: 'ov-world__title' }, h('span', { class: 'ov-live' }), 'Мир открыт для друзей'),
-      h('p', { class: 'text-muted' }, 'Друг зайдёт через туннель Amethyx из любого города — без белого IP и настройки роутера.'),
+      h('p', { class: 'text-muted' }, 'Друг зайдёт к вам напрямую: лаунчер сам откроет порт на роутере (нужны UPnP и «белый» адрес).'),
       h('button', {
         class: `btn ${state.inviting ? 'btn--secondary' : 'btn--primary'} ov-world__invite`,
         type: 'button',

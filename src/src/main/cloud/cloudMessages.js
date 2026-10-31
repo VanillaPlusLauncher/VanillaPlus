@@ -65,9 +65,9 @@ function inviteIcon(icon) {
 /**
  * An invite: the instance (name, version, loader, picture), where to join, and the share code
  * when `withPack` is on, so the friend can build the same instance. Where to join:
- *  world     — the world opened to LAN now, through the Amethyx tunnel (and e4mc's address too,
- *              when that mod is in the instance: friends on older launchers use it);
- *  ownServer — the own server of the instance, through its tunnel (switched on if it was off);
+ *  world     — the world opened to LAN now: e4mc's public address when that mod is in the instance,
+ *              else this computer's outside address with the port opened on the router (tunnel.js);
+ *  ownServer — the own server of the instance, the same way ("Доступ из интернета" switched on);
  *  server    — an address typed by the player.
  * With `upload` the mods that are on neither Modrinth nor CurseForge go to the server and into the
  * code; when that fails the invite still goes, without them, and `uploadError` says why. A ready
@@ -79,20 +79,18 @@ async function sendInvite(friendId, { instanceId, server = '', withPack = true, 
   const tunnel = require('./tunnel');
   let address = String(server ?? '').trim() || null;
   let id = String(instanceId);
-  let tunnelId = null;
   if (world) {
     const status = tunnel.worldStatus();
     if (status?.kind !== 'ready') {
       throw new Error('Мир ещё не открыт для друзей: в игре нажмите Esc → «Открыть для сети» → «Открыть мир для сети».');
     }
-    tunnelId = (await tunnel.hostWorld()).id;
+    // e4mc's public address when that mod is there; otherwise the port opened on the router.
     const e4mc = require('../minecraft/worldShare').hostStatus();
-    address = e4mc?.kind === 'ready' ? e4mc.address : null;
+    address = e4mc?.kind === 'ready' ? e4mc.address : (await tunnel.hostWorld()).address;
     const running = require('../minecraft/gameService').getStatus();
     if (running.state === 'running' && running.instanceId) id = running.instanceId;
   } else if (ownServer) {
-    tunnelId = (await require('../minecraft/serverService').serverInvite(settings, id)).id;
-    address = null;
+    address = (await require('../minecraft/serverService').serverInvite(settings, id)).address;
   }
   const instance = await instanceService.getInstance(settings, id);
   let code = null;
@@ -117,7 +115,8 @@ async function sendInvite(friendId, { instanceId, server = '', withPack = true, 
     server: address,
     world: world || ownServer ? instance.name : null,
     code,
-    tunnel: tunnelId,
+    // Friends join the address directly (cloud/tunnel.js); invites before 1.7.1 carried a tunnel id here.
+    tunnel: null,
     icon: inviteIcon(instance.icon),
     kind,
   };

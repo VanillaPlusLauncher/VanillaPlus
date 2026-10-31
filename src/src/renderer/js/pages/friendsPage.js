@@ -483,7 +483,7 @@ export function createFriendsPage() {
     const social = settings?.social ?? {};
     const upload = h('input', { type: 'checkbox', checked: social.inviteUpload !== 'never' });
     const sendInvite = h('button', { class: 'btn btn--primary btn--compact', type: 'button' }, 'Пригласить');
-    // "В мой мир": the world opened to LAN, through the Amethyx tunnel (any instance, vanilla too).
+    // "В мой мир": the world opened to LAN, joined directly through the port opened on the router (any instance, vanilla too).
     const worldStatus = h('p', { class: 'text-soft' }, 'Проверяем мир…');
     const worldPanel = h(
       'div',
@@ -491,7 +491,7 @@ export function createFriendsPage() {
       worldStatus,
       h('p', { class: 'skin-note' }, 'Друг заходит так же, как вы: если вы играете с лицензией Microsoft, другу тоже нужен Microsoft; с Ely.by — Ely.by. В офлайн-мир может зайти любой.'),
     );
-    // "На мой сервер": the own server of an instance, through its tunnel.
+    // "На мой сервер": the own server of an instance, joined directly at its outside address.
     const ownPanel = h(
       'div',
       { class: 'modal__section', hidden: true },
@@ -528,7 +528,7 @@ export function createFriendsPage() {
       .then((status) => {
         worldReady = status?.kind === 'ready';
         if (!status) worldStatus.textContent = 'Сначала запустите игру и откройте мир: Esc → «Открыть для сети» → «Открыть мир для сети».';
-        else if (status.kind === 'ready') worldStatus.textContent = `Мир открыт. Друг зайдёт через туннель Amethyx — без белого IP и настройки роутера.${status.address ? ` Адрес для друзей с другим лаунчером: ${status.address}` : ''}`;
+        else if (status.kind === 'ready') worldStatus.textContent = status.address ? `Мир открыт. Друг зайдёт к вам напрямую: ${status.address}` : 'Мир открыт. Когда вы позовёте друга, лаунчер откроет порт на роутере, и друг зайдёт к вам напрямую.';
         else worldStatus.textContent = 'Откройте мир: в игре нажмите Esc → «Открыть для сети» → «Открыть мир для сети».';
         refreshButton();
       })
@@ -697,7 +697,7 @@ export function createFriendsPage() {
     }
   }
 
-  /** Where to join for an invite: through the friend's tunnel, or its address. Null when nowhere. */
+  /** Where to join for an invite: its address (an old invite's tunnel id gets a plain answer). Null when nowhere. */
   async function inviteAddress(invite) {
     if (invite.tunnel) {
       const friend = findFriend(state.chatWith);

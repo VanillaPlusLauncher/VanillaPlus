@@ -94,10 +94,10 @@ if (!singleInstance) {
       startVersionWatch();
       // "Online" for friends on the Amethyx server (nothing happens while no server is set up).
       require('./cloud/cloudFriends').startPresence();
-      // Instant messages and friend requests.
+      // New messages and read marks, asked for every few seconds.
       require('./cloud/cloudLive').startLive();
-      // Friends' worlds and servers already in the game's server lists answer again (tunnels).
-      setTimeout(() => require('./cloud/tunnel').restoreJoined().catch((error) => log.warn(`Туннели к друзьям не открыты: ${error.message}`)), 8000);
+      // Friends' worlds and servers are joined directly by their addresses: nothing to reopen (tunnel.js).
+      setTimeout(() => require('./cloud/tunnel').restoreJoined().catch((error) => log.warn(`Подключения к друзьям не восстановлены: ${error.message}`)), 8000);
     }
 
     app.on('activate', () => {

@@ -17,7 +17,7 @@ The installed launcher updates itself: a new version downloads in the background
 - **Instances like in Prism Launcher:** tabs for mods, resource packs, shaders, worlds, your own server, screenshots and the log; change the game version and loader, per-instance Java and memory, notes, custom groups with drag and drop
 - **Game log** explains common errors and shows the cause right after a crash
 - **Wardrobe:** ready-made skins from a PNG, by player name or from The Skindex and NameMC (a skin downloaded there appears in the launcher by itself), 3D preview with animations; a skin per account; on a Microsoft account "Wear" changes the real profile skin (and "Reset skin" brings the default back), Ely.by accounts get an Amethyx skin and a "To Ely.by" button
-- **Friends:** requests, who is online and what they play, chat, joining a friend's world or own server through the Amethyx tunnel (no public IP, no mod) in one click
+- **Friends:** requests, who is online and what they play, chat, joining a friend's world or own server directly (the launcher opens the port on the router, no mod needed) in one click
 - Minecraft look and feel: panoramas from different game versions, sounds (one per action, your choice) and music
 - Seven languages: English, Russian, Spanish, Portuguese, German, French, Chinese
 - Notices new Minecraft versions and updates itself
@@ -26,7 +26,7 @@ The installed launcher updates itself: a new version downloads in the background
 ### New in 1.7.0 (coming soon)
 
 - **Friends and chat:** who is online and what they play, messages, in-game screenshots, invites with an instance your friend builds in one click
-- **Friends join your world** without a public IP: open the world to LAN and invite them in the chat; the Amethyx tunnel takes them in, in any instance, vanilla too
+- **Friends join your world** directly: open the world to LAN and invite them in the chat; the launcher opens the port on your router (UPnP) and they come in, in any instance, vanilla too
 - **3D player on the home screen:** follows the mouse, waves and does gestures; under it, a Bedrock-style **Wardrobe**
 - **Ready-made skins:** from a PNG, by player name, from The Skindex and NameMC — a skin downloaded on the site appears in the Wardrobe by itself; other Amethyx players see your **Amethyx skin** even on Ely.by accounts
 - **Import from other launchers:** Prism, ElyPrism, MultiMC, Modrinth App, CurseForge, TLauncher and more — instances are found automatically
@@ -64,7 +64,7 @@ Releasing a new version: raise `version` in `src/package.json`, build, then
 - `src/src/renderer` — the interface (no frameworks, ES modules)
 - `src/src/preload` — the bridge between them: everything goes through IPC with input checks
 - `installer` — the installer (Inno Setup), build and publishing
-- `server` — the Amethyx server for friends, chat and shared skins (Cloudflare Workers + D1); how to run it is in [server/README.md](server/README.md)
+- `website/cloud` — the Amethyx server for friends, chat and shared skins (PHP + SQLite on the site's hosting); `server` — its earlier Cloudflare Workers version, kept only to move the data over ([server/tools/README-migrate.md](server/tools/README-migrate.md))
 
 ## License
 

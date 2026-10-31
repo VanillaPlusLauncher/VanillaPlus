@@ -1,144 +1,73 @@
 'use strict';
 
-const { broadcast } = require('../core/broadcast');
 const { createLogger } = require('../core/logger');
-const { CHANNELS } = require('../../shared/channels');
-const { loadAccountStore } = require('../accounts/accountStore');
-const { callAs, sessionFor, readStore, updateStore } = require('./cloudClient');
-const { startHost, startGuest } = require('./tunnelCore');
+const { request } = require('../core/http');
+const upnp = require('./upnp');
 
 /*
- * "Join my world" for friends, with no mod and no router setup: the host's world (a world opened
- * to LAN in the game, or an own server from the Servers tab) gets a tunnel room on the Amethyx
- * server; a friend's launcher opens a local port that leads into it, and the friend's game joins
- * 127.0.0.1:<port>. Works for every instance, vanilla too.
+ * "Join my world" for friends, directly: the host's world (a world opened to LAN in the game, or an
+ * own server from the Servers tab) gets its port opened on the home router (UPnP, upnp.js), and the
+ * invite carries the router's outside address, "203.0.113.5:54321". The friend's game connects
+ * there by itself: no server in between, so it works where Cloudflare is blocked too, for every
+ * instance, vanilla included. (Until 1.7.1 the Amethyx server relayed the game through tunnels; the
+ * site's hosting cannot hold such connections.)
  *
- * Each player keeps few tunnels (the server allows FREE_TUNNELS): one for worlds opened to LAN,
- * reused for every game (cloud.json → tunnels), and one per own server (its amethyx-server.json).
- * So an invite stays good: whenever the host's world or server is open again, the friend gets in.
- * A host connection that drops comes back by itself; a tunnel the server forgot is made anew.
+ * It cannot work when the router has UPnP switched off (then the port is opened by hand in the
+ * router's settings and the address still goes in the invite), or when the provider gives a shared
+ * ("grey") address: then nobody outside can reach this computer, and the friend opens the world instead.
  */
 
-const log = createLogger('tunnel');
-const RETRY_MS = [3000, 6000, 15000, 30000, 60000];
-/** Host connections: 'world' or 'server:<instanceId>' → { id, port, handle, retry, attempt, stopped }. */
-const hosts = new Map();
-/** Friends' rooms joined in this run: tunnel id → { port, close, name }. */
-const guests = new Map();
+const log = createLogger('direct');
+/** A mapping is renewed well before its lease ends. */
+const RENEW_MS = (upnp.LEASE_SECONDS * 1000) / 2;
+/** Open ports: 'world' or 'server:<instanceId>' → { port, address, timer }. */
+const opened = new Map();
 
-async function accountId() {
-  const { selectedId } = await loadAccountStore();
-  if (!selectedId) throw new Error('Добавьте аккаунт, чтобы звать друзей.');
-  return selectedId;
+/** The outside address when the router does not tell it: as the Amethyx server sees this computer. */
+async function addressFromServer() {
+  const { requireServer } = require('./cloudClient');
+  const base = await requireServer();
+  const answer = await (await request(`${base}/ip`, { timeoutMs: 8000, retries: 1 })).json();
+  return typeof answer?.ip === 'string' && /^[0-9a-f.:]+$/i.test(answer.ip) ? answer.ip : null;
 }
 
-/** The room's WebSocket address for each new connection, with a fresh session token. */
-function socketUrlFor(account, id) {
-  return async (role, conn) => {
-    const { base, token } = await sessionFor(account);
-    return `${base.replace(/^http/, 'ws')}/v1/tunnels/${id}/ws?token=${encodeURIComponent(token)}&role=${role}${conn ? `&conn=${encodeURIComponent(conn)}` : ''}`;
-  };
-}
-
-function emit(event) {
-  broadcast(CHANNELS.events.friendEvent, event);
-}
-
-/** A tunnel of this player that the server still knows, or a new one. */
-async function liveTunnel(account, id) {
-  if (id) {
-    try {
-      await callAs(account, 'GET', `/v1/tunnels/${id}`);
-      return id;
-    } catch (error) {
-      if (error.status !== 404 && error.status !== 403) throw error;
+/** Opens `port` for `key` (or keeps it open). Resolves with { port, address }; throws when friends cannot get in. */
+async function openFor(key, port, label) {
+  const existing = opened.get(key);
+  if (existing?.port === port) return existing;
+  await closeFor(key);
+  let ip = null;
+  try {
+    const result = await upnp.openPort(port, `Amethyx: ${label}`);
+    if (result.private) {
+      throw new Error('У вас «серый» адрес от провайдера: друзья из интернета не смогут к вам подключиться. Пусть мир откроет друг, у которого адрес «белый», или подключите у провайдера белый IP.');
     }
+    ip = result.externalIp;
+  } catch (error) {
+    if (!(error instanceof upnp.UpnpUnavailable)) throw error;
+    // Without UPnP the address can still be known; the port then has to be opened by hand.
+    ip = await addressFromServer().catch(() => null);
+    if (!ip) throw new Error(`${error.message} Включите UPnP в настройках роутера (или откройте порт ${port} вручную) и попробуйте ещё раз.`);
+    log.warn(`${error.message} Адрес ${ip}:${port} — порт нужно открыть на роутере вручную`);
+    const entry = { port, address: `${ip}:${port}`, manual: true, timer: null };
+    opened.set(key, entry);
+    return entry;
   }
-  const created = await callAs(account, 'POST', '/v1/tunnels');
-  return created.id;
-}
-
-/** The player's tunnel for worlds opened to LAN (made once, then reused). */
-async function worldTunnelId(account) {
-  const store = await readStore();
-  const known = store.tunnels?.[account]?.world ?? null;
-  const id = await liveTunnel(account, known);
-  if (id !== known) {
-    await updateStore((next) => {
-      next.tunnels = { ...(next.tunnels ?? {}), [account]: { ...(next.tunnels?.[account] ?? {}), world: id } };
-    });
-  }
-  return id;
-}
-
-/** Opens the host side of `key` to `port` and keeps it open until stopHost(key). */
-async function startHosting(key, id, port, label) {
-  const existing = hosts.get(key);
-  if (existing && existing.id === id && existing.port === port && existing.handle) return existing;
-  stopHost(key);
-  const entry = { id, port, label, handle: null, retry: null, attempt: 0, stopped: false };
-  hosts.set(key, entry);
-  await connectHost(key, entry);
+  if (!ip) throw new Error('Роутер не сообщил свой внешний адрес.');
+  const entry = { port, address: `${ip}:${port}`, manual: false, timer: null };
+  entry.timer = setInterval(() => {
+    upnp.openPort(port, `Amethyx: ${label}`).catch((error) => log.warn(`Порт ${port} не продлён: ${error.message}`));
+  }, RENEW_MS);
+  opened.set(key, entry);
   return entry;
 }
 
-async function connectHost(key, entry) {
-  const handle = await startHost({
-    socketUrl: socketUrlFor(await accountId(), entry.id),
-    port: entry.port,
-    onEvent: (event) => {
-      if (event.type === 'join') {
-        log.info(`К ${entry.label} подключается ${event.from}`);
-        noticeJoin(event.from, key);
-      } else if (event.type === 'closed') {
-        entry.handle = null;
-        scheduleReconnect(key, entry);
-      }
-    },
-  });
-  if (entry.stopped) {
-    handle.close();
-    return;
-  }
-  entry.handle = handle;
-  entry.attempt = 0;
-  log.info(`Туннель открыт: ${entry.label} (порт ${entry.port})`);
-}
-
-/**
- * A friend comes in: the window says so, and over the game Amethyx's own card in the corner (it never
- * takes the focus). Each game connection counts, the server list's ping too, so once a minute per friend.
- */
-const noticed = new Map();
-function noticeJoin(from, key) {
-  if (!from || Date.now() - (noticed.get(from) ?? 0) < 60000) return;
-  noticed.set(from, Date.now());
-  emit({ type: 'tunnel-join', from, key });
-  const window = require('../window').getMainWindow();
-  if (window?.isFocused()) return;
-  require('../notice').showNotice({ title: 'Amethyx', text: `${from} заходит к вам` });
-}
-
-function scheduleReconnect(key, entry) {
-  if (entry.stopped || hosts.get(key) !== entry) return;
-  clearTimeout(entry.retry);
-  const pause = RETRY_MS[Math.min(entry.attempt, RETRY_MS.length - 1)];
-  entry.attempt += 1;
-  entry.retry = setTimeout(() => {
-    connectHost(key, entry).catch((error) => {
-      log.warn(`Туннель (${entry.label}) не переподключился: ${error.message}`);
-      scheduleReconnect(key, entry);
-    });
-  }, pause);
-}
-
-function stopHost(key) {
-  const entry = hosts.get(key);
+async function closeFor(key) {
+  const entry = opened.get(key);
   if (!entry) return;
-  entry.stopped = true;
-  clearTimeout(entry.retry);
-  entry.handle?.close();
-  hosts.delete(key);
+  opened.delete(key);
+  clearInterval(entry.timer);
+  if (!entry.manual) await upnp.closePort(entry.port).catch(() => {});
 }
 
 // --- Worlds opened to LAN -----------------------------------------------------------------------
@@ -147,109 +76,68 @@ function lanPort() {
   return require('../minecraft/gameService').getActivity()?.lanPort ?? null;
 }
 
-/** What the invite dialog can offer: { kind: 'ready', port } — the world is open; 'closed'; null — no game. */
+/** What the invite dialog can offer: { kind: 'ready', port, address? } — the world is open; 'closed'; null — no game. */
 function worldStatus() {
   const activity = require('../minecraft/gameService').getActivity();
   if (!activity) return null;
-  return activity.lanPort ? { kind: 'ready', port: activity.lanPort, hosting: hosts.has('world') } : { kind: 'closed' };
+  if (!activity.lanPort) return { kind: 'closed' };
+  const entry = opened.get('world');
+  return { kind: 'ready', port: activity.lanPort, hosting: Boolean(entry), address: entry?.port === activity.lanPort ? entry.address : null };
 }
 
-/** Opens (or reuses) the tunnel into the world opened to LAN. Resolves with { id }. */
+/** Opens the world opened to LAN to friends. Resolves with { address, manual }. */
 async function hostWorld() {
   const port = lanPort();
   if (!port) throw new Error('Мир не открыт: в игре нажмите Esc → «Открыть для сети» → «Открыть мир для сети».');
-  const account = await accountId();
-  const id = await worldTunnelId(account);
-  await startHosting('world', id, port, 'миру');
-  return { id };
+  const entry = await openFor('world', port, 'мир');
+  return { address: entry.address, manual: entry.manual };
 }
 
-/** The world was opened to LAN: friends with an earlier invite can come in at once. */
-async function onLanOpen() {
-  try {
-    const account = await accountId();
-    if (!(await readStore()).tunnels?.[account]?.world) return;
-    await hostWorld();
-  } catch (error) {
-    log.warn(`Туннель к миру не открыт: ${error.message}`);
-  }
-}
+/** The world was opened to LAN: its port is new each time, so it opens when a friend is invited. */
+function onLanOpen() {}
 
 function onGameExit() {
-  stopHost('world');
+  closeFor('world');
 }
 
 // --- Own servers ---------------------------------------------------------------------------------
 
-/** The server's tunnel id (made when missing). */
-async function serverTunnelId(known) {
-  return liveTunnel(await accountId(), known);
-}
-
-/** The own server is running and its tunnel is on: friends come in through it. */
-async function hostServer(instanceId, id, port, name) {
-  await startHosting(`server:${instanceId}`, id, port, `серверу «${name}»`);
+/** The own server is running with "Доступ из интернета" on: its port opens. Resolves with { address, manual }. */
+async function hostServer(instanceId, port, name) {
+  const entry = await openFor(`server:${instanceId}`, port, `сервер «${name}»`);
+  return { address: entry.address, manual: entry.manual };
 }
 
 function stopServer(instanceId) {
-  stopHost(`server:${instanceId}`);
+  closeFor(`server:${instanceId}`);
 }
 
 function isHostingServer(instanceId) {
-  return Boolean(hosts.get(`server:${instanceId}`)?.handle);
+  return opened.has(`server:${instanceId}`);
+}
+
+function serverAddress(instanceId) {
+  return opened.get(`server:${instanceId}`)?.address ?? null;
 }
 
 // --- Friends' worlds and servers ----------------------------------------------------------------
 
-/** A steady local port for a tunnel, so its address in the game's server list does not change. */
-function preferredPort(id) {
-  return 41000 + (parseInt(id.slice(0, 6), 16) % 9000);
-}
-
 /**
- * The friend's side: a local port into the host's world or server, kept while the launcher runs
- * (and opened again on the next start, see restoreJoined). Resolves with { address, port }.
+ * The friend's side of an invite: its address is joined as it is. An invite from before 1.7.1
+ * carries a tunnel id instead, and tunnels are no more.
  */
-async function joinTunnel(tunnelId, { name = '' } = {}) {
-  const id = String(tunnelId);
-  if (!/^[0-9a-f]{32}$/.test(id)) throw new Error('Неверное приглашение.');
-  const known = guests.get(id);
-  if (known) return { address: `127.0.0.1:${known.port}`, port: known.port };
-  const account = await accountId();
-  const stored = (await readStore()).joined?.[id];
-  let warned = 0;
-  const guest = await startGuest({
-    socketUrl: socketUrlFor(account, id),
-    port: stored?.port ?? preferredPort(id),
-    onEvent: (event) => {
-      // The game's server list asks every few seconds: one word about it is enough.
-      if (event.type !== 'error' || Date.now() - warned < 30000) return;
-      warned = Date.now();
-      emit({ type: 'tunnel-error', message: `${name || 'Друг'} сейчас не в игре, или его мир закрыт.` });
-    },
-  });
-  guests.set(id, { ...guest, name });
-  await updateStore((next) => {
-    next.joined = { ...(next.joined ?? {}), [id]: { port: guest.port, name: name || stored?.name || '', at: Date.now() } };
-  });
-  log.info(`Подключение к другу${name ? ` (${name})` : ''}: 127.0.0.1:${guest.port}`);
-  return { address: `127.0.0.1:${guest.port}`, port: guest.port };
+async function joinTunnel(value) {
+  const text = String(value ?? '').trim();
+  if (/^[0-9a-f]{32}$/.test(text)) throw new Error('Это приглашение через старый туннель Amethyx: попросите друга позвать вас ещё раз.');
+  if (!/^[\w.:[\]-]{3,80}$/.test(text)) throw new Error('Неверное приглашение.');
+  return { address: text };
 }
 
-/** After a start: the friends' servers saved in the game's list answer again (only the last 20). */
-async function restoreJoined() {
-  const joined = Object.entries((await readStore()).joined ?? {})
-    .sort((a, b) => (b[1].at ?? 0) - (a[1].at ?? 0))
-    .slice(0, 20);
-  for (const [id, entry] of joined) {
-    await joinTunnel(id, { name: entry.name }).catch(() => {});
-  }
-}
+/** Nothing to restore: friends' addresses are joined directly. */
+async function restoreJoined() {}
 
 function stopAll() {
-  for (const key of [...hosts.keys()]) stopHost(key);
-  for (const guest of guests.values()) guest.close();
-  guests.clear();
+  for (const key of [...opened.keys()]) closeFor(key);
 }
 
-module.exports = { worldStatus, hostWorld, onLanOpen, onGameExit, serverTunnelId, hostServer, stopServer, isHostingServer, joinTunnel, restoreJoined, stopAll };
+module.exports = { worldStatus, hostWorld, onLanOpen, onGameExit, hostServer, stopServer, isHostingServer, serverAddress, joinTunnel, restoreJoined, stopAll };

@@ -30,6 +30,8 @@ import { installClickSparks } from './core/effects.js';
 import { dropHandlerFor, setNavigator } from './core/nav.js';
 
 const MAX_PARALLAX_PX = { x: 18, y: 12 };
+/** Picture hosts of Modrinth and CurseForge that the Amethyx server's proxy may fetch (see below). */
+const PROXIED_PICTURE_HOSTS = new Set(['cdn.modrinth.com', 'media.forgecdn.net', 'edge.forgecdn.net', 'mediafilez.forgecdn.net', 'forgecdn.net']);
 
 // Frames that follow the cut corners (features/pixel.css → border-image: paint(pixel-frame)).
 CSS.paintWorklet?.addModule(new URL('./core/pixelFrame.worklet.js', import.meta.url)).catch(() => {});
@@ -197,7 +199,24 @@ async function start() {
   api.events.onGameLog(appendLogLine);
   api.events.onInstancesChanged(() => refreshInstances().catch(() => {}));
   api.events.onGameCrash((report) => showCrashDialog(report));
-  // The world opened to LAN: friends come in through the Amethyx tunnel (main/cloud/tunnel.js).
+  // Pictures of Modrinth and CurseForge that do not load (where Cloudflare is blocked) come once more
+  // through the Amethyx server's proxy (website/cloud /proxy, the sites of main/core/http.js); the
+  // picture's own error handling (a cube instead, projectIcon.js) runs only if that fails too.
+  document.addEventListener('error', (event) => {
+    const picture = event.target;
+    if (!(picture instanceof HTMLImageElement) || picture.dataset.proxied) return;
+    let url;
+    try {
+      url = new URL(picture.currentSrc || picture.src);
+    } catch {
+      return;
+    }
+    if (url.protocol !== 'https:' || !PROXIED_PICTURE_HOSTS.has(url.hostname)) return;
+    picture.dataset.proxied = '1';
+    event.stopImmediatePropagation();
+    picture.src = `https://launcher.x-world.plus/cloud/proxy?u=${encodeURIComponent(url.href)}`;
+  }, true);
+  // The world opened to LAN: friends come in directly, through the port opened on the router (main/cloud/tunnel.js).
   api.events.onFriendEvent((event) => {
     if (event.type === 'lan-open') toast('Мир открыт. Позвать друга: «Друзья» → ▶ в чате — он зайдёт из любого города.', 'success', 8000);
     else if (event.type === 'tunnel-join' && event.from) toast(`${event.from} заходит к вам`, 'info', 5000);

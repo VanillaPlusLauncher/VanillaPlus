@@ -37,7 +37,7 @@ function pushLogLine(line) {
   if (lan) {
     current.activity.lanPort = Number(lan[1]);
     broadcast(CHANNELS.events.friendEvent, { type: 'lan-open', port: current.activity.lanPort, shared: true });
-    // Friends with an earlier invite can come in through the tunnel at once (cloud/tunnel.js).
+    // The port opens on the router when a friend is invited (cloud/tunnel.js).
     require('../cloud/tunnel').onLanOpen();
   }
   // e4mc's public address of the world opened to LAN (see worldShare.js).

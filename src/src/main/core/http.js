@@ -16,6 +16,41 @@ class HttpError extends Error {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/*
+ * Where Cloudflare is blocked (Russia), Modrinth's and CurseForge's API, files and pictures do not
+ * load. Once a direct try at one of those sites fails without an answer, it and everything after it
+ * from that site (for this run) go through the Amethyx server's proxy instead (website/cloud,
+ * /proxy: only these sites, on the site's own hosting). A direct try waits DIRECT_WAIT_MS at most.
+ */
+const PROXY = 'https://launcher.x-world.plus/cloud/proxy?u=';
+const PROXIED_HOSTS = new Set(['api.modrinth.com', 'cdn.modrinth.com', 'api.curseforge.com', 'edge.forgecdn.net', 'mediafilez.forgecdn.net', 'media.forgecdn.net', 'forgecdn.net']);
+const DIRECT_WAIT_MS = 15000;
+const throughProxy = new Set();
+
+function proxyHost(url) {
+  try {
+    const { protocol, hostname } = new URL(url);
+    return protocol === 'https:' && PROXIED_HOSTS.has(hostname) ? hostname : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The address to ask: the proxy's for a site that is blocked here, else the site's own. */
+function routed(url) {
+  const host = proxyHost(url);
+  return host && throughProxy.has(host) ? `${PROXY}${encodeURIComponent(url)}` : url;
+}
+
+/** A direct try at `url` failed without an answer: its site goes through the proxy from now on. */
+function switchToProxy(url, error) {
+  const host = proxyHost(url);
+  if (!host || throughProxy.has(host)) return false;
+  throughProxy.add(host);
+  require('./logger').createLogger('http').warn(`${host} не отвечает напрямую (${error.message}): дальше через сервер Amethyx`);
+  return true;
+}
+
 function isRetryable(error) {
   if (error instanceof HttpError) {
     return error.status >= 500 || error.status === 429;
@@ -31,14 +66,17 @@ function isRetryable(error) {
  */
 async function request(url, { method = 'GET', headers = {}, body, timeoutMs = DEFAULT_TIMEOUT_MS, retries = 2, signal } = {}) {
   let lastError;
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
+  let tries = retries;
+  for (let attempt = 0; attempt <= tries; attempt += 1) {
+    const target = routed(url);
+    const direct = target === url && Boolean(proxyHost(url));
     try {
-      const response = await fetch(url, {
+      const response = await fetch(target, {
         method,
         headers: { 'User-Agent': USER_AGENT, ...headers },
         body,
         redirect: 'follow',
-        signal: signal ?? AbortSignal.timeout(timeoutMs),
+        signal: signal ?? AbortSignal.timeout(direct ? Math.min(timeoutMs, DIRECT_WAIT_MS) : timeoutMs),
       });
       if (response.ok) {
         return response;
@@ -47,11 +85,19 @@ async function request(url, { method = 'GET', headers = {}, body, timeoutMs = DE
       throw new HttpError(response.status, url, text);
     } catch (error) {
       lastError = error;
-      if (!isRetryable(error) || signal?.aborted) {
+      if (signal?.aborted) {
+        throw error;
+      }
+      // No answer from a site that is blocked here: the next try goes through the proxy at once.
+      if (direct && !(error instanceof HttpError) && switchToProxy(url, error)) {
+        tries = Math.max(tries, attempt + 1);
+        continue;
+      }
+      if (!isRetryable(error)) {
         throw error;
       }
     }
-    if (attempt < retries) {
+    if (attempt < tries) {
       await sleep(500 * 2 ** attempt);
     }
   }
@@ -67,10 +113,23 @@ const MAX_REDIRECTS = 8;
  * Resolves with { stream, headers, url } for a 2xx answer; `signal` aborts the transfer.
  */
 function openStream(url, { headers = {}, signal } = {}, redirects = 0) {
-  const target = new URL(url);
+  const target = new URL(routed(url));
+  const direct = target.href === new URL(url).href && Boolean(proxyHost(url));
   const client = target.protocol === 'http:' ? require('node:http') : require('node:https');
   return new Promise((resolve, reject) => {
+    let answered = false;
+    // A site blocked here does not answer at all: after DIRECT_WAIT_MS it goes through the proxy.
+    const failDirect = (error) => {
+      if (!answered && direct && !signal?.aborted && switchToProxy(url, error)) {
+        resolve(openStream(url, { headers, signal }, redirects));
+        return true;
+      }
+      return false;
+    };
+    const waiting = direct ? setTimeout(() => req.destroy(new Error(`нет ответа за ${DIRECT_WAIT_MS / 1000} с`)), DIRECT_WAIT_MS) : null;
     const req = client.get(target, { headers: { 'User-Agent': USER_AGENT, ...headers }, signal }, (response) => {
+      answered = true;
+      clearTimeout(waiting);
       const status = response.statusCode ?? 0;
       if (status >= 300 && status < 400 && response.headers.location) {
         response.resume();
@@ -88,7 +147,10 @@ function openStream(url, { headers = {}, signal } = {}, redirects = 0) {
       }
       resolve({ stream: response, headers: response.headers, url: target.toString(), status });
     });
-    req.on('error', reject);
+    req.on('error', (error) => {
+      clearTimeout(waiting);
+      if (!failDirect(error)) reject(error);
+    });
   });
 }
 
