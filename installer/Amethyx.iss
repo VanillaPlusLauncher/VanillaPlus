@@ -14,6 +14,8 @@
 #else
   #define FileSuffix ""
 #endif
+; Where a new install goes: the per-user Programs folder, which needs no administrator rights.
+#define DefaultDir "{localappdata}\Programs\Amethyx"
 ; How many panoramas make-setup-art.ps1 has cut (art\setup-pano-1.png, -2, …): one is picked each start.
 #define PanoCount 0
 #for {PanoCount = 0; FileExists(AddBackslash(SourcePath) + "art\setup-pano-" + Str(PanoCount + 1) + ".png"); PanoCount++} PanoCount
@@ -27,8 +29,9 @@ AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppName}
-; A new install goes to Programs\Amethyx; an update of an older install stays in its folder (same AppId).
-DefaultDirName={localappdata}\Programs\Amethyx
+; A new install goes to Programs\Amethyx; an update of an older install stays in its folder (same AppId),
+; unless that folder is right in Documents (see LeaveOldFolder).
+DefaultDirName={#DefaultDir}
 DefaultGroupName={#AppName}
 DisableWelcomePage=no
 DisableProgramGroupPage=yes
@@ -819,11 +822,14 @@ begin
 end;
 
 { ---------------------------------------------------------------------------------------------
-  The launcher used to be called RichLauncher, then Vanilla+ Launcher, and Setup offers the folder
-  of the last install: for those it is named after the old launcher (Documents\RichLauncher). The
-  launcher moves next to it, into a folder called Amethyx, and once it is installed there the old
-  copy of the program goes (only when the folder really holds one: its program and
-  resources\app.asar; the games, packs and settings live in %APPDATA% and are not there).
+  Setup offers the folder of the last install. Two kinds of it are left: the launcher used to be
+  called RichLauncher, then Vanilla+ Launcher, and its folder was named after it; and the first
+  launchers were put right in Documents (Documents\RichLauncher, later Documents\Amethyx). A folder
+  in Documents gives way to Programs\Amethyx, an old name elsewhere to a folder called Amethyx next
+  to it. Once the launcher is installed there, the old copy of the program goes (only when the
+  folder really holds one: its program and resources\app.asar; the games, packs and settings live
+  in %APPDATA% and are not there), the shortcuts to it lead to the new one, and a launcher still
+  open from it is closed first like one open from the install folder.
   --------------------------------------------------------------------------------------------- }
 var
   OldAppDir: String;
@@ -836,18 +842,95 @@ begin
   Result := (Name = 'richlauncher') or (Name = 'vanillaplus') or (Name = 'vanilla+') or (Name = 'vanilla+ launcher');
 end;
 
-procedure LeaveOldFolder;
+{ The launcher's own folder right in Documents: where Windows has it now, or the usual one in the
+  user's folder (Documents may have been moved to OneDrive since). }
+function InDocuments(const Dir: String): Boolean;
+var
+  Parent: String;
 begin
-  if not HasOldName(WizardForm.DirEdit.Text) then
+  Result := False;
+  if not HasOldName(Dir) and (CompareText(ExtractFileName(Dir), 'Amethyx') <> 0) then
     Exit;
-  OldAppDir := RemoveBackslashUnlessRoot(WizardForm.DirEdit.Text);
-  WizardForm.DirEdit.Text := AddBackslash(ExtractFileDir(OldAppDir)) + 'Amethyx';
+  Parent := ExtractFileDir(Dir);
+  Result := (CompareText(Parent, RemoveBackslashUnlessRoot(ExpandConstant('{userdocs}'))) = 0) or
+    (CompareText(Parent, GetEnv('USERPROFILE') + '\Documents') = 0);
+end;
+
+procedure LeaveOldFolder;
+var
+  Dir: String;
+begin
+  { Only the folder of the last install: one given with /DIR stays as it is. }
+  Dir := RemoveBackslashUnlessRoot(WizardForm.DirEdit.Text);
+  if (WizardForm.PrevAppDir = '') or (CompareText(Dir, RemoveBackslashUnlessRoot(WizardForm.PrevAppDir)) <> 0) then
+    Exit;
+  if InDocuments(Dir) then
+    WizardForm.DirEdit.Text := ExpandConstant('{#DefaultDir}')
+  else if HasOldName(Dir) then
+    WizardForm.DirEdit.Text := AddBackslash(ExtractFileDir(Dir)) + 'Amethyx'
+  else
+    Exit;
+  OldAppDir := Dir;
+  { An update makes no desktop shortcut, but one that is there is made anew for the new folder. }
+  DesktopIcon := FileExists(ExpandConstant('{autodesktop}\{#AppName}.lnk'));
+end;
+
+{ The old copy's programs, for Setup to close before it installs (CloseApplications). }
+procedure RegisterExtraCloseApplicationsResources;
+begin
+  if OldAppDir = '' then
+    Exit;
+  RegisterExtraCloseApplicationsResource(False, OldAppDir + '\Amethyx.exe');
+  RegisterExtraCloseApplicationsResource(False, OldAppDir + '\VanillaPlus.exe');
+  RegisterExtraCloseApplicationsResource(False, OldAppDir + '\RichLauncher.exe');
+end;
+
+{ A path into the old copy, as the same path into the new one. }
+function MovedPath(const Path: String): String;
+var
+  Old: String;
+begin
+  Old := AddBackslash(OldAppDir);
+  Result := Path;
+  if CompareText(Copy(Path, 1, Length(Old)), Old) = 0 then
+    Result := ExpandConstant('{app}\') + Copy(Path, Length(Old) + 1, Length(Path));
+end;
+
+{ Shortcuts in Folder to the old copy (made by hand or pinned) lead to the new one, their
+  arguments kept. }
+procedure MoveShortcuts(const Folder: String);
+var
+  Find: TFindRec;
+  Shell, Link: Variant;
+  Target: String;
+begin
+  if not FindFirst(AddBackslash(Folder) + '*.lnk', Find) then
+    Exit;
+  try
+    Shell := CreateOleObject('WScript.Shell');
+    repeat
+      Link := Shell.CreateShortcut(AddBackslash(Folder) + Find.Name);
+      Target := Link.TargetPath;
+      if MovedPath(Target) <> Target then
+      begin
+        Link.TargetPath := MovedPath(Target);
+        Link.WorkingDirectory := MovedPath(Link.WorkingDirectory);
+        Link.IconLocation := MovedPath(Link.IconLocation);
+        Link.Save;
+      end;
+    until not FindNext(Find);
+  except
+    Log('Shortcuts in ' + Folder + ' not moved: ' + GetExceptionMessage);
+  end;
+  FindClose(Find);
 end;
 
 procedure RemoveOldCopy;
 begin
   if (OldAppDir = '') or (CompareText(OldAppDir, RemoveBackslashUnlessRoot(ExpandConstant('{app}'))) = 0) then
     Exit;
+  MoveShortcuts(ExpandConstant('{autodesktop}'));
+  MoveShortcuts(ExpandConstant('{userappdata}\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar'));
   if not FileExists(OldAppDir + '\resources\app.asar') then
     Exit;
   if FileExists(OldAppDir + '\RichLauncher.exe') or FileExists(OldAppDir + '\VanillaPlus.exe') or FileExists(OldAppDir + '\Amethyx.exe') then
