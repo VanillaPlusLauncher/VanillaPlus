@@ -26,6 +26,11 @@ __pycache__/
 # Cloudflare tooling for server/
 server/node_modules/
 server/.wrangler/
+# Exports of the old Cloudflare databases for the move (players' data: never to git); the two
+# schemas stay
+server/*.sql
+!server/schema.sql
+!server/files-schema.sql
 installer/ely-oauth.json
 
 # Promo video project: frames, renders and the music never go to git

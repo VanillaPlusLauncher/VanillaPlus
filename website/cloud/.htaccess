@@ -1,0 +1,17 @@
+# Amethyx server for the launcher (Apache). Every address under /cloud/ goes to index.php; its
+# code (lib/) and its tests (test/) are never served (each folder also closes itself).
+DirectoryIndex index.php
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Rules of this folder replace the site's own (../.htaccess) here, so its guards are repeated.
+  RewriteRule ^(lib|test|data)(/|$) - [F,L]
+  RewriteRule (^|/)\. - [F,L]
+  RewriteRule \.(sqlite|sqlite-wal|sqlite-shm|db|bak|old|orig|save|swp|tmp|log|ini|sh|ps1|md|lock|mjs)$ - [F,NC,L]
+  # Pass the session token through to PHP on hostings that drop the Authorization header.
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  RewriteRule ^index\.php$ - [L]
+  RewriteRule ^ index.php [L]
+</IfModule>
