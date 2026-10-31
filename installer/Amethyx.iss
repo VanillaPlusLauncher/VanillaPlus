@@ -167,35 +167,43 @@ const
   WS_EX_COMPOSITED = $02000000;
 
 { ---------------------------------------------------------------------------------------------
-  An update from the launcher: no pages and no buttons, only a small window in the launcher's pixel
+  An update from the launcher: no pages and no buttons, only a small window in the launcher's soft
   look, like a splash screen. It is one picture (make-update-art.ps1) over the wizard's own
-  controls, and the bar is a second picture shown as far as the install has got, in whole blocks.
+  controls; the bar is a second picture shown as far as the install has got, and a third one, the
+  pill's round end, stands at the edge of what is shown.
   --------------------------------------------------------------------------------------------- }
 const
-  UpdateFillLeft = 102;
-  UpdateFillTop = 84;
-  UpdateBlock = 12;
-  UpdateCut = 6;
+  UpdateFillLeft = 104;
+  UpdateFillTop = 92;
+  UpdateCorner = 8;
+  DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+  DWMWA_BORDER_COLOR = 34;
+  DWMWCP_ROUND = 2;
 
 var
-  UpdateFill: TBitmapImage;
+  UpdateFill, UpdateCap: TBitmapImage;
   UpdateScale: Integer;
 
-{ The window's corners cut by one step, like the launcher's panels (the picture's frame follows it). }
-procedure CutUpdateWindowCorners;
+function CreateRoundRectRgn(Left, Top, Right, Bottom, WidthEllipse, HeightEllipse: Integer): LongWord;
+  external 'CreateRoundRectRgn@gdi32.dll stdcall';
+
+{ Round corners: Windows 11 draws them itself, smooth, with a thin edge in the panel's light violet;
+  an older Windows gets the window cut to the same shape. }
+procedure RoundUpdateWindowCorners;
 var
-  Cut, W, H: Integer;
-  Region, Across: LongWord;
+  Value: DWORD;
+  Radius: Integer;
 begin
-  Cut := UpdateCut * UpdateScale;
-  W := WizardForm.ClientWidth;
-  H := WizardForm.ClientHeight;
-  Region := CreateRectRgn(Cut, 0, W - Cut, H);
-  Across := CreateRectRgn(0, Cut, W, H - Cut);
-  CombineRgn(Region, Region, Across, RGN_OR);
-  DeleteObject(Across);
+  Value := DWMWCP_ROUND;
+  if DwmSetWindowAttribute(WizardForm.Handle, DWMWA_WINDOW_CORNER_PREFERENCE, Value, 4) = 0 then
+  begin
+    Value := $00503A45;  { #453a50 }
+    DwmSetWindowAttribute(WizardForm.Handle, DWMWA_BORDER_COLOR, Value, 4);
+    Exit;
+  end;
+  Radius := UpdateCorner * UpdateScale;
   { The window owns the region from here on. }
-  SetWindowRgn(WizardForm.Handle, Region, True);
+  SetWindowRgn(WizardForm.Handle, CreateRoundRectRgn(0, 0, WizardForm.ClientWidth + 1, WizardForm.ClientHeight + 1, Radius * 2, Radius * 2), True);
 end;
 
 procedure BuildUpdateWindow;
@@ -208,6 +216,7 @@ begin
   Suffix := IntToStr(UpdateScale) + 'x.bmp';
   ExtractTemporaryFile('update-bg-' + Suffix);
   ExtractTemporaryFile('update-fill-' + Suffix);
+  ExtractTemporaryFile('update-cap-' + Suffix);
 
   { Pictures are drawn under the wizard's windowed controls, so they sit on a panel above them. }
   Cover := TPanel.Create(WizardForm);
@@ -231,7 +240,16 @@ begin
   UpdateFill.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-fill-' + Suffix));
   UpdateFill.SetBounds(UpdateFillLeft * UpdateScale, UpdateFillTop * UpdateScale, 0, UpdateFill.Bitmap.Height);
   UpdateFill.BringToFront;
-  CutUpdateWindowCorners;
+
+  UpdateCap := TBitmapImage.Create(WizardForm);
+  UpdateCap.Parent := Cover;
+  UpdateCap.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-cap-' + Suffix));
+  UpdateCap.SetBounds(UpdateFill.Left, UpdateFill.Top, UpdateCap.Bitmap.Width, UpdateCap.Bitmap.Height);
+  UpdateCap.Visible := False;
+  UpdateCap.BringToFront;
+  { Drawn off screen first and shown at once: the growing bar does not flicker. }
+  SetWindowLong(Cover.Handle, GWL_EXSTYLE, GetWindowLong(Cover.Handle, GWL_EXSTYLE) or WS_EX_COMPOSITED);
+  RoundUpdateWindowCorners;
 end;
 
 { ---------------------------------------------------------------------------------------------
@@ -582,7 +600,7 @@ begin
   if IsUpdateRelaunch then
   begin
     { Again once the window is up, in case Windows made it anew when it was shown. }
-    CutUpdateWindowCorners;
+    RoundUpdateWindowCorners;
     Exit;
   end;
   case CurPageID of
@@ -619,11 +637,17 @@ begin
   Done := CurProgress;
   if UpdateFill <> nil then
   begin
-    Block := UpdateBlock * UpdateScale;
+    { Smooth, with the round end at the edge; nothing until the pill is as long as both of its round
+      ends, and the whole bar (its own round end) once the cap would reach the track's end. }
+    Block := UpdateCap.Bitmap.Width;
     Width := Done * UpdateFill.Bitmap.Width div MaxProgress;
-    if Width < UpdateFill.Bitmap.Width then
-      Width := (Width div Block) * Block;
+    if Width < 2 * Block then
+      Width := 0
+    else if Width > UpdateFill.Bitmap.Width - Block then
+      Width := UpdateFill.Bitmap.Width;
     UpdateFill.Width := Width;
+    UpdateCap.Left := UpdateFill.Left + Width - Block;
+    UpdateCap.Visible := (Width > 0) and (Width < UpdateFill.Bitmap.Width);
   end
   else if SetupFill <> nil then
   begin

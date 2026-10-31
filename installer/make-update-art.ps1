@@ -1,9 +1,12 @@
 ﻿# Pictures of the small "updating" window the installer shows when the launcher updates itself
-# (/relaunch=1, BuildUpdateWindow in Amethyx.iss), in the launcher's pixel look: the X mark, the
-# title in Tiny5, a pixel frame and a progress track. Drawn at 1x, 2x and 3x (the installer picks
-# one for the screen's scale), so the pixels stay sharp:
+# (/relaunch=1, BuildUpdateWindow in Amethyx.iss), in the launcher's soft look: a raised violet
+# panel, the X mark with a glow behind it, the title in Tiny5 (the launcher's font) and a round
+# track that fills with a soft violet pill. Drawn at 1x, 2x and 3x (the installer picks one for the
+# screen's scale):
 #   art\update-bg-<k>x.bmp    the whole window with an empty track,
-#   art\update-fill-<k>x.bmp  the full bar; the installer shows as much of it as is done.
+#   art\update-fill-<k>x.bmp  the track filled to the end; the installer shows as much of it as is done,
+#   art\update-cap-<k>x.bmp   the round end of the pill over the track, put at the edge of what is shown.
+# The pill is the same in every column (light on top, deeper below), so the cap fits wherever it stands.
 # Tiny5 (SIL Open Font License) is downloaded once and checked.
 # Usage: .\make-update-art.ps1
 $ErrorActionPreference = 'Stop'
@@ -19,24 +22,21 @@ $fonts = New-Object System.Drawing.Text.PrivateFontCollection
 $fonts.AddFontFile($font)
 $tiny5 = $fonts.Families[0]
 
-# Layout at 1x (the installer uses the same numbers for the bar: FillLeft, FillTop in Amethyx.iss).
-$W = 480; $H = 120
-$track = @{ X = 100; Y = 82; W = 360; H = 16 }
-$segment = 12
-$cut = 6
+# Layout at 1x (the installer uses the same numbers: UpdateFillLeft, UpdateFillTop in Amethyx.iss).
+$W = 480; $H = 128
+$track = @{ X = 104; Y = 92; W = 352; H = 12 }
+$radius = $track.H / 2
+# Where the pill ends when the cap is cut out (any place in the straight part of the track).
+$capEnd = $track.X + 200
 
-function Color([string]$hex) { [System.Drawing.ColorTranslator]::FromHtml($hex) }
-function Fill($g, [string]$hex, [int]$x, [int]$y, [int]$w, [int]$h, [int]$k) {
-  $brush = New-Object System.Drawing.SolidBrush (Color $hex)
-  $g.FillRectangle($brush, $x * $k, $y * $k, $w * $k, $h * $k)
-  $brush.Dispose()
-}
-# A frame of 2 pixels with cut corners, like the launcher's cards.
-function Frame($g, [string]$hex, [int]$x, [int]$y, [int]$w, [int]$h, [int]$k) {
-  Fill $g $hex ($x + 2) $y ($w - 4) 2 $k
-  Fill $g $hex ($x + 2) ($y + $h - 2) ($w - 4) 2 $k
-  Fill $g $hex $x ($y + 2) 2 ($h - 4) $k
-  Fill $g $hex ($x + $w - 2) ($y + 2) 2 ($h - 4) $k
+function Color([string]$hex, [int]$alpha = 255) { [System.Drawing.Color]::FromArgb($alpha, [System.Drawing.ColorTranslator]::FromHtml($hex)) }
+function Pill([float]$x, [float]$y, [float]$w, [float]$h) {
+  $path = New-Object System.Drawing.Drawing2D.GraphicsPath
+  $d = $h
+  $path.AddArc($x, $y, $d, $d, 90, 180)
+  $path.AddArc($x + $w - $d, $y, $d, $d, 270, 180)
+  $path.CloseFigure()
+  $path
 }
 
 # The mark without its white background.
@@ -55,56 +55,79 @@ for ($y = 0; $y -lt $source.Height; $y++) {
 }
 $source.Dispose()
 
-foreach ($k in 1, 2, 3) {
+# The whole window at scale $k; $pillEnd: $null — an empty track, otherwise where the pill ends (1x).
+function Draw-Window([int]$k, $pillEnd) {
   $bmp = New-Object System.Drawing.Bitmap ($W * $k), ($H * $k), ([System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
-  # The panel with one-step cut corners (the installer cuts the window to the same shape, $cut),
-  # a 2-pixel frame along that outline and no light strip on top.
-  $g.Clear((Color '#16121f'))
-  $c = $cut
-  foreach ($edge in @(@($c, 0, ($W - 2 * $c), 2), @($c, ($H - 2), ($W - 2 * $c), 2), @(0, $c, 2, ($H - 2 * $c)), @(($W - 2), $c, 2, ($H - 2 * $c)))) {
-    Fill $g '#2b2140' $edge[0] $edge[1] $edge[2] $edge[3] $k
-  }
-  foreach ($corner in @(@(0, 0, 1, 1), @(($W - $c - 2), 0, -1, 1), @(0, ($H - $c - 2), 1, -1), @(($W - $c - 2), ($H - $c - 2), -1, -1))) {
-    $x = $corner[0]; $y = $corner[1]
-    # The step: across at the cut's depth and down at its width.
-    $stepY = if ($corner[3] -gt 0) { $y + $c } else { $y }
-    $stepX = if ($corner[2] -gt 0) { $x + $c } else { $x }
-    Fill $g '#2b2140' $x $stepY ($c + 2) 2 $k
-    Fill $g '#2b2140' $stepX $y 2 ($c + 2) $k
-  }
-
-  $g.InterpolationMode = 'HighQualityBicubic'
+  $g.SmoothingMode = 'AntiAlias'
   $g.PixelOffsetMode = 'HighQuality'
-  $g.DrawImage($mark, (New-Object System.Drawing.Rectangle (20 * $k), (28 * $k), (64 * $k), (64 * $k)))
 
-  # Both lines in Tiny5, the launcher's pixel font; each must fit above the track.
+  # The panel: lighter on top, deeper below, a thin light edge along the top (like soft.css).
+  $all = New-Object System.Drawing.Rectangle 0, 0, ($W * $k), ($H * $k)
+  $panel = New-Object System.Drawing.Drawing2D.LinearGradientBrush $all, (Color '#30274a'), (Color '#1f1930'), 90
+  $g.FillRectangle($panel, $all)
+  $g.FillRectangle((New-Object System.Drawing.SolidBrush (Color '#ffffff' 30)), 0, 0, $W * $k, $k)
+
+  # A violet glow behind the mark, then the mark.
+  $glow = New-Object System.Drawing.Drawing2D.GraphicsPath
+  $glow.AddEllipse((4 * $k), (12 * $k), (104 * $k), (104 * $k))
+  $glowBrush = New-Object System.Drawing.Drawing2D.PathGradientBrush $glow
+  $glowBrush.CenterColor = Color '#9670f5' 120
+  $glowBrush.SurroundColors = @(Color '#9670f5' 0)
+  $g.FillPath($glowBrush, $glow)
+  $g.InterpolationMode = 'HighQualityBicubic'
+  $g.DrawImage($mark, (New-Object System.Drawing.Rectangle (24 * $k), (32 * $k), (64 * $k), (64 * $k)))
+
+  # Both lines in Tiny5, the launcher's font; each must fit above the track.
   $g.TextRenderingHint = 'SingleBitPerPixelGridFit'
   $big = New-Object System.Drawing.Font $tiny5, (24 * $k), ([System.Drawing.FontStyle]::Regular), ([System.Drawing.GraphicsUnit]::Pixel)
   $small = New-Object System.Drawing.Font $tiny5, (16 * $k), ([System.Drawing.FontStyle]::Regular), ([System.Drawing.GraphicsUnit]::Pixel)
-  foreach ($line in @(@('Обновляем Amethyx', $big, '#f1ecfb', 20), @('Откроется сам через пару секунд', $small, '#a99bc0', 54))) {
+  foreach ($line in @(@('Обновляем Amethyx', $big, '#f4effd', 22), @('Откроется сам через пару секунд', $small, '#c4bbd8', 58))) {
     if ($g.MeasureString($line[0], $line[1]).Width -gt $track.W * $k) { throw "Не помещается: $($line[0])" }
     $g.DrawString($line[0], $line[1], (New-Object System.Drawing.SolidBrush (Color $line[2])), ($track.X * $k), ($line[3] * $k))
   }
 
-  Frame $g '#2b2140' $track.X $track.Y $track.W $track.H $k
-  Fill $g '#07050b' ($track.X + 2) ($track.Y + 2) ($track.W - 4) ($track.H - 4) $k
-  $bmp.Save((Join-Path $art "update-bg-${k}x.bmp"), [System.Drawing.Imaging.ImageFormat]::Bmp)
-  $g.Dispose(); $bmp.Dispose()
+  # The track: a sunken pill, darker along its top inside edge, a faint light along the bottom.
+  $trackPath = Pill ($track.X * $k) ($track.Y * $k) ($track.W * $k) ($track.H * $k)
+  $g.FillPath((New-Object System.Drawing.SolidBrush (Color '#171221')), $trackPath)
+  $g.SetClip($trackPath)
+  $g.FillRectangle((New-Object System.Drawing.SolidBrush (Color '#000000' 110)), ($track.X * $k), ($track.Y * $k), ($track.W * $k), (2 * $k))
+  $g.FillRectangle((New-Object System.Drawing.SolidBrush (Color '#ffffff' 18)), ($track.X * $k), (($track.Y + $track.H - 1) * $k), ($track.W * $k), $k)
+  $g.ResetClip()
 
-  # The bar: amethyst blocks with a light top and a dark bottom row, a gap between blocks.
-  $fw = $track.W - 4; $fh = $track.H - 4
-  $bar = New-Object System.Drawing.Bitmap ($fw * $k), ($fh * $k), ([System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
-  $g = [System.Drawing.Graphics]::FromImage($bar)
-  $g.Clear((Color '#07050b'))
-  for ($x = 0; $x -lt $fw; $x += $segment) {
-    $bw = [Math]::Min($segment - 2, $fw - $x)
-    Fill $g '#8b5cf6' $x 0 $bw $fh $k
-    Fill $g '#b794ff' $x 0 $bw 2 $k
-    Fill $g '#6a3fd0' $x ($fh - 2) $bw 2 $k
+  if ($null -ne $pillEnd) {
+    # The pill: light violet on top to deep violet below, a soft shine near the top.
+    $length = $pillEnd - $track.X
+    $pill = Pill ($track.X * $k) ($track.Y * $k) ($length * $k) ($track.H * $k)
+    $rect = New-Object System.Drawing.RectangleF ($track.X * $k), ($track.Y * $k), ($length * $k), ($track.H * $k)
+    $fill = New-Object System.Drawing.Drawing2D.LinearGradientBrush $rect, (Color '#c2a6ff'), (Color '#8157ec'), 90
+    $g.FillPath($fill, $pill)
+    $shine = Pill (($track.X + $radius / 2) * $k) (($track.Y + 2) * $k) (($length - $radius) * $k) (3 * $k)
+    $g.FillPath((New-Object System.Drawing.SolidBrush (Color '#ffffff' 70)), $shine)
   }
-  $bar.Save((Join-Path $art "update-fill-${k}x.bmp"), [System.Drawing.Imaging.ImageFormat]::Bmp)
-  $g.Dispose(); $bar.Dispose()
+  $g.Dispose()
+  $bmp
+}
+
+function Save-Crop($bmp, [int]$x, [int]$y, [int]$w, [int]$h, [string]$name) {
+  $crop = $bmp.Clone((New-Object System.Drawing.Rectangle $x, $y, $w, $h), [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+  $crop.Save((Join-Path $art $name), [System.Drawing.Imaging.ImageFormat]::Bmp)
+  $crop.Dispose()
+}
+
+foreach ($k in 1, 2, 3) {
+  $empty = Draw-Window $k $null
+  $empty.Save((Join-Path $art "update-bg-${k}x.bmp"), [System.Drawing.Imaging.ImageFormat]::Bmp)
+  $empty.Dispose()
+
+  $full = Draw-Window $k ($track.X + $track.W)
+  Save-Crop $full ($track.X * $k) ($track.Y * $k) ($track.W * $k) ($track.H * $k) "update-fill-${k}x.bmp"
+  $full.Dispose()
+
+  # The last $radius columns of a pill that ends at $capEnd: its round end over the track.
+  $ended = Draw-Window $k $capEnd
+  Save-Crop $ended (($capEnd - $radius) * $k) ($track.Y * $k) ($radius * $k) ($track.H * $k) "update-cap-${k}x.bmp"
+  $ended.Dispose()
   "update art ${k}x"
 }
 $mark.Dispose()

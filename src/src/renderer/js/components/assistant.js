@@ -101,8 +101,8 @@ export function openAssistant({ instanceId = null, onChanged = null } = {}) {
     panel.element.classList.remove('assistant--in');
     void panel.element.offsetWidth;
     panel.element.classList.add('assistant--in');
+    // No sound of its own: every button already clicks (core/sound.js installGlobalSounds).
     document.addEventListener('keydown', panel.onKey, true);
-    sfx('click');
   }
   panel.greet();
   panel.input.focus();
