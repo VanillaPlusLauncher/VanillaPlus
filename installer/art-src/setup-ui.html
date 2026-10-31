@@ -1,10 +1,13 @@
 <!doctype html>
 <!--
-  The installer's screens in the launcher's pixel look. make-setup-art.ps1 renders every [data-part]
-  on its own, with a transparent background, at 1x, 2x and 3x into installer/art/setup-*.png, and
-  writes where each one stands into installer/art/setup-layout.iss for Amethyx.iss. The panorama
-  behind them is chosen by the installer itself; [data-rect] marks places the installer fills in
-  (the folder path, the percentage, the bar).
+  The installer's screens in the launcher's soft look (src/src/renderer/css/soft.css): raised plates
+  that cast a shadow down-right and catch light up-left, round corners, a sunken field and track, and
+  a soft violet pill that fills. make-setup-art.ps1 renders every [data-part] on its own, with a
+  transparent background and room for its shadow ([data-pad], px round it), at 1x, 2x and 3x into
+  installer/art/setup-*.png, and writes where each one stands into installer/art/setup-layout.iss for
+  Amethyx.iss (a padded part also gets its own box: SetupBtnInstallBoxX, ...). The panorama behind
+  them is chosen by the installer itself; [data-rect] marks places the installer fills in (the folder,
+  the line with what is being done) or listens to.
 -->
 <html lang="ru">
 <head>
@@ -12,91 +15,105 @@
 <style>
 @font-face { font-family: "Tiny5"; src: url("Tiny5.ttf"); }
 :root {
-  --text: #f1ecfb; --soft: #c4bbd8; --muted: #8b83a2;
-  --accent: rgb(190, 160, 255); --accent-strong: rgb(150, 112, 245); --on-accent: #1c0e3a;
-  --panel: rgb(22, 18, 31); --field: #0b0911;
-  --face: #2a2533; --face-hover: #353042; --light: rgba(255, 255, 255, 0.1); --dark: rgba(0, 0, 0, 0.38);
-  --specks: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='22' shape-rendering='crispEdges'%3E%3Cg fill='%23fff' fill-opacity='.16'%3E%3Crect x='5' y='6' width='2' height='2'/%3E%3Crect x='27' y='13' width='2' height='2'/%3E%3Crect x='39' y='5' width='2' height='2'/%3E%3C/g%3E%3Cg fill='%23000' fill-opacity='.09'%3E%3Crect x='16' y='15' width='2' height='2'/%3E%3Crect x='33' y='8' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E");
+  --text: #f4f0fb; --soft: #c4bbd8; --muted: #8b83a2;
+  --accent-rgb: 190, 160, 255; --accent-strong: rgb(150, 112, 245);
+  /* Solid: Setup writes the folder and the line with what is being done on these two colours
+     (FieldColor, PanelColor in Amethyx.iss). */
+  --panel: #272036; --pit: #1c1727;
+  --face: #2d2541; --face-hover: #352b4c;
+  --raise: 6px 6px 14px rgba(0, 0, 0, 0.5), -4px -4px 10px rgba(255, 255, 255, 0.07);
+  --raise-sm: 2px 2px 5px rgba(0, 0, 0, 0.4);
+  --sink: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -3px -3px 7px rgba(255, 255, 255, 0.06);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.13);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: transparent; }
 body { width: 760px; height: 460px; position: relative; overflow: hidden; font-family: "Tiny5", sans-serif; font-size-adjust: 0.62; letter-spacing: 0.03em; color: var(--text); }
 body.preview { background: #0a080f url("preview-pano.png") center 62% / 100% auto; }
 [data-part] { position: absolute; }
-.cut { clip-path: polygon(0 var(--c), var(--c) var(--c), var(--c) 0, calc(100% - var(--c)) 0, calc(100% - var(--c)) var(--c), 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, var(--c) calc(100% - var(--c)), 0 calc(100% - var(--c))); }
 
 /* Darkens the panorama: a little at the top for the name, more at the bottom for the panel. */
-[data-part="shade"] { left: 0; top: 0; width: 760px; height: 460px; background: linear-gradient(180deg, rgba(10,8,15,.6) 0%, rgba(10,8,15,.08) 30%, rgba(10,8,15,.3) 55%, rgba(10,8,15,.9) 100%); }
+[data-part="shade"] { left: 0; top: 0; width: 760px; height: 460px; background: linear-gradient(180deg, rgba(10,8,15,.55) 0%, rgba(10,8,15,.08) 30%, rgba(10,8,15,.3) 55%, rgba(10,8,15,.85) 100%); }
 
-[data-part="brand"] { left: 28px; top: 24px; display: flex; align-items: center; gap: 14px; padding: 0 6px 6px 0; }
-.brand img { width: 56px; height: 56px; filter: drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
-.brand b { display: block; font-weight: normal; font-size: 26px; text-shadow: 2px 2px 0 rgba(0,0,0,.5); }
-.brand small { display: block; margin-top: 4px; font-size: 13px; color: var(--soft); text-shadow: 1px 1px 0 rgba(0,0,0,.6); }
+/* The mark with the violet glow of the start screen, the name with a soft shadow. */
+[data-part="brand"] { left: 28px; top: 24px; display: flex; align-items: center; gap: 14px; }
+.brand img { width: 56px; height: 56px; filter: drop-shadow(0 6px 16px rgba(150, 112, 245, 0.55)); }
+.brand b { display: block; font-weight: normal; font-size: 26px; text-shadow: 0 3px 12px rgba(0, 0, 0, 0.7); }
+.brand small { display: block; margin-top: 4px; font-size: 13px; color: var(--soft); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8); }
 
-.panel { --c: 5px; left: 24px; width: 712px; background: var(--panel); box-shadow: inset 0 0 0 2px rgba(255,255,255,.05), inset 0 -3px 0 rgba(0,0,0,.4); }
+/* A panel: a rounded plate over the panorama, lit along its top edge. */
+.panel { left: 24px; width: 712px; border-radius: 16px; background: var(--panel); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), var(--edge); }
 [data-part="panel-install"] { top: 270px; height: 166px; }
 [data-part="panel-progress"], [data-part="panel-done"] { top: 322px; height: 114px; }
 .label { position: absolute; font-size: 12px; color: var(--muted); letter-spacing: .08em; }
-.field { --c: 3px; position: absolute; background: var(--field); box-shadow: inset 0 3px 0 rgba(0,0,0,.4), inset 0 -2px 0 rgba(255,255,255,.06); }
+/* Sunken only along its top, so the middle stays one colour for the folder Setup writes there. */
+.field { position: absolute; border-radius: 10px; background: var(--pit); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(255, 255, 255, 0.05); }
 .text { position: absolute; font-size: 15px; color: var(--soft); white-space: nowrap; }
 .title { position: absolute; font-size: 20px; white-space: nowrap; }
 .hint { position: absolute; font-size: 13px; color: var(--muted); white-space: nowrap; }
-.track { --c: 2px; position: absolute; background: #07050b; box-shadow: inset 0 0 0 2px #2b2140; }
 
-.btn { --c: 3px; display: flex; align-items: center; justify-content: center; border: 0; font-size: 15px; color: var(--text); background: var(--face); box-shadow: inset 0 3px 0 var(--light), inset 0 -4px 0 var(--dark); padding-bottom: 2px; }
+/* Buttons: plates; the main one lit by the theme colour. Under the mouse a little lighter (the main
+   one also glows). */
+.btn { display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 15px; color: var(--text); background: var(--face); box-shadow: var(--raise), var(--edge); padding-bottom: 2px; }
 .btn.hover { background: var(--face-hover); }
-.btn--primary { font-size: 20px; color: var(--on-accent); background: var(--specks) 0 0 / 46px 22px, var(--accent-strong); box-shadow: inset 0 3px 0 rgba(255,255,255,.34), inset 0 -4px 0 rgba(0,0,0,.28); padding-bottom: 3px; }
-.btn--primary.hover { background: var(--specks) 0 0 / 46px 22px, var(--accent); }
-.box { --c: 2px; width: 20px; height: 20px; display: grid; place-items: center; background: var(--accent-strong); box-shadow: inset 0 2px 0 rgba(255,255,255,.3), inset 0 -2px 0 rgba(0,0,0,.25); }
-.box.off { background: var(--field); box-shadow: inset 0 2px 0 rgba(0,0,0,.4), inset 0 -2px 0 rgba(255,255,255,.08), inset 0 0 0 2px #2b2140; }
-[data-part="fill"] { display: flex; gap: 2px; }
-[data-part="fill"] i { width: 14px; height: 14px; flex: none; background: var(--accent-strong); box-shadow: inset 0 2px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.25); }
+.btn--primary { font-size: 20px; color: #fff; background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.36), rgba(var(--accent-rgb), 0.16)), var(--face); }
+.btn--primary.hover { background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.5), rgba(var(--accent-rgb), 0.24)), var(--face); box-shadow: var(--raise), var(--edge), 0 0 20px rgba(var(--accent-rgb), 0.28); }
+
+/* The tick: a round pit; ticked, a small raised plate in the theme colour with a drawn check. */
+.box { width: 20px; height: 20px; display: grid; place-items: center; border-radius: 6px; background: var(--accent-strong); box-shadow: var(--raise-sm), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.box.off { background: var(--pit); box-shadow: var(--sink); }
+
+/* The bar: a sunken round track, a pill light violet on top and deeper below with a soft shine. */
+.track { position: absolute; left: 0; top: 0; width: 668px; height: 14px; border-radius: 7px; background: #171221; box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.43), inset 0 -1px 0 rgba(255, 255, 255, 0.07); }
+.pill { position: absolute; left: 0; top: 0; height: 14px; border-radius: 7px; background: linear-gradient(180deg, #c2a6ff, #8157ec); }
+.pill::after { content: ""; position: absolute; left: 3.5px; right: 3.5px; top: 2px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.27); }
+[data-part="fill"], [data-part="cap"] { background: var(--panel); overflow: hidden; }
 </style>
 </head>
 <body>
 <div data-part="shade"></div>
 
-<div data-part="brand" class="brand"><img src="logo.png" alt=""><div><b>Amethyx Launcher</b><small>Лаунчер Minecraft: Java Edition</small></div></div>
+<div data-part="brand" class="brand" data-pad="24"><img src="logo.png" alt=""><div><b>Amethyx Launcher</b><small>Лаунчер Minecraft: Java Edition</small></div></div>
 
-<!-- 1. Install: the folder (filled in by Setup), the desktop shortcut and "Установить". -->
-<div data-part="panel-install" class="panel cut">
+<!-- 1. Install: the folder (written by Setup), the desktop shortcut and "Установить". -->
+<div data-part="panel-install" class="panel" data-pad="40">
   <div class="label" style="left: 22px; top: 20px">ПАПКА</div>
-  <div class="field cut" style="left: 22px; top: 40px; width: 532px; height: 40px"></div>
+  <div class="field" style="left: 22px; top: 40px; width: 532px; height: 40px"></div>
   <div class="text" style="left: 52px; top: 107px">Ярлык на рабочем столе</div>
 </div>
-<div data-rect="path" style="position:absolute; left: 58px; top: 318px; width: 516px; height: 24px"></div>
-<div data-part="btn-change" class="btn cut" style="left: 590px; top: 310px; width: 124px; height: 40px">Изменить</div>
-<div data-part="btn-change-hover" class="btn cut hover" style="left: 590px; top: 310px; width: 124px; height: 40px">Изменить</div>
-<div data-part="check-on" class="box cut" style="left: 46px; top: 376px"><svg width="12" height="12" viewBox="0 0 6 6" shape-rendering="crispEdges"><path d="M0 3h1v1h1v1h1V4h1V3h1V2h1V1H5v1H4v1H3v1H2V3H1V2H0z" fill="#1c0e3a"/></svg></div>
-<div data-part="check-off" class="box off cut" style="left: 46px; top: 376px"></div>
+<div data-rect="path" style="position:absolute; left: 58px; top: 318px; width: 508px; height: 24px"></div>
+<div data-part="btn-change" class="btn" data-pad="24" style="left: 590px; top: 310px; width: 124px; height: 40px">Изменить</div>
+<div data-part="btn-change-hover" class="btn hover" data-pad="24" style="left: 590px; top: 310px; width: 124px; height: 40px">Изменить</div>
+<div data-part="check-on" class="box" data-pad="8" style="left: 46px; top: 376px"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 7.4l2.6 2.6L11 4.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<div data-part="check-off" class="box off" data-pad="8" style="left: 46px; top: 376px"></div>
 <div data-rect="check-hit" style="position:absolute; left: 40px; top: 368px; width: 270px; height: 36px"></div>
-<div data-part="btn-install" class="btn btn--primary cut" style="left: 514px; top: 364px; width: 200px; height: 56px">Установить</div>
-<div data-part="btn-install-hover" class="btn btn--primary cut hover" style="left: 514px; top: 364px; width: 200px; height: 56px">Установить</div>
+<div data-part="btn-install" class="btn btn--primary" data-pad="28" style="left: 514px; top: 364px; width: 200px; height: 56px">Установить</div>
+<div data-part="btn-install-hover" class="btn btn--primary hover" data-pad="28" style="left: 514px; top: 364px; width: 200px; height: 56px">Установить</div>
 
-<!-- 2. Installing: the percentage (filled in by Setup) and the block bar. -->
-<div data-part="panel-progress" class="panel cut">
+<!-- 2. Installing: the line with what is being done and the percentage (written by Setup), the bar.
+     Setup shows as much of "fill" as is installed and puts "cap", the pill's round end over the
+     track, at its edge. -->
+<div data-part="panel-progress" class="panel" data-pad="40">
   <div class="title" style="left: 22px; top: 18px">Устанавливаем…</div>
-  <div class="hint" style="left: 22px; top: 48px">Сборки, миры и настройки не трогаются.</div>
-  <div class="track cut" style="left: 22px; top: 72px; width: 668px; height: 24px"></div>
+  <div class="hint" style="right: 22px; top: 22px">Сборки, миры и настройки не трогаются</div>
+  <div class="track" style="left: 22px; top: 80px"></div>
 </div>
-<div data-rect="percent" style="position:absolute; left: 610px; top: 340px; width: 80px; height: 24px"></div>
-<div data-part="fill" style="left: 51px; top: 399px; width: 660px; height: 14px"></div>
+<div data-rect="status" style="position:absolute; left: 46px; top: 372px; width: 668px; height: 22px"></div>
+<div data-part="fill" style="left: 46px; top: 402px; width: 668px; height: 14px"><div class="track"></div><div class="pill" style="width: 668px"></div></div>
+<div data-part="cap" style="left: 339px; top: 402px; width: 7px; height: 14px"><div style="position: absolute; left: -293px; top: 0"><div class="track"></div><div class="pill" style="width: 300px"></div></div></div>
 
 <!-- 3. Done: "Закрыть" and "Запустить"; the window's × closes too. -->
-<div data-part="panel-done" class="panel cut">
+<div data-part="panel-done" class="panel" data-pad="40">
   <div class="title" style="left: 22px; top: 22px">Готово!</div>
   <div class="hint" style="left: 22px; top: 54px">Amethyx Launcher установлен.</div>
   <div class="hint" style="left: 22px; top: 74px">Ярлык — в меню Пуск.</div>
 </div>
-<div data-part="btn-close" class="btn cut" style="left: 404px; top: 358px; width: 120px; height: 56px">Закрыть</div>
-<div data-part="btn-close-hover" class="btn cut hover" style="left: 404px; top: 358px; width: 120px; height: 56px">Закрыть</div>
-<div data-part="btn-run" class="btn btn--primary cut" style="left: 534px; top: 358px; width: 180px; height: 56px">Запустить</div>
-<div data-part="btn-run-hover" class="btn btn--primary cut hover" style="left: 534px; top: 358px; width: 180px; height: 56px">Запустить</div>
+<div data-part="btn-close" class="btn" data-pad="24" style="left: 404px; top: 358px; width: 120px; height: 56px">Закрыть</div>
+<div data-part="btn-close-hover" class="btn hover" data-pad="24" style="left: 404px; top: 358px; width: 120px; height: 56px">Закрыть</div>
+<div data-part="btn-run" class="btn btn--primary" data-pad="28" style="left: 534px; top: 358px; width: 180px; height: 56px">Запустить</div>
+<div data-part="btn-run-hover" class="btn btn--primary hover" data-pad="28" style="left: 534px; top: 358px; width: 180px; height: 56px">Запустить</div>
 
 <script>
-  // The bar is as many blocks as fit; Setup shows as much of it as is installed.
-  const fill = document.querySelector('[data-part="fill"]');
-  for (let x = 0; x + 14 <= 660; x += 16) fill.append(document.createElement('i'));
   if (location.hash === '#preview') document.body.classList.add('preview');
 </script>
 </body>

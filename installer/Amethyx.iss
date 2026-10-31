@@ -1,5 +1,5 @@
-﻿; Amethyx Launcher installer (Inno Setup 6). Its window is drawn from pictures in the launcher's pixel
-; look (make-setup-art.ps1): one screen to install, a block bar while files are copied, and "Готово".
+﻿; Amethyx Launcher installer (Inno Setup 6). Its window is drawn from pictures in the launcher's soft
+; look (make-setup-art.ps1): one screen to install, a bar while files are copied, and "Готово".
 #define AppName "Amethyx Launcher"
 #ifndef AppVersion
   #define AppVersion "1.3.0"
@@ -62,7 +62,8 @@ Name: "ru"; MessagesFile: "compiler:Languages\Russian.isl"
 Source: "art\update-*.bmp"; Flags: dontcopy
 Source: "art\setup-*.png"; Flags: dontcopy
 Source: "art\Tiny5.ttf"; Flags: dontcopy
-Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; FileStarted: the window says which part of the launcher is being put in place.
+Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; BeforeInstall: FileStarted
 
 [InstallDelete]
 ; The launcher used to be called RichLauncher, then Vanilla+ Launcher: their programs and
@@ -117,7 +118,7 @@ begin
   Result := ExpandConstant('{param:relaunch|0}') = '1';
 end;
 
-{ The window's pictures are drawn at 1x, 2x and 3x so the pixels stay sharp: the one nearest to the
+{ The window's pictures are drawn at 1x, 2x and 3x so they stay sharp: the one nearest to the
   screen's scale is used (2x already from 125 %). }
 function PictureScale: Integer;
 begin
@@ -126,18 +127,26 @@ begin
   if ScaleX(100) >= 250 then Result := 3;
 end;
 
+type
+  TMsg = record
+    Wnd: HWND;
+    Message: LongWord;
+    WParam: Longint;
+    LParam: Longint;
+    Time: DWORD;
+    Point: TPoint;
+  end;
+
 function SetTimer(Wnd: LongWord; IDEvent, Elapse: LongWord; TimerFunc: LongWord): LongWord;
   external 'SetTimer@user32.dll stdcall';
 function KillTimer(Wnd: LongWord; IDEvent: LongWord): BOOL;
   external 'KillTimer@user32.dll stdcall';
-function CreateRectRgn(Left, Top, Right, Bottom: Integer): LongWord;
-  external 'CreateRectRgn@gdi32.dll stdcall';
-function CombineRgn(Dest, Source1, Source2: LongWord; Mode: Integer): Integer;
-  external 'CombineRgn@gdi32.dll stdcall';
-function DeleteObject(Handle: LongWord): BOOL;
-  external 'DeleteObject@gdi32.dll stdcall';
 function SetWindowRgn(Wnd: HWND; Region: LongWord; Redraw: BOOL): Integer;
   external 'SetWindowRgn@user32.dll stdcall';
+function CreateRoundRectRgn(Left, Top, Right, Bottom, WidthEllipse, HeightEllipse: Integer): LongWord;
+  external 'CreateRoundRectRgn@gdi32.dll stdcall';
+function BitBlt(DestDC: LongWord; X, Y, Width, Height: Integer; SourceDC: LongWord; SourceX, SourceY: Integer; Rop: DWORD): BOOL;
+  external 'BitBlt@gdi32.dll stdcall';
 function GetSystemMenu(Wnd: HWND; Revert: BOOL): LongWord;
   external 'GetSystemMenu@user32.dll stdcall';
 function EnableMenuItem(Menu: LongWord; Item, Flags: LongWord): BOOL;
@@ -156,36 +165,73 @@ function GetWindowLong(Wnd: HWND; Index: Integer): LongInt;
   external 'GetWindowLongW@user32.dll stdcall';
 function SetWindowLong(Wnd: HWND; Index: Integer; NewLong: LongInt): LongInt;
   external 'SetWindowLongW@user32.dll stdcall';
+function PeekMessage(var Msg: TMsg; Wnd: HWND; FilterMin, FilterMax, Remove: LongWord): BOOL;
+  external 'PeekMessageW@user32.dll stdcall';
+function TranslateMessage(const Msg: TMsg): BOOL;
+  external 'TranslateMessage@user32.dll stdcall';
+function DispatchMessage(const Msg: TMsg): Longint;
+  external 'DispatchMessageW@user32.dll stdcall';
 
 const
-  RGN_OR = 2;
   SC_CLOSE = $F060;
   MF_BYCOMMAND = 0;
   MF_ENABLED = 0;
   FR_PRIVATE = $10;
   GWL_EXSTYLE = -20;
   WS_EX_COMPOSITED = $02000000;
+  SRCCOPY = $00CC0020;
+  PM_REMOVE = 1;
+  SoftTextColor = $D8BBC4;   { #c4bbd8 }
+  AccentTextColor = $FFA0BE; { #bea0ff }
+
+{ Waits while the window keeps drawing and its timers keep running (Sleep would freeze it). }
+procedure WaitDrawing(Ms: DWORD);
+var
+  Start: DWORD;
+  Msg: TMsg;
+begin
+  Start := GetTickCount;
+  while GetTickCount - Start < Ms do
+  begin
+    while PeekMessage(Msg, 0, 0, 0, PM_REMOVE) do
+    begin
+      TranslateMessage(Msg);
+      DispatchMessage(Msg);
+    end;
+    Sleep(15);
+  end;
+end;
 
 { ---------------------------------------------------------------------------------------------
   An update from the launcher: no pages and no buttons, only a small window in the launcher's soft
   look, like a splash screen. It is one picture (make-update-art.ps1) over the wizard's own
   controls; the bar is a second picture shown as far as the install has got, and a third one, the
-  pill's round end, stands at the edge of what is shown.
+  pill's round end, stands at the edge of what is shown. Under the title one line says what is
+  being done right now, with the percentage at its right, and the X bobs like the launcher's
+  loading mark (a strip of frames, one shown after another by a timer).
   --------------------------------------------------------------------------------------------- }
 const
   UpdateFillLeft = 104;
   UpdateFillTop = 92;
+  UpdateStatusLeft = 104;
+  UpdateStatusTop = 56;
+  UpdateStatusWidth = 352;
+  UpdateStatusHeight = 24;
+  UpdateMarkLeft = 14;
+  UpdateMarkTop = 14;
+  UpdateMarkFrames = 24;
+  UpdateMarkPeriod = 1100;
   UpdateCorner = 8;
   DWMWA_WINDOW_CORNER_PREFERENCE = 33;
   DWMWA_BORDER_COLOR = 34;
   DWMWCP_ROUND = 2;
 
 var
-  UpdateFill, UpdateCap: TBitmapImage;
+  UpdateBack, UpdateFill, UpdateCap, UpdateStatus, UpdateStatusWork, UpdateMark, UpdateMarkStrip: TBitmapImage;
   UpdateScale: Integer;
-
-function CreateRoundRectRgn(Left, Top, Right, Bottom, WidthEllipse, HeightEllipse: Integer): LongWord;
-  external 'CreateRoundRectRgn@gdi32.dll stdcall';
+  UpdateShownStep: String;
+  UpdateShownPercent, UpdateMarkFrame: Integer;
+  UpdateStart: DWORD;
 
 { Round corners: Windows 11 draws them itself, smooth, with a thin edge in the panel's light violet;
   an older Windows gets the window cut to the same shape. }
@@ -206,58 +252,62 @@ begin
   SetWindowRgn(WizardForm.Handle, CreateRoundRectRgn(0, 0, WizardForm.ClientWidth + 1, WizardForm.ClientHeight + 1, Radius * 2, Radius * 2), True);
 end;
 
-procedure BuildUpdateWindow;
+{ The line under the title: what is being done, in Tiny5 over the window's own background, and the
+  percentage at the right (none when Percent < 0). Written again only when something changed. The
+  words go on a hidden copy first and the whole line is then copied into the shown one: a picture
+  written on with its own canvas while shown kept showing what it had before. }
+procedure ShowUpdateStatus(const Step: String; Percent: Integer);
 var
-  Cover: TPanel;
-  Back: TBitmapImage;
-  Suffix: String;
+  Canvas: TCanvas;
+  Text: String;
+  W, H: Integer;
 begin
-  UpdateScale := PictureScale;
-  Suffix := IntToStr(UpdateScale) + 'x.bmp';
-  ExtractTemporaryFile('update-bg-' + Suffix);
-  ExtractTemporaryFile('update-fill-' + Suffix);
-  ExtractTemporaryFile('update-cap-' + Suffix);
+  if (Step = UpdateShownStep) and (Percent = UpdateShownPercent) then
+    Exit;
+  UpdateShownStep := Step;
+  UpdateShownPercent := Percent;
+  Canvas := UpdateStatusWork.Bitmap.Canvas;
+  W := UpdateStatus.Bitmap.Width;
+  H := UpdateStatus.Bitmap.Height;
+  { The window's picture under this place, then the words over it. }
+  BitBlt(Canvas.Handle, 0, 0, W, H, UpdateBack.Bitmap.Canvas.Handle, UpdateStatus.Left, UpdateStatus.Top, SRCCOPY);
+  Canvas.Brush.Style := bsClear;
+  Canvas.Font.Name := 'Tiny5';
+  Canvas.Font.Height := -16 * UpdateScale;
+  Canvas.Font.Color := SoftTextColor;
+  Canvas.TextOut(0, (H - Canvas.TextHeight(Step)) div 2, Step);
+  if Percent >= 0 then
+  begin
+    Text := IntToStr(Percent) + '%';
+    Canvas.Font.Color := AccentTextColor;
+    Canvas.TextOut(W - Canvas.TextWidth(Text), (H - Canvas.TextHeight(Text)) div 2, Text);
+  end;
+  BitBlt(UpdateStatus.Bitmap.Canvas.Handle, 0, 0, W, H, Canvas.Handle, 0, 0, SRCCOPY);
+  UpdateStatus.Invalidate;
+end;
 
-  { Pictures are drawn under the wizard's windowed controls, so they sit on a panel above them. }
-  Cover := TPanel.Create(WizardForm);
-  Cover.Parent := WizardForm;
-  Cover.BevelOuter := bvNone;
-  Back := TBitmapImage.Create(WizardForm);
-  Back.Parent := Cover;
-  Back.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-bg-' + Suffix));
-  WizardForm.BorderStyle := bsNone;
-  WizardForm.ClientWidth := Back.Bitmap.Width;
-  WizardForm.ClientHeight := Back.Bitmap.Height;
-  WizardForm.Position := poScreenCenter;
-  Cover.SetBounds(0, 0, Back.Bitmap.Width, Back.Bitmap.Height);
-  Cover.BringToFront;
-  Back.SetBounds(0, 0, Back.Bitmap.Width, Back.Bitmap.Height);
-
-  UpdateFill := TBitmapImage.Create(WizardForm);
-  UpdateFill.Parent := Cover;
-  UpdateFill.Stretch := False;
-  UpdateFill.Center := False;
-  UpdateFill.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-fill-' + Suffix));
-  UpdateFill.SetBounds(UpdateFillLeft * UpdateScale, UpdateFillTop * UpdateScale, 0, UpdateFill.Bitmap.Height);
-  UpdateFill.BringToFront;
-
-  UpdateCap := TBitmapImage.Create(WizardForm);
-  UpdateCap.Parent := Cover;
-  UpdateCap.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-cap-' + Suffix));
-  UpdateCap.SetBounds(UpdateFill.Left, UpdateFill.Top, UpdateCap.Bitmap.Width, UpdateCap.Bitmap.Height);
-  UpdateCap.Visible := False;
-  UpdateCap.BringToFront;
-  { Drawn off screen first and shown at once: the growing bar does not flicker. }
-  SetWindowLong(Cover.Handle, GWL_EXSTYLE, GetWindowLong(Cover.Handle, GWL_EXSTYLE) or WS_EX_COMPOSITED);
-  RoundUpdateWindowCorners;
+{ The X: the frame of the strip for this moment of the bob. }
+procedure ShowUpdateMark;
+var
+  Frame, W: Integer;
+begin
+  Frame := ((GetTickCount - UpdateStart) mod UpdateMarkPeriod) * UpdateMarkFrames div UpdateMarkPeriod;
+  if Frame = UpdateMarkFrame then
+    Exit;
+  UpdateMarkFrame := Frame;
+  W := UpdateMark.Bitmap.Width;
+  BitBlt(UpdateMark.Bitmap.Canvas.Handle, 0, 0, W, UpdateMark.Bitmap.Height, UpdateMarkStrip.Bitmap.Canvas.Handle, Frame * W, 0, SRCCOPY);
+  UpdateMark.Invalidate;
 end;
 
 { ---------------------------------------------------------------------------------------------
   The usual install: Setup's own pages stay underneath, hidden by a panel with the pictures of
   art\setup-ui (make-setup-art.ps1; setup-layout.iss says where each one stands, at 1x). Three
-  screens: install (folder, desktop shortcut, "Установить"), installing (block bar, percentage)
-  and done ("Закрыть", "Запустить"). The folder and the percentage are written by Setup itself in
-  the launcher's pixel font. Buttons light up under the mouse (a timer looks where it is).
+  screens: install (folder, desktop shortcut, "Установить"), installing (what is being done, the
+  percentage, the bar) and done ("Закрыть", "Запустить"). The folder and the line with what is being
+  done are written by Setup itself in the launcher's pixel font. Buttons light up under the mouse (a
+  timer looks where it is); their pictures are bigger than the buttons, for the soft shadow, so a
+  click is taken only on the button itself.
   --------------------------------------------------------------------------------------------- }
 #include "art\setup-layout.iss"
 
@@ -265,15 +315,12 @@ const
   ScreenInstall = 0;
   ScreenProgress = 1;
   ScreenDone = 2;
-  FieldColor = $11090B;      { #0b0911, the folder field }
-  PanelColor = $1F1216;      { #16121f, the panels }
-  SoftTextColor = $D8BBC4;   { #c4bbd8 }
-  AccentTextColor = $FFA0BE; { #bea0ff }
-  FillBlock = 16;
+  FieldColor = $27171C;      { #1c1727, the folder field }
+  PanelColor = $362027;      { #272036, the panels }
 
 type
   TSetupButton = record
-    Normal, Hover: TBitmapImage;
+    Normal, Hover, Hit: TBitmapImage;
     X, Y, W, H: Integer;
   end;
 
@@ -284,8 +331,9 @@ var
   PanelInstall, PanelProgress, PanelDone: TBitmapImage;
   ChangeButton, InstallButton, CloseButton, RunButton: TSetupButton;
   CheckOn, CheckOff, CheckHit: TBitmapImage;
-  PathText, PercentText, SetupFill: TBitmapImage;
-  ShownPercent: Integer;
+  PathText, StatusText, SetupFill, SetupCap: TBitmapImage;
+  SetupShownStep: String;
+  SetupShownPercent: Integer;
   DesktopIcon: Boolean;
   HoverTimer: LongWord;
 
@@ -308,54 +356,67 @@ begin
   Result.SetBounds(X * Scale, Y * Scale, Result.PngImage.Width, Result.PngImage.Height);
 end;
 
-procedure MakeButton(var Button: TSetupButton; const Name: String; X, Y, W, H: Integer; Click: TNotifyEvent);
+{ An empty place over the window, at 1x coordinates: to click on, or for Setup to write into. }
+function Place(X, Y, W, H: Integer): TBitmapImage;
 begin
-  Button.X := X * Scale; Button.Y := Y * Scale; Button.W := W * Scale; Button.H := H * Scale;
+  Result := TBitmapImage.Create(WizardForm);
+  Result.Parent := Screen;
+  Result.BackColor := clNone;
+  Result.SetBounds(X * Scale, Y * Scale, W * Scale, H * Scale);
+end;
+
+{ A button: its picture and its lit picture at (X, Y), clicked on its own box. }
+procedure MakeButton(var Button: TSetupButton; const Name: String; X, Y, BoxX, BoxY, BoxW, BoxH: Integer; Click: TNotifyEvent);
+begin
+  Button.X := BoxX * Scale; Button.Y := BoxY * Scale; Button.W := BoxW * Scale; Button.H := BoxH * Scale;
   Button.Normal := Part(Name, X, Y);
   Button.Hover := Part(Name + '-hover', X, Y);
   Button.Hover.Visible := False;
-  Button.Normal.Cursor := crHand;
-  Button.Hover.Cursor := crHand;
-  Button.Normal.OnClick := Click;
-  Button.Hover.OnClick := Click;
+  Button.Hit := Place(BoxX, BoxY, BoxW, BoxH);
+  Button.Hit.Cursor := crHand;
+  Button.Hit.OnClick := Click;
 end;
 
 procedure ShowButton(var Button: TSetupButton; Visible: Boolean);
 begin
   Button.Normal.Visible := Visible;
   Button.Hover.Visible := False;
+  Button.Hit.Visible := Visible;
+  if Visible then
+    Button.Hit.BringToFront;
 end;
 
 { A place Setup writes into: an empty picture of that size. }
 function TextPlace(X, Y, W, H: Integer): TBitmapImage;
 begin
-  Result := TBitmapImage.Create(WizardForm);
-  Result.Parent := Screen;
-  Result.SetBounds(X * Scale, Y * Scale, W * Scale, H * Scale);
+  Result := Place(X, Y, W, H);
   Result.Bitmap.Width := W * Scale;
   Result.Bitmap.Height := H * Scale;
 end;
 
-{ Text in Tiny5 on a solid background, left or right aligned, vertically centred. }
-procedure WriteText(Place: TBitmapImage; const Text: String; Background, Color: TColor; RightAligned: Boolean);
+{ Text in Tiny5 on a solid background, left aligned, vertically centred; and, when it is given, a
+  second text right aligned in the accent colour. }
+procedure WriteText(Target: TBitmapImage; const Text: String; Background, Color: TColor; const Right: String);
 var
   R: TRect;
   Canvas: TCanvas;
-  X: Integer;
 begin
-  Canvas := Place.Bitmap.Canvas;
+  Canvas := Target.Bitmap.Canvas;
   Canvas.Brush.Color := Background;
   Canvas.Brush.Style := bsSolid;
-  R.Left := 0; R.Top := 0; R.Right := Place.Bitmap.Width; R.Bottom := Place.Bitmap.Height;
+  R.Left := 0; R.Top := 0; R.Right := Target.Bitmap.Width; R.Bottom := Target.Bitmap.Height;
   Canvas.FillRect(R);
+  Canvas.Brush.Style := bsClear;
   Canvas.Font.Name := 'Tiny5';
   Canvas.Font.Height := -16 * Scale;
   Canvas.Font.Color := Color;
-  X := 0;
-  if RightAligned then
-    X := Place.Bitmap.Width - Canvas.TextWidth(Text);
-  Canvas.TextOut(X, (Place.Bitmap.Height - Canvas.TextHeight(Text)) div 2, Text);
-  Place.Invalidate;
+  Canvas.TextOut(0, (R.Bottom - Canvas.TextHeight(Text)) div 2, Text);
+  if Right <> '' then
+  begin
+    Canvas.Font.Color := AccentTextColor;
+    Canvas.TextOut(R.Right - Canvas.TextWidth(Right), (R.Bottom - Canvas.TextHeight(Right)) div 2, Right);
+  end;
+  Target.Invalidate;
 end;
 
 { The folder; a long one keeps its drive and its end ("C:\...\Programs\Amethyx"). }
@@ -376,29 +437,34 @@ begin
     Shown := Copy(Path, 1, 3) + '...' + Copy(Path, Cut, Length(Path));
     Cut := Cut + 1;
   end;
-  WriteText(PathText, Shown, FieldColor, SoftTextColor, False);
+  WriteText(PathText, Shown, FieldColor, SoftTextColor, '');
 end;
 
-{ The percentage, written only when it changes. Its place is made when the bar first shows: one made
-  while hidden showed leftover pixels instead of the text. }
-procedure ShowPercent(Percent: Integer);
+{ The line over the bar: what is being done and the percentage (none when Percent < 0), written
+  only when it changes. Its place is made when the bar first shows: one made while hidden showed
+  leftover pixels instead of the text. }
+procedure ShowSetupStatus(const Step: String; Percent: Integer);
+var
+  Text: String;
 begin
-  if PercentText = nil then
+  if StatusText = nil then
   begin
-    PercentText := TextPlace(SetupPercentX, SetupPercentY, SetupPercentW, SetupPercentH);
-    ShownPercent := -1;
+    StatusText := TextPlace(SetupStatusX, SetupStatusY, SetupStatusW, SetupStatusH);
+    SetupShownPercent := -2;
   end;
-  if Percent = ShownPercent then
+  if (Step = SetupShownStep) and (Percent = SetupShownPercent) then
     Exit;
-  ShownPercent := Percent;
-  WriteText(PercentText, IntToStr(Percent) + '%', PanelColor, AccentTextColor, True);
+  SetupShownStep := Step;
+  SetupShownPercent := Percent;
+  Text := '';
+  if Percent >= 0 then
+    Text := IntToStr(Percent) + '%';
+  WriteText(StatusText, Step, PanelColor, SoftTextColor, Text);
 end;
 
 procedure ShowScreen(Which: Integer);
 begin
   ShownScreen := Which;
-  if Which = ScreenProgress then
-    ShowPercent(0);
   PanelInstall.Visible := Which = ScreenInstall;
   ShowButton(ChangeButton, Which = ScreenInstall);
   ShowButton(InstallButton, Which = ScreenInstall);
@@ -407,9 +473,13 @@ begin
   CheckHit.Visible := Which = ScreenInstall;
   PathText.Visible := Which = ScreenInstall;
   PanelProgress.Visible := Which = ScreenProgress;
-  if PercentText <> nil then
-    PercentText.Visible := Which = ScreenProgress;
+  if Which = ScreenProgress then
+    ShowSetupStatus('Готовимся…', -1);
+  if StatusText <> nil then
+    StatusText.Visible := Which = ScreenProgress;
   SetupFill.Visible := Which = ScreenProgress;
+  if Which <> ScreenProgress then
+    SetupCap.Visible := False;
   PanelDone.Visible := Which = ScreenDone;
   ShowButton(CloseButton, Which = ScreenDone);
   ShowButton(RunButton, Which = ScreenDone);
@@ -420,7 +490,7 @@ procedure UpdateHover(var Button: TSetupButton; const Point: TPoint);
 var
   Over: Boolean;
 begin
-  if not (Button.Normal.Visible or Button.Hover.Visible) then
+  if not Button.Hit.Visible then
     Exit;
   Over := (Point.X >= Button.X) and (Point.X < Button.X + Button.W) and (Point.Y >= Button.Y) and (Point.Y < Button.Y + Button.H);
   if Button.Hover.Visible <> Over then
@@ -428,19 +498,6 @@ begin
     Button.Hover.Visible := Over;
     Button.Normal.Visible := not Over;
   end;
-end;
-
-procedure OnHoverTimer(Wnd: LongWord; Msg: LongWord; IDEvent: LongWord; Time: LongWord);
-var
-  Point: TPoint;
-begin
-  if not GetCursorPos(Point) then
-    Exit;
-  ScreenToClient(Screen.Handle, Point);
-  UpdateHover(ChangeButton, Point);
-  UpdateHover(InstallButton, Point);
-  UpdateHover(CloseButton, Point);
-  UpdateHover(RunButton, Point);
 end;
 
 procedure ChangeFolderClick(Sender: TObject);
@@ -497,6 +554,195 @@ begin
   Finish(False);
 end;
 
+{ ---------------------------------------------------------------------------------------------
+  What is being done and the bar, in both windows. The bar moves in jerks, like a real download:
+  it waits a moment while files go in, then jumps to where the install really is; now and then it
+  waits longer and leaps.
+  --------------------------------------------------------------------------------------------- }
+var
+  CurrentStep: String;
+  BarFill, BarCap: TBitmapImage;
+  BarFull, BarBlock: Integer;
+  ShownProgress, TargetProgress: Integer;  { per mille }
+  JumpAt, JumpDelay: DWORD;
+
+procedure ShowStatus(const Step: String; Percent: Integer);
+begin
+  if UpdateStatus <> nil then
+    ShowUpdateStatus(Step, Percent)
+  else if ShownScreen = ScreenProgress then
+    ShowSetupStatus(Step, Percent);
+end;
+
+{ Before each file of the launcher: which part of it that is, in plain words. }
+procedure FileStarted;
+var
+  Name, Kind: String;
+begin
+  Name := Lowercase(CurrentFileName);
+  Kind := ExtractFileExt(Name);
+  if Pos('\resources\', Name) > 0 then
+  begin
+    if IsUpdateRelaunch then
+      CurrentStep := 'Ставим новую версию'
+    else
+      CurrentStep := 'Ставим сам лаунчер';
+  end
+  else if Pos('\locales\', Name) > 0 then
+    CurrentStep := 'Ставим языки'
+  else if Kind = '.exe' then
+    CurrentStep := 'Ставим основу программы'
+  else if Kind = '.dll' then
+    CurrentStep := 'Ставим графику и видео'
+  else
+    CurrentStep := 'Ставим ресурсы окна';
+  ShowStatus(CurrentStep, ShownProgress div 10);
+end;
+
+{ The bar as far as ShownProgress, with the round end at its edge; nothing until the pill is as long
+  as both of its round ends, and the whole bar (its own round end) once the cap would reach the
+  track's end. }
+procedure DrawProgress;
+var
+  Width: Integer;
+begin
+  Width := BarFull * ShownProgress div 1000;
+  if Width < 2 * BarBlock then
+    Width := 0
+  else if Width > BarFull - BarBlock then
+    Width := BarFull;
+  BarFill.Width := Width;
+  BarCap.Left := BarFill.Left + Width - BarBlock;
+  BarCap.Visible := (Width > 0) and (Width < BarFull);
+end;
+
+{ Moves the bar to where the install is, once its pause is over (at once when Force). }
+procedure MoveProgress(Force: Boolean);
+begin
+  if (BarFill = nil) or (ShownProgress = TargetProgress) then
+    Exit;
+  if (UpdateFill = nil) and (ShownScreen <> ScreenProgress) then
+    Exit;
+  if not Force and (GetTickCount - JumpAt < JumpDelay) then
+    Exit;
+  ShownProgress := TargetProgress;
+  JumpAt := GetTickCount;
+  { Mostly a short pause, sometimes a long one, after which the bar leaps far ahead. }
+  if Random(4) = 0 then
+    JumpDelay := 1100 + Random(900)
+  else
+    JumpDelay := 250 + Random(550);
+  DrawProgress;
+  if CurrentStep <> '' then
+    ShowStatus(CurrentStep, ShownProgress div 10);
+end;
+
+procedure OnUpdateTimer(Wnd: LongWord; Msg: LongWord; IDEvent: LongWord; Time: LongWord);
+begin
+  ShowUpdateMark;
+  MoveProgress(False);
+end;
+
+procedure OnHoverTimer(Wnd: LongWord; Msg: LongWord; IDEvent: LongWord; Time: LongWord);
+var
+  Point: TPoint;
+begin
+  MoveProgress(False);
+  if not GetCursorPos(Point) then
+    Exit;
+  ScreenToClient(Screen.Handle, Point);
+  UpdateHover(ChangeButton, Point);
+  UpdateHover(InstallButton, Point);
+  UpdateHover(CloseButton, Point);
+  UpdateHover(RunButton, Point);
+end;
+
+{ --------------------------------------------------------------------------------------------- }
+
+var
+  UpdateTimer: LongWord;
+
+procedure BuildUpdateWindow;
+var
+  Cover: TPanel;
+  Suffix: String;
+begin
+  UpdateScale := PictureScale;
+  Suffix := IntToStr(UpdateScale) + 'x.bmp';
+  ExtractTemporaryFile('update-bg-' + Suffix);
+  ExtractTemporaryFile('update-fill-' + Suffix);
+  ExtractTemporaryFile('update-cap-' + Suffix);
+  ExtractTemporaryFile('update-mark-' + Suffix);
+  { The launcher's pixel font, for this process only. }
+  ExtractTemporaryFile('Tiny5.ttf');
+  AddFontResourceEx(ExpandConstant('{tmp}\Tiny5.ttf'), FR_PRIVATE, 0);
+
+  { Pictures are drawn under the wizard's windowed controls, so they sit on a panel above them. }
+  Cover := TPanel.Create(WizardForm);
+  Cover.Parent := WizardForm;
+  Cover.BevelOuter := bvNone;
+  UpdateBack := TBitmapImage.Create(WizardForm);
+  UpdateBack.Parent := Cover;
+  UpdateBack.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-bg-' + Suffix));
+  WizardForm.BorderStyle := bsNone;
+  WizardForm.ClientWidth := UpdateBack.Bitmap.Width;
+  WizardForm.ClientHeight := UpdateBack.Bitmap.Height;
+  WizardForm.Position := poScreenCenter;
+  Cover.SetBounds(0, 0, UpdateBack.Bitmap.Width, UpdateBack.Bitmap.Height);
+  Cover.BringToFront;
+  UpdateBack.SetBounds(0, 0, UpdateBack.Bitmap.Width, UpdateBack.Bitmap.Height);
+
+  { The strip of frames is only read from; the place of the X shows one of them. }
+  UpdateMarkStrip := TBitmapImage.Create(WizardForm);
+  UpdateMarkStrip.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-mark-' + Suffix));
+  UpdateMark := TBitmapImage.Create(WizardForm);
+  UpdateMark.Parent := Cover;
+  UpdateMark.SetBounds(UpdateMarkLeft * UpdateScale, UpdateMarkTop * UpdateScale, UpdateMarkStrip.Bitmap.Width div UpdateMarkFrames, UpdateMarkStrip.Bitmap.Height);
+  UpdateMark.Bitmap.Width := UpdateMark.Width;
+  UpdateMark.Bitmap.Height := UpdateMark.Height;
+  UpdateMark.BringToFront;
+  UpdateStart := GetTickCount;
+  UpdateMarkFrame := -1;
+  ShowUpdateMark;
+
+  UpdateStatus := TBitmapImage.Create(WizardForm);
+  UpdateStatus.Parent := Cover;
+  UpdateStatus.SetBounds(UpdateStatusLeft * UpdateScale, UpdateStatusTop * UpdateScale, UpdateStatusWidth * UpdateScale, UpdateStatusHeight * UpdateScale);
+  UpdateStatus.Bitmap.Width := UpdateStatus.Width;
+  UpdateStatus.Bitmap.Height := UpdateStatus.Height;
+  UpdateStatus.BringToFront;
+  UpdateStatusWork := TBitmapImage.Create(WizardForm);
+  UpdateStatusWork.Bitmap.Width := UpdateStatus.Width;
+  UpdateStatusWork.Bitmap.Height := UpdateStatus.Height;
+  UpdateShownPercent := -2;
+  { Setup first waits for the launcher to close (it quits right after starting the update). }
+  ShowUpdateStatus('Закрываем старую версию…', -1);
+
+  UpdateFill := TBitmapImage.Create(WizardForm);
+  UpdateFill.Parent := Cover;
+  UpdateFill.Stretch := False;
+  UpdateFill.Center := False;
+  UpdateFill.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-fill-' + Suffix));
+  UpdateFill.SetBounds(UpdateFillLeft * UpdateScale, UpdateFillTop * UpdateScale, 0, UpdateFill.Bitmap.Height);
+  UpdateFill.BringToFront;
+
+  UpdateCap := TBitmapImage.Create(WizardForm);
+  UpdateCap.Parent := Cover;
+  UpdateCap.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-cap-' + Suffix));
+  UpdateCap.SetBounds(UpdateFill.Left, UpdateFill.Top, UpdateCap.Bitmap.Width, UpdateCap.Bitmap.Height);
+  UpdateCap.Visible := False;
+  UpdateCap.BringToFront;
+  BarFill := UpdateFill;
+  BarCap := UpdateCap;
+  BarFull := UpdateFill.Bitmap.Width;
+  BarBlock := UpdateCap.Bitmap.Width;
+
+  { Drawn off screen first and shown at once: the X and the growing bar do not flicker. }
+  SetWindowLong(Cover.Handle, GWL_EXSTYLE, GetWindowLong(Cover.Handle, GWL_EXSTYLE) or WS_EX_COMPOSITED);
+  RoundUpdateWindowCorners;
+  UpdateTimer := SetTimer(0, 0, 30, CreateCallback(@OnUpdateTimer));
+end;
+
 procedure BuildSetupWindow;
 var
   Pano: TBitmapImage;
@@ -534,31 +780,34 @@ begin
 
   PanelInstall := Part('panel-install', SetupPanelInstallX, SetupPanelInstallY);
   PathText := TextPlace(SetupPathX, SetupPathY, SetupPathW, SetupPathH);
-  MakeButton(ChangeButton, 'btn-change', SetupBtnChangeX, SetupBtnChangeY, SetupBtnChangeW, SetupBtnChangeH, @ChangeFolderClick);
+  MakeButton(ChangeButton, 'btn-change', SetupBtnChangeX, SetupBtnChangeY, SetupBtnChangeBoxX, SetupBtnChangeBoxY, SetupBtnChangeBoxW, SetupBtnChangeBoxH, @ChangeFolderClick);
   CheckOn := Part('check-on', SetupCheckOnX, SetupCheckOnY);
   CheckOff := Part('check-off', SetupCheckOffX, SetupCheckOffY);
   { The tick and its words are one place to click. }
-  CheckHit := TBitmapImage.Create(WizardForm);
-  CheckHit.Parent := Screen;
-  CheckHit.BackColor := clNone;
+  CheckHit := Place(SetupCheckHitX, SetupCheckHitY, SetupCheckHitW, SetupCheckHitH);
   CheckHit.Cursor := crHand;
-  CheckHit.SetBounds(SetupCheckHitX * Scale, SetupCheckHitY * Scale, SetupCheckHitW * Scale, SetupCheckHitH * Scale);
   CheckHit.OnClick := @DesktopIconClick;
-  MakeButton(InstallButton, 'btn-install', SetupBtnInstallX, SetupBtnInstallY, SetupBtnInstallW, SetupBtnInstallH, @InstallClick);
+  MakeButton(InstallButton, 'btn-install', SetupBtnInstallX, SetupBtnInstallY, SetupBtnInstallBoxX, SetupBtnInstallBoxY, SetupBtnInstallBoxW, SetupBtnInstallBoxH, @InstallClick);
 
   PanelProgress := Part('panel-progress', SetupPanelProgressX, SetupPanelProgressY);
   SetupFill := Part('fill', SetupFillX, SetupFillY);
   SetupFill.Stretch := False;
   SetupFill.Center := False;
   SetupFill.Width := 0;
+  SetupCap := Part('cap', SetupFillX, SetupFillY);
+  SetupCap.Visible := False;
+  BarFill := SetupFill;
+  BarCap := SetupCap;
+  BarFull := SetupFill.PngImage.Width;
+  BarBlock := SetupCap.PngImage.Width;
 
   PanelDone := Part('panel-done', SetupPanelDoneX, SetupPanelDoneY);
-  MakeButton(CloseButton, 'btn-close', SetupBtnCloseX, SetupBtnCloseY, SetupBtnCloseW, SetupBtnCloseH, @CloseClick);
-  MakeButton(RunButton, 'btn-run', SetupBtnRunX, SetupBtnRunY, SetupBtnRunW, SetupBtnRunH, @RunClick);
+  MakeButton(CloseButton, 'btn-close', SetupBtnCloseX, SetupBtnCloseY, SetupBtnCloseBoxX, SetupBtnCloseBoxY, SetupBtnCloseBoxW, SetupBtnCloseBoxH, @CloseClick);
+  MakeButton(RunButton, 'btn-run', SetupBtnRunX, SetupBtnRunY, SetupBtnRunBoxX, SetupBtnRunBoxY, SetupBtnRunBoxW, SetupBtnRunBoxH, @RunClick);
 
   ShowFolder;
   ShowScreen(ScreenInstall);
-  { Drawn off screen first and shown at once: the growing bar and the percentage do not flicker. }
+  { Drawn off screen first and shown at once: the growing bar and the text do not flicker. }
   SetWindowLong(Screen.Handle, GWL_EXSTYLE, GetWindowLong(Screen.Handle, GWL_EXSTYLE) or WS_EX_COMPOSITED);
   HoverTimer := SetTimer(0, 0, 40, CreateCallback(@OnHoverTimer));
 
@@ -612,6 +861,7 @@ begin
         ShowScreen(ScreenProgress);
         if WizardForm.PreparingYesRadio.Visible then
         begin
+          ShowSetupStatus('Закрываем открытый лаунчер…', -1);
           WizardForm.PreparingYesRadio.Checked := True;
           NextTimer := SetTimer(0, 0, 300, CreateCallback(@OnNextTimer));
         end;
@@ -629,34 +879,27 @@ end;
 procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
 var
   Done: Int64;
-  Width, Block: Integer;
 begin
   if MaxProgress <= 0 then
     Exit;
   { In 64 bits: the progress counts bytes and would overflow an Integer once multiplied. }
   Done := CurProgress;
-  if UpdateFill <> nil then
+  TargetProgress := Done * 1000 div MaxProgress;
+  MoveProgress(False);
+end;
+
+{ All files are in place: the bar fills up. An update has started the launcher already ([Run] comes
+  before this step); its window says so and stays a moment, the X still bobbing, so it can be read. }
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep <> ssPostInstall then
+    Exit;
+  TargetProgress := 1000;
+  MoveProgress(True);
+  if UpdateStatus <> nil then
   begin
-    { Smooth, with the round end at the edge; nothing until the pill is as long as both of its round
-      ends, and the whole bar (its own round end) once the cap would reach the track's end. }
-    Block := UpdateCap.Bitmap.Width;
-    Width := Done * UpdateFill.Bitmap.Width div MaxProgress;
-    if Width < 2 * Block then
-      Width := 0
-    else if Width > UpdateFill.Bitmap.Width - Block then
-      Width := UpdateFill.Bitmap.Width;
-    UpdateFill.Width := Width;
-    UpdateCap.Left := UpdateFill.Left + Width - Block;
-    UpdateCap.Visible := (Width > 0) and (Width < UpdateFill.Bitmap.Width);
-  end
-  else if SetupFill <> nil then
-  begin
-    Block := FillBlock * Scale;
-    Width := Done * SetupFill.PngImage.Width div MaxProgress;
-    if Width < SetupFill.PngImage.Width then
-      Width := (Width div Block) * Block;
-    SetupFill.Width := Width;
-    ShowPercent(Done * 100 div MaxProgress);
+    ShowUpdateStatus('Готово! Открываем лаунчер…', -1);
+    WaitDrawing(900);
   end;
 end;
 
@@ -671,4 +914,6 @@ procedure DeinitializeSetup;
 begin
   if HoverTimer <> 0 then
     KillTimer(0, HoverTimer);
+  if UpdateTimer <> 0 then
+    KillTimer(0, UpdateTimer);
 end;

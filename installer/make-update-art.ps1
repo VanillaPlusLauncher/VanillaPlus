@@ -1,11 +1,13 @@
 ﻿# Pictures of the small "updating" window the installer shows when the launcher updates itself
 # (/relaunch=1, BuildUpdateWindow in Amethyx.iss), in the launcher's soft look: a raised violet
-# panel, the X mark with a glow behind it, the title in Tiny5 (the launcher's font) and a round
-# track that fills with a soft violet pill. Drawn at 1x, 2x and 3x (the installer picks one for the
-# screen's scale):
+# panel, the X mark with a glow behind it, the title in Tiny5 (the launcher's font), room for the
+# line the installer writes (what it is doing now) and a round track that fills with a soft violet
+# pill. Drawn at 1x, 2x and 3x (the installer picks one for the screen's scale):
 #   art\update-bg-<k>x.bmp    the whole window with an empty track,
 #   art\update-fill-<k>x.bmp  the track filled to the end; the installer shows as much of it as is done,
-#   art\update-cap-<k>x.bmp   the round end of the pill over the track, put at the edge of what is shown.
+#   art\update-cap-<k>x.bmp   the round end of the pill over the track, put at the edge of what is shown,
+#   art\update-mark-<k>x.bmp  the X bobbing like the launcher's loading mark: $frames pictures of the
+#                             place round it side by side, shown one after another (one turn: $period ms).
 # The pill is the same in every column (light on top, deeper below), so the cap fits wherever it stands.
 # Tiny5 (SIL Open Font License) is downloaded once and checked.
 # Usage: .\make-update-art.ps1
@@ -28,6 +30,33 @@ $track = @{ X = 104; Y = 92; W = 352; H = 12 }
 $radius = $track.H / 2
 # Where the pill ends when the cap is cut out (any place in the straight part of the track).
 $capEnd = $track.X + 200
+# The place the bobbing X moves in (UpdateMarkLeft, UpdateMarkTop in Amethyx.iss) and its frames;
+# the mark stands at 24, 32, 64 × 64, its middle at 56, 64.
+$markBox = @{ X = 14; Y = 14; W = 84; H = 92 }
+$frames = 24
+
+# mark-bob from the launcher (css/features/shell.css): [time, lift, angle, scale], each step eased by
+# cubic-bezier(0.45, 0, 0.55, 1). The lift is larger than its 5 px: this mark is bigger than 26 px.
+$keys = @(@(0, 0, -6, 1), @(0.45, -8, 6, 1.06), @(0.6, -6.5, 5, 1.05), @(1, 0, -6, 1))
+function Ease([double]$t) {
+  $lo = 0.0; $hi = 1.0
+  for ($i = 0; $i -lt 40; $i++) {
+    $u = ($lo + $hi) / 2
+    $x = 3 * (1 - $u) * (1 - $u) * $u * 0.45 + 3 * (1 - $u) * $u * $u * 0.55 + $u * $u * $u
+    if ($x -lt $t) { $lo = $u } else { $hi = $u }
+  }
+  $u = ($lo + $hi) / 2
+  3 * (1 - $u) * $u * $u + $u * $u * $u
+}
+function Pose([double]$p) {
+  for ($i = 0; $i -lt $keys.Count - 1; $i++) {
+    $a = $keys[$i]; $b = $keys[$i + 1]
+    if ($p -le $b[0]) {
+      $e = Ease (($p - $a[0]) / ($b[0] - $a[0]))
+      return @{ Lift = $a[1] + ($b[1] - $a[1]) * $e; Angle = $a[2] + ($b[2] - $a[2]) * $e; Scale = $a[3] + ($b[3] - $a[3]) * $e }
+    }
+  }
+}
 
 function Color([string]$hex, [int]$alpha = 255) { [System.Drawing.Color]::FromArgb($alpha, [System.Drawing.ColorTranslator]::FromHtml($hex)) }
 function Pill([float]$x, [float]$y, [float]$w, [float]$h) {
@@ -55,8 +84,9 @@ for ($y = 0; $y -lt $source.Height; $y++) {
 }
 $source.Dispose()
 
-# The whole window at scale $k; $pillEnd: $null — an empty track, otherwise where the pill ends (1x).
-function Draw-Window([int]$k, $pillEnd) {
+# The whole window at scale $k; $pillEnd: $null — an empty track, otherwise where the pill ends (1x);
+# $pose: how the mark stands (the first frame when left out).
+function Draw-Window([int]$k, $pillEnd, $pose = (Pose 0)) {
   $bmp = New-Object System.Drawing.Bitmap ($W * $k), ($H * $k), ([System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
   $g.SmoothingMode = 'AntiAlias'
@@ -76,16 +106,22 @@ function Draw-Window([int]$k, $pillEnd) {
   $glowBrush.SurroundColors = @(Color '#9670f5' 0)
   $g.FillPath($glowBrush, $glow)
   $g.InterpolationMode = 'HighQualityBicubic'
-  $g.DrawImage($mark, (New-Object System.Drawing.Rectangle (24 * $k), (32 * $k), (64 * $k), (64 * $k)))
+  $state = $g.Save()
+  $g.TranslateTransform((56 * $k), ((64 + $pose.Lift) * $k))
+  $g.RotateTransform($pose.Angle)
+  $g.ScaleTransform($pose.Scale, $pose.Scale)
+  $g.DrawImage($mark, (New-Object System.Drawing.RectangleF (-32 * $k), (-32 * $k), (64 * $k), (64 * $k)))
+  $g.Restore($state)
 
-  # Both lines in Tiny5, the launcher's font; each must fit above the track.
+  # The title in Tiny5, the launcher's font. The line under it (what is being done right now) is
+  # written by the installer itself (ShowUpdateStatus in Amethyx.iss).
   $g.TextRenderingHint = 'SingleBitPerPixelGridFit'
   $big = New-Object System.Drawing.Font $tiny5, (24 * $k), ([System.Drawing.FontStyle]::Regular), ([System.Drawing.GraphicsUnit]::Pixel)
-  $small = New-Object System.Drawing.Font $tiny5, (16 * $k), ([System.Drawing.FontStyle]::Regular), ([System.Drawing.GraphicsUnit]::Pixel)
-  foreach ($line in @(@('Обновляем Amethyx', $big, '#f4effd', 22), @('Откроется сам через пару секунд', $small, '#c4bbd8', 58))) {
-    if ($g.MeasureString($line[0], $line[1]).Width -gt $track.W * $k) { throw "Не помещается: $($line[0])" }
-    $g.DrawString($line[0], $line[1], (New-Object System.Drawing.SolidBrush (Color $line[2])), ($track.X * $k), ($line[3] * $k))
-  }
+  # Typographic: no padding before the first letter, so it starts where that line and the track do.
+  $title = 'Обновляем Amethyx'
+  $exact = [System.Drawing.StringFormat]::GenericTypographic
+  if ($g.MeasureString($title, $big, [int]::MaxValue, $exact).Width -gt $track.W * $k) { throw "Не помещается: $title" }
+  $g.DrawString($title, $big, (New-Object System.Drawing.SolidBrush (Color '#f4effd')), [float]($track.X * $k), [float](22 * $k), $exact)
 
   # The track: a sunken pill, darker along its top inside edge, a faint light along the bottom.
   $trackPath = Pill ($track.X * $k) ($track.Y * $k) ($track.W * $k) ($track.H * $k)
@@ -128,6 +164,19 @@ foreach ($k in 1, 2, 3) {
   $ended = Draw-Window $k $capEnd
   Save-Crop $ended (($capEnd - $radius) * $k) ($track.Y * $k) ($radius * $k) ($track.H * $k) "update-cap-${k}x.bmp"
   $ended.Dispose()
+
+  # The bobbing X: the place round the mark in each pose, side by side.
+  $strip = New-Object System.Drawing.Bitmap ($markBox.W * $k * $frames), ($markBox.H * $k), ([System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+  $sg = [System.Drawing.Graphics]::FromImage($strip)
+  for ($f = 0; $f -lt $frames; $f++) {
+    $posed = Draw-Window $k $null (Pose ($f / $frames))
+    $place = New-Object System.Drawing.Rectangle ($markBox.X * $k), ($markBox.Y * $k), ($markBox.W * $k), ($markBox.H * $k)
+    $sg.DrawImage($posed, (New-Object System.Drawing.Rectangle ($f * $markBox.W * $k), 0, ($markBox.W * $k), ($markBox.H * $k)), $place, [System.Drawing.GraphicsUnit]::Pixel)
+    $posed.Dispose()
+  }
+  $sg.Dispose()
+  $strip.Save((Join-Path $art "update-mark-${k}x.bmp"), [System.Drawing.Imaging.ImageFormat]::Bmp)
+  $strip.Dispose()
   "update art ${k}x"
 }
 $mark.Dispose()
