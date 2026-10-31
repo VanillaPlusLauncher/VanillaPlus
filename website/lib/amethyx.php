@@ -184,9 +184,27 @@ function amx_require_admin(bool $tokenAllowed = false): string {
   return $login;
 }
 
+// The visitor's address. On this hosting every request comes through its front server (a private
+// address, or nginx on this machine); the visitor is then the last public address that server
+// added to X-Forwarded-For (the entries before it come from the visitor), else X-Real-IP.
+function amx_client_ip(): string {
+  $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+  if (amx_public_ip($ip) && $ip !== (string) ($_SERVER['SERVER_ADDR'] ?? '')) return $ip;
+  $hops = array_reverse(explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '')));
+  $hops[] = (string) ($_SERVER['HTTP_X_REAL_IP'] ?? '');
+  foreach ($hops as $hop) {
+    if (amx_public_ip(trim($hop))) return trim($hop);
+  }
+  return $ip;
+}
+
+function amx_public_ip(string $ip): bool {
+  return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+}
+
 // Failed logins are remembered per address, and only as a keyed hash of it.
 function amx_client_key(): string {
-  return hash_hmac('sha256', $_SERVER['REMOTE_ADDR'] ?? '', amx_secret());
+  return hash_hmac('sha256', amx_client_ip(), amx_secret());
 }
 
 function amx_login_locked(): bool {
