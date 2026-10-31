@@ -818,10 +818,47 @@ begin
   DwmSetWindowAttribute(WizardForm.Handle, 36, Color, 4);
 end;
 
+{ ---------------------------------------------------------------------------------------------
+  The launcher used to be called RichLauncher, then Vanilla+ Launcher, and Setup offers the folder
+  of the last install: for those it is named after the old launcher (Documents\RichLauncher). The
+  launcher moves next to it, into a folder called Amethyx, and once it is installed there the old
+  copy of the program goes (only when the folder really holds one: its program and
+  resources\app.asar; the games, packs and settings live in %APPDATA% and are not there).
+  --------------------------------------------------------------------------------------------- }
+var
+  OldAppDir: String;
+
+function HasOldName(const Dir: String): Boolean;
+var
+  Name: String;
+begin
+  Name := Lowercase(ExtractFileName(RemoveBackslashUnlessRoot(Dir)));
+  Result := (Name = 'richlauncher') or (Name = 'vanillaplus') or (Name = 'vanilla+') or (Name = 'vanilla+ launcher');
+end;
+
+procedure LeaveOldFolder;
+begin
+  if not HasOldName(WizardForm.DirEdit.Text) then
+    Exit;
+  OldAppDir := RemoveBackslashUnlessRoot(WizardForm.DirEdit.Text);
+  WizardForm.DirEdit.Text := AddBackslash(ExtractFileDir(OldAppDir)) + 'Amethyx';
+end;
+
+procedure RemoveOldCopy;
+begin
+  if (OldAppDir = '') or (CompareText(OldAppDir, RemoveBackslashUnlessRoot(ExpandConstant('{app}'))) = 0) then
+    Exit;
+  if not FileExists(OldAppDir + '\resources\app.asar') then
+    Exit;
+  if FileExists(OldAppDir + '\RichLauncher.exe') or FileExists(OldAppDir + '\VanillaPlus.exe') or FileExists(OldAppDir + '\Amethyx.exe') then
+    DelTree(OldAppDir, True, True, True);
+end;
+
 { --------------------------------------------------------------------------------------------- }
 
 procedure InitializeWizard;
 begin
+  LeaveOldFolder;
   if IsUpdateRelaunch then
     BuildUpdateWindow
   else
@@ -894,6 +931,7 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep <> ssPostInstall then
     Exit;
+  RemoveOldCopy;
   TargetProgress := 1000;
   MoveProgress(True);
   if UpdateStatus <> nil then
