@@ -183,6 +183,9 @@ export function resizeSmoothly(element, change, duration = 340) {
  * css/features/alive.css sets the timing.
  */
 let passage = null;
+/** At most this many cards glide on their own; the rest crossfade with the page. Each one is a layer the
+ *  browser animates on the main thread every frame: 40 of them (mods as tiles) made a switch stutter. */
+const MORPH_CARDS = 24;
 
 export function morph(change, { cards = null, panel = null, key = (card) => card.dataset.id } = {}) {
   // A page that is not the current one is only see-through (layout.css), not gone: its cards still have
@@ -210,7 +213,7 @@ export function morph(change, { cards = null, panel = null, key = (card) => card
     if (panel?.isConnected) name(panel, 'morph-panel', 'morph-panel');
     for (const card of cards ? [...cards()] : []) {
       const id = key(card);
-      if (!id || !shown(card)) continue;
+      if (!id || (!names.has(id) && names.size >= MORPH_CARDS) || !shown(card)) continue;
       if (!names.has(id)) names.set(id, `morph-card-${names.size}`);
       name(card, names.get(id), 'morph-card');
     }
@@ -229,6 +232,19 @@ export function morph(change, { cards = null, panel = null, key = (card) => card
     if (passage === current) passage = null;
   });
   return current.updateCallbackDone.catch(() => {});
+}
+
+/**
+ * A big list's change shown as its new look fading in, instead of a passage (`morph`): for a passage the
+ * browser works out the style of every row twice (all of them, also the ones off screen) and animates a
+ * layer per card, which stalled a list of 150 mods for a quarter of a second.
+ */
+export function fadeChange(element, change) {
+  const result = change();
+  if (animationsEnabled() && !document.hidden) {
+    element.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+  }
+  return result;
 }
 
 /** Counts a number up with an ease-out, for statistics. */

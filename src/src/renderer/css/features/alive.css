@@ -13,6 +13,17 @@
 .page--active > *:nth-child(5) { animation-delay: 200ms; }
 .page--active > *:nth-child(6) { animation-delay: 250ms; }
 
+/* While a page scrolls, a clear sheet over its content takes the pointer (components/alive.js): no rows
+   lighting up, icons moving or tooltips on every frame. The wheel still reaches the page. */
+.scroll-shield {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  width: 100%;
+  animation: none !important;
+}
+
 /* Cards in grids rise in a short wave (the first dozen; the rest appear at once). */
 .instance-grid--grid > *:nth-child(-n + 12),
 .settings-sections--enter > *:nth-child(-n + 8) {

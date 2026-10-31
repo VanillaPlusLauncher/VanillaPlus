@@ -5,7 +5,7 @@ import { errorMessage } from '../core/format.js';
 import { formatBytes, PLATFORM_LABELS } from '../core/content.js';
 import { browseFor } from '../core/nav.js';
 import { sfx } from '../core/sound.js';
-import { morph } from '../core/effects.js';
+import { fadeChange, morph } from '../core/effects.js';
 import { confirmDialog, openModal } from './modal.js';
 import { createSegmented } from './controls.js';
 import { confirmCompatibility } from './compatDialog.js';
@@ -48,6 +48,8 @@ const SORTS = [
   { value: 'enabled', label: 'Сначала включённые' },
   { value: 'size', label: 'Сначала большие' },
 ];
+/** From this many rows a change fades in instead of every card gliding (see passage()). */
+const MANY_ROWS = 60;
 const VIEW_KEY = 'content.view';
 const SORT_KEY = 'content.sort';
 const remembered = (key, fallback, allowed) => {
@@ -101,12 +103,26 @@ export function createContentList(getInstance, type) {
     remember(VIEW_KEY, view);
     viewButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
     rows.classList.remove('content-rows--enter');
-    relayout();
+    // The same rows in another look: only the list's class changes (drawing ~150 rows again with their
+    // pictures stalled every switch).
+    passage(() => showView());
+  }
+
+  function showView() {
+    rows.classList.remove('content-rows--list', 'content-rows--compact', 'content-rows--grid');
+    rows.classList.add(`content-rows--${state.view}`);
   }
 
   /** The list drawn again with every card gliding from where it was to its new place and shape. */
   function relayout() {
-    morph(() => renderRows(), { cards: () => rows.querySelectorAll('.content-row') });
+    passage(() => renderRows());
+  }
+
+  /** A change of the list: the cards glide (morph); a long list fades into its new look instead, as a
+   *  glide made the browser restyle every row twice and stall. */
+  function passage(change) {
+    if (rows.childElementCount > MANY_ROWS) fadeChange(rows, change);
+    else morph(change, { cards: () => rows.querySelectorAll('.content-row') });
   }
 
   // Typing filters a moment after the last letter, so the cards glide once instead of at every key.
@@ -230,6 +246,8 @@ export function createContentList(getInstance, type) {
   /** Rows on screen by file: ticking changes them in place instead of drawing the whole list again. */
   const rowElements = new Map();
   const itemOfRow = new WeakMap();
+  /** Rows drawn for items, kept as long as the items are: a new order or a filter uses them again. */
+  let drawn = new WeakMap();
   /** The mod last chosen by a click or its tick: Shift+click chooses every row between it and the new one. */
   let anchor = null;
 
@@ -289,8 +307,7 @@ export function createContentList(getInstance, type) {
           (!state.side || (state.side === 'unknown' ? !item.side : item.side === state.side)),
       )
       .sort(sorters[state.sort] ?? byName);
-    rows.classList.remove('content-rows--list', 'content-rows--compact', 'content-rows--grid');
-    rows.classList.add(`content-rows--${state.view}`);
+    showView();
     if (state.items.length === 0) {
       rows.replaceChildren(
         h('div', { class: 'empty-state' }, icon('cube'), h('p', null, labels.empty), h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => browseFor(getInstance().id, type) }, labels.add)),
@@ -300,7 +317,15 @@ export function createContentList(getInstance, type) {
     }
     // Rows come in one after another only when the list appears, not on every small change.
     rows.classList.toggle('content-rows--enter', !rows.querySelector('.content-row'));
-    rows.replaceChildren(...visible.map(row));
+    rows.replaceChildren(
+      ...visible.map((item) => {
+        const entry = drawn.get(item);
+        if (!entry) return row(item);
+        entry.element.style.setProperty('--row', String(Math.min(rowElements.size, 14)));
+        rowElements.set(item.file, entry);
+        return entry.element;
+      }),
+    );
     syncSelection();
   }
 
@@ -346,7 +371,9 @@ export function createContentList(getInstance, type) {
         h('button', { class: 'icon-button content-row__remove', type: 'button', title: 'Удалить', onclick: () => remove(item) }, icon('close')),
       ),
     );
-    rowElements.set(item.file, { element, check, toggle });
+    const entry = { element, check, toggle };
+    rowElements.set(item.file, entry);
+    drawn.set(item, entry);
     itemOfRow.set(element, item);
     return element;
   }
@@ -424,6 +451,8 @@ export function createContentList(getInstance, type) {
       updateAllButton.hidden = updates.length === 0;
       updateAllButton.textContent = `Обновить все (${updates.length})`;
       if (updates.length === 0) label = 'Всё обновлено';
+      // The rows show the update buttons: drawn anew.
+      drawn = new WeakMap();
       renderRows();
     } catch (error) {
       toast(errorMessage(error), 'error');

@@ -87,7 +87,30 @@ export function installAliveUi() {
   document.addEventListener('pointerleave', release);
   window.addEventListener('blur', release);
   // Scrolling moves the card away from its measured box: let it go, the next move measures again.
-  document.addEventListener('scroll', release, { capture: true, passive: true });
+  // While a page scrolls, what passes under the still pointer does not answer it: a clear sheet over the
+  // page's content takes the pointer (features/alive.css .scroll-shield). Rows lighting up, icons
+  // starting their moves and tooltips on every frame made long mod lists stutter. A sheet rather than
+  // `pointer-events: none` on the content: that is inherited, and switching it restyled the ~3000
+  // elements of a long list twice per scroll (25–60 ms each).
+  const shield = document.createElement('div');
+  shield.className = 'scroll-shield';
+  let shieldTimer = 0;
+  document.addEventListener(
+    'scroll',
+    (event) => {
+      release();
+      const page = event.target instanceof Element && event.target.classList.contains('page') ? event.target : null;
+      if (!page) return;
+      if (shield.parentElement !== page) {
+        // In the page's own scrolled content, as tall as all of it: the wheel still scrolls the page.
+        shield.style.height = `${page.scrollHeight}px`;
+        page.append(shield);
+      }
+      clearTimeout(shieldTimer);
+      shieldTimer = setTimeout(() => shield.remove(), 160);
+    },
+    { capture: true, passive: true },
+  );
 
   // The icon's move plays to its end once it has started, also when the pointer leaves at once: a move
   // cut off by :hover ending jumped back to the start in one frame.

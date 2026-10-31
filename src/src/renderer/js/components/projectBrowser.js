@@ -147,12 +147,14 @@ export function createProjectBrowser(options) {
     return { gameVersion: filters.gameVersion, loader: filters.loader };
   }
 
+  const addLabel = () => h('span', { class: 'project-card__install-label' }, icon('download'), state.type === 'modpack' ? 'Установить' : 'Добавить');
+
   function cardFor(hit, index) {
     const installed = options.installedProjects?.().has(hit.id);
     const installButton = h(
       'button',
       { class: `btn ${installed ? 'btn--ghost' : 'btn--secondary'} btn--compact project-card__install`, type: 'button', disabled: installed },
-      installed ? 'Установлено' : h('span', { class: 'project-card__install-label' }, icon('download'), state.type === 'modpack' ? 'Установить' : 'Добавить'),
+      installed ? 'Установлено' : addLabel(),
     );
     installButton.addEventListener('click', async (event) => {
       event.stopPropagation();
@@ -304,16 +306,22 @@ export function createProjectBrowser(options) {
     reload();
   }
 
-  /** Marks cards of projects that are now in the instance. */
+  /** Marks the cards by what is in the instance now: "Установлено", or the add button again (another
+   *  instance chosen, or the mod removed there). */
   function markInstalled() {
     const installed = options.installedProjects?.() ?? new Set();
     [...results.children].forEach((card, index) => {
       const hit = state.hits[index];
       const button = card.querySelector('.project-card__install');
-      if (hit && button && installed.has(hit.id)) {
+      if (!hit || !button) return;
+      if (installed.has(hit.id)) {
         button.disabled = true;
         button.className = 'btn btn--ghost btn--compact project-card__install';
         button.replaceChildren('Установлено');
+      } else if (button.textContent === 'Установлено') {
+        button.disabled = false;
+        button.className = 'btn btn--secondary btn--compact project-card__install';
+        button.replaceChildren(addLabel());
       }
     });
   }

@@ -314,9 +314,9 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
       });
       pixelBurst(createButton);
       await refreshInstances();
-      if (!store.get().settings?.selectedInstanceId) {
-        await saveSettings({ selectedInstanceId: instance.id });
-      }
+      // The new instance is the one chosen now: for "Играть" on Home and for the Library.
+      store.set({ browseInstanceId: instance.id });
+      await saveSettings({ selectedInstanceId: instance.id });
       modal.close();
       toast(`Сборка «${instance.name}» создана`, 'success', 4200, { title: 'Новая сборка', icon: 'diamond' });
       if (installNow.checked) {

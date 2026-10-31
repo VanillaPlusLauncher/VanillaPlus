@@ -16,7 +16,7 @@ export function projectIcon(project, className) {
       .findIcon({ title: project.title, slug: project.slug, type: project.type })
       .then((url) => {
         if (!url || !element.isConnected) return;
-        const picture = h('img', { class: className, src: url, alt: '', loading: 'lazy' });
+        const picture = h('img', { class: className, src: url, alt: '', loading: 'lazy', decoding: 'async' });
         picture.addEventListener('error', () => picture.replaceWith(placeholder()), { once: true });
         element.replaceWith(picture);
         element = picture;
@@ -24,7 +24,9 @@ export function projectIcon(project, className) {
       .catch(() => {});
   };
   if (project.iconUrl) {
-    element = h('img', { class: className, src: project.iconUrl, alt: '', loading: 'lazy' });
+    // Decoded off the main thread: big pictures (many are 512 px and more) coming into view while
+    // scrolling held up the frame.
+    element = h('img', { class: className, src: project.iconUrl, alt: '', loading: 'lazy', decoding: 'async' });
     element.addEventListener(
       'error',
       () => {

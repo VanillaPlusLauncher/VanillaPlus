@@ -99,14 +99,19 @@ export function createBrowsePage() {
     worldSelect.value = worlds.some((world) => world.folder === keep) ? keep : worlds[0]?.folder ?? '';
   }
 
+  /** What the chosen instance has now; an answer for an instance no longer chosen is dropped. */
+  let installedAsk = 0;
   async function loadInstalled() {
+    const ask = ++installedAsk;
     const current = target();
     installed = new Set();
     if (!current || type === 'modpack' || type === 'datapack') {
+      browser.markInstalled();
       return;
     }
     try {
       const items = await api.content.list(current.id, type);
+      if (ask !== installedAsk) return;
       installed = new Set(items.map((item) => item.projectId).filter(Boolean));
       browser.markInstalled();
     } catch {
@@ -175,7 +180,10 @@ export function createBrowsePage() {
     element,
     onShow: () => {
       const { browseInstanceId, browseType } = store.get();
-      if (browseInstanceId && browseInstanceId !== targetId) {
+      // "Найти моды" in another instance: that one is the target now, with its own marks and its own
+      // version and loader in the search (the page kept the last instance's before).
+      const targetChanged = Boolean(browseInstanceId && browseInstanceId !== targetId);
+      if (targetChanged) {
         targetId = browseInstanceId;
       }
       if (browseType && browseType !== type) {
@@ -184,9 +192,12 @@ export function createBrowsePage() {
         return;
       }
       renderTargets();
-      if (!started) {
+      if (!started || targetChanged) {
         started = true;
         loadInstalled().then(() => browser.refresh());
+      } else {
+        // The same instance: mods may have been added or removed there since.
+        loadInstalled();
       }
     },
   };

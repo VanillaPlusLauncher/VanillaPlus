@@ -115,6 +115,8 @@
 - A new, calmer look (picked on the style page): soft raised buttons with round corners on lighter panels — a pressed one sinks in, a soft shine crosses it under the pointer; cards, fields, switches and menus match. Icons on buttons and in lists are in colour, like items in the inventory, and hop with a tilt under the pointer, like the instance icons; "Гардероб" on Home is a full button with its icon; the sidebar keeps its Minecraft pictures. In this look nothing is pixelated: the icons are smooth (the same colours), and lists, ticks, sliders, scrollbars and menus are round. Settings → "Оформление" → "Шрифт" offers eleven fonts, each shown in its own letters: Pixel, Inter, Golos, Onest, Manrope, Nunito, Rubik, Montserrat, Comfortaa, Exo 2, Unbounded. Settings → "Оформление" → "Кнопки" and "Иконки" bring back the pixel buttons and single-colour icons
 
 ### Fixes
+- A long mod list (150 mods) no longer stutters while scrolling or switching looks
+- "Find mods" in an instance opens the Library for that instance, and "Installed" shows only what is in it (it showed the mods of the instance chosen before); a new instance becomes the chosen one
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")
 - Switching the loader from Vanilla to Fabric did nothing; affected instances repair themselves
 - Settings sometimes were not saved (EPERM) while an antivirus held the file
