@@ -570,6 +570,19 @@
   min-height: 380px;
 }
 
+/* "По коду": the share-code form and its "Создать сборку" under it, on the right. */
+.create-code {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 380px;
+}
+
+.create-code__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .create-file__drop {
   display: flex;
   flex-direction: column;

@@ -18,7 +18,8 @@ const SEARCH_DELAY_MS = 350;
  *   type: 'mod' | 'modpack' | 'resourcepack' | 'shader',
  *   platform, getInstance() -> instance or null (filters by its version and loader),
  *   installedProjects() -> Set of project ids already in the instance,
- *   onInstall(hit, versionId) -> Promise, onPlatformChange(platform)
+ *   onInstall(hit, versionId) -> Promise, onPlatformChange(platform),
+ *   showPlatforms: false hides the site switch (the site is chosen elsewhere)
  * }
  * Returns { element, setType(type), setPlatform(platform), refresh(), markInstalled() }.
  */
@@ -84,6 +85,8 @@ export function createProjectBrowser(options) {
   // The chosen platform's plate: one element that slides from one button to the other.
   const platformThumb = h('span', { class: 'platform-switch__thumb', 'aria-hidden': 'true' });
   const platformSwitch = h('div', { class: 'platform-switch', 'data-platform': state.platform }, platformThumb, platformButtons);
+  // Where the site is already chosen around the browser ("Новая сборка": a tab per site), no switch.
+  platformSwitch.hidden = options.showPlatforms === false;
   // "Загрузка…" until the first page of the catalogue is in (it can take a while the first time).
   const results = h('div', { class: 'project-grid' }, loadingState('Загружаем каталог…'));
   const footer = h('div', { class: 'browser-footer' });

@@ -121,6 +121,7 @@
 ### Fixes
 - A long mod list (150 mods) no longer stutters while scrolling or switching looks
 - "Smart helper" clicked twice when opened
+- "Новая сборка": the Modrinth and CurseForge tabs had another Modrinth / CurseForge switch under them; it is gone. A new "По коду" tab builds an instance from a "Поделиться" code right there
 - For those who had RichLauncher or Vanilla+ Launcher before, the installer offered their old folder (Documents\RichLauncher): the launcher now goes next to it, into a folder called Amethyx, and the old copy of the program is removed (games, packs and settings are not kept there)
 - "Check for updates" no longer offers an older version as an update (a beta newer than the latest release, like JEI 19.70 → 19.64)
 - "Find mods" in an instance opens the Library for that instance, and "Installed" shows only what is in it (it showed the mods of the instance chosen before); a new instance becomes the chosen one

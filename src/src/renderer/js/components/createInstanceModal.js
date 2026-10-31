@@ -11,6 +11,7 @@ import { openModal } from './modal.js';
 import { toast } from './toast.js';
 import { pickIcon } from './iconPicker.js';
 import { createProjectBrowser } from './projectBrowser.js';
+import { createImportCodeForm } from './shareDialog.js';
 
 const LOADERS = ['vanilla', 'fabric', 'quilt', 'forge', 'neoforge'];
 const VERSION_FILTERS = ['release', 'snapshot', 'old_beta', 'old_alpha'];
@@ -111,6 +112,8 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
       packBrowsers[platform] = createProjectBrowser({
         type: 'modpack',
         platform,
+        // The tab above already says which site: no second switch for it below.
+        showPlatforms: false,
         getInstance: () => null,
         onInstall: async (hit, versionId) => {
           const groupName = group.input.value.trim();
@@ -149,12 +152,23 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
     }
   }
 
+  // --- From a share code ("Поделиться" → code) ---------------------------------------------
+  let codeForm = null;
+  function codePanel() {
+    if (!codeForm) {
+      codeForm = createImportCodeForm({ onDone: () => modal.close() });
+      codeForm.pasteFromClipboard();
+    }
+    return h('div', { class: 'create-code' }, codeForm.element, h('div', { class: 'create-code__actions' }, codeForm.createButton));
+  }
+
   // --- Tabs ------------------------------------------------------------------------
   const tabs = [
     ['custom', 'Своя сборка', () => customPanel],
     ['modrinth', 'Modrinth', () => packBrowser('modrinth')],
     ['curseforge', 'CurseForge', () => packBrowser('curseforge')],
     ['file', 'Из файла', () => filePanel],
+    ['code', 'По коду', () => codePanel()],
   ];
   const tabHost = h('div', { class: 'create-tab-host' });
   const tabButtons = tabs.map(([key, label]) => h('button', { class: 'tabs__button', type: 'button', role: 'tab', 'aria-selected': String(key === state.tab), onclick: () => showTab(key) }, label));

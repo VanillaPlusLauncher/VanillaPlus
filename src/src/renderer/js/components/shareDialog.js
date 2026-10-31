@@ -212,8 +212,12 @@ export function openShareDialog(instance) {
   return modal;
 }
 
-/** "Вставить код": shows what a share code contains, then builds the instance. */
-export function openImportCodeDialog() {
+/**
+ * The share-code form: shows what a code contains, then builds the instance ("Создать сборку").
+ * Used by "Вставить код" and by the "По коду" tab of "Новая сборка"; `onDone()` once it is built.
+ * Returns { element, createButton, pasteFromClipboard() }.
+ */
+export function createImportCodeForm({ onDone }) {
   const area = h('textarea', { class: 'textarea mono share-code', rows: '5', placeholder: 'Вставьте код сборки (VP1-…)' });
   const preview = h('div', { class: 'share-preview text-muted' }, 'Код начинается с VP1-.');
   const nameInput = h('input', { class: 'input', type: 'text', maxlength: '64', placeholder: 'Название сборки' });
@@ -260,7 +264,7 @@ export function openImportCodeDialog() {
     try {
       const { instance, failed, filesError } = await api.share.importCode(area.value.trim(), { name: nameInput.value.trim() || undefined, withFiles: !filesBox.hidden && filesCheck.checked });
       await refreshInstances();
-      modal.close();
+      onDone();
       toast(failed.length ? `Сборка «${instance.name}» готова, не удалось поставить: ${failed.length}` : `Сборка «${instance.name}» готова`, failed.length ? 'info' : 'success', 6000);
       if (filesError) toast(`Моды автора не скачались: ${filesError}`, 'info', 8000);
       openInstance(instance.id);
@@ -272,20 +276,33 @@ export function openImportCodeDialog() {
   }
 
   area.addEventListener('input', () => check());
+  return {
+    element: h('div', { class: 'share-dialog' }, area, preview, filesBox, h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Название'), nameInput)),
+    createButton,
+    /** A code that is already copied comes in by itself. */
+    pasteFromClipboard() {
+      navigator.clipboard
+        .readText()
+        .then((text) => {
+          if (text.trim().startsWith('VP1-') && !area.value) {
+            area.value = text.trim();
+            check();
+          }
+        })
+        .catch(() => {});
+    },
+  };
+}
+
+/** "Вставить код": the share-code form in a window of its own. */
+export function openImportCodeDialog() {
+  const form = createImportCodeForm({ onDone: () => modal.close() });
   const modal = openModal({
     title: 'Сборка по коду',
     wide: true,
-    content: h('div', { class: 'share-dialog' }, area, preview, filesBox, h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Название'), nameInput)),
-    footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), createButton],
+    content: form.element,
+    footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), form.createButton],
   });
-  navigator.clipboard
-    .readText()
-    .then((text) => {
-      if (text.trim().startsWith('VP1-') && !area.value) {
-        area.value = text.trim();
-        check();
-      }
-    })
-    .catch(() => {});
+  form.pasteFromClipboard();
   return modal;
 }
