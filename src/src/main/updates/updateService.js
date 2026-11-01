@@ -57,6 +57,13 @@ const FIRST_CHECK_DELAY_MS = 8000;
 const RESTART_NOTICE_MS = 6000;
 const BUSY_RETRY_MS = 20 * 1000;
 const log = createLogger('updates');
+/**
+ * The numbering's epoch. A launcher takes an update only when it is newer, so the numbers only go
+ * up. Should the numbering ever start again lower (say 1.7.1 → 1.0.1), the new builds get 1 here
+ * and "epoch": 1 in their feeds: a higher epoch is newer whatever the numbers say. A feed without
+ * one is epoch 0, like every build so far.
+ */
+const VERSION_EPOCH = 0;
 /** Plain http is accepted only for a local test server named in AMETHYX_UPDATE_FEED. */
 const LOCAL_TEST_URL = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i;
 
@@ -125,6 +132,21 @@ function compareVersions(a, b) {
   return 0;
 }
 
+/** Which of two releases ({ version, epoch }) is newer: the higher epoch, then the higher version. */
+function compareReleases(a, b) {
+  const epochs = epochOf(a.epoch) - epochOf(b.epoch);
+  return epochs !== 0 ? Math.sign(epochs) : compareVersions(a.version, b.version);
+}
+
+function epochOf(value) {
+  return Number.isInteger(value) && value > 0 ? value : 0;
+}
+
+/** This launcher, to compare what the feeds offer with. */
+function currentRelease() {
+  return { version: app.getVersion(), epoch: VERSION_EPOCH };
+}
+
 /** Where to look: one address set by hand (settings or AMETHYX_UPDATE_FEED), else the site and GitHub. */
 function feedUrls(settings) {
   const custom = settings.updates?.feedUrl || process.env.AMETHYX_UPDATE_FEED;
@@ -146,6 +168,7 @@ async function readMacFeed(url) {
   if (entry.channel === 'beta' && !/-beta\b/i.test(app.getVersion())) throw new Error('Для Mac пока есть только тестовая сборка.');
   return {
     version: String(entry.version ?? ''),
+    epoch: entry.epoch,
     date: entry.date ?? null,
     notes: entry.notes ?? '',
     installer: { url: new URL(String(entry.url ?? ''), url).href, sha256: entry.sha256, size: entry.size },
@@ -160,7 +183,7 @@ async function readNewestFeed(urls) {
     if (result.status === 'rejected') log.info(`Источник обновлений не ответил: ${result.reason?.message ?? result.reason}`);
   }
   if (found.length === 0) throw results.find((result) => result.status === 'rejected')?.reason ?? new Error('Нет источников обновлений.');
-  return found.reduce((best, feed) => (compareVersions(feed.version, best.version) > 0 ? feed : best));
+  return found.reduce((best, feed) => (compareReleases(feed, best) > 0 ? feed : best));
 }
 
 function updatesDirectory() {
@@ -219,6 +242,7 @@ async function readFeed(url) {
   }
   return {
     version,
+    epoch: epochOf(feed.epoch),
     date: feed.date ?? null,
     notes: typeof feed.notes === 'string' ? feed.notes.slice(0, 4000) : '',
     installer: { url: installer.url, sha256: installer.sha256.toLowerCase(), size: Number(installer.size) || null },
@@ -254,7 +278,7 @@ async function checkForUpdates({ manual = false } = {}) {
   try {
     const latest = await readNewestFeed(urls);
     const checkedAt = new Date().toISOString();
-    if (compareVersions(latest.version, app.getVersion()) <= 0) {
+    if (compareReleases(latest, currentRelease()) <= 0) {
       setStatus({ state: 'latest', latest, checkedAt });
       log.info(`Обновлений нет (${app.getVersion()} — последняя)`);
       return publicStatus();
@@ -481,7 +505,7 @@ async function installPendingAtStart() {
   const pending = await readUpdateFile(PENDING_FILE);
   if (!pending?.version || !pending.installer?.sha256) return false;
   const installerPath = installerPathFor(pending.version);
-  if (compareVersions(pending.version, app.getVersion()) <= 0) {
+  if (compareReleases(pending, currentRelease()) <= 0) {
     await fsp.rm(installerPath, { force: true }).catch(() => {});
     await fsp.rm(path.join(updatesDirectory(), PENDING_FILE), { force: true }).catch(() => {});
     return false;
@@ -531,5 +555,6 @@ module.exports = {
   startUpdateChecks,
   getUpdateStatus,
   compareVersions,
+  compareReleases,
   DEFAULT_FEED_URL,
 };
