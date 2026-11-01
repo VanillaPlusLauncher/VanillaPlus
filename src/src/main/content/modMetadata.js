@@ -17,7 +17,7 @@ const MAX_ICON_BYTES = 96 * 1024;
 const MAX_CACHED = 6000;
 const SAVE_DELAY_MS = 2000;
 /** Raised when the readers learn something new: older entries are read again once. */
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const cache = new Map();
 let diskCacheFile = null;
 let diskLoaded = null;
@@ -181,13 +181,23 @@ async function readPack(zip) {
   return { description: description?.replace(/§./g, ''), icon: await iconDataUrl(zip, 'pack.png') };
 }
 
-/** The file each loader looks for in a mod jar. */
+/**
+ * The files each loader looks for in a mod jar: its descriptor, or a service it loads the jar through
+ * without one. CustomSkinLoader's "Universal" jar has only fabric.mod.json and comes into Forge and
+ * NeoForge as a mod locator and a transformation service (both loaders run on ModLauncher).
+ */
 const DESCRIPTORS = [
-  ['fabric.mod.json', 'fabric'],
-  ['quilt.mod.json', 'quilt'],
-  ['META-INF/neoforge.mods.toml', 'neoforge'],
-  ['META-INF/mods.toml', 'forge'],
-  ['mcmod.info', 'forge-legacy'],
+  ['fabric.mod.json', ['fabric']],
+  ['quilt.mod.json', ['quilt']],
+  ['META-INF/neoforge.mods.toml', ['neoforge']],
+  ['META-INF/mods.toml', ['forge']],
+  ['mcmod.info', ['forge-legacy']],
+  ['META-INF/services/net.neoforged.neoforgespi.locating.IModFileCandidateLocator', ['neoforge']],
+  ['META-INF/services/net.neoforged.neoforgespi.locating.IModLocator', ['neoforge']],
+  ['META-INF/services/net.neoforged.neoforgespi.locating.IDependencyLocator', ['neoforge']],
+  ['META-INF/services/net.minecraftforge.forgespi.locating.IModLocator', ['forge']],
+  ['META-INF/services/net.minecraftforge.fml.loading.moddiscovery.IModLocator', ['forge']],
+  ['META-INF/services/cpw.mods.modlauncher.api.ITransformationService', ['forge', 'neoforge']],
 ];
 
 async function readFrom(zip, type) {
@@ -196,7 +206,7 @@ async function readFrom(zip, type) {
   }
   const meta = (await readFabric(zip)) ?? (await readQuilt(zip)) ?? (await readForge(zip)) ?? {};
   // Every loader the jar is made for: some jars carry several descriptors (one jar for Fabric and NeoForge).
-  const loaders = DESCRIPTORS.filter(([file]) => zip.size(file) !== null).map(([, loader]) => loader);
+  const loaders = [...new Set(DESCRIPTORS.filter(([file]) => zip.size(file) !== null).flatMap(([, names]) => names))];
   return loaders.length ? { ...meta, loaders } : meta;
 }
 

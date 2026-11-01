@@ -108,14 +108,31 @@
   100% { left: 130%; opacity: 1; }
 }
 
-/* The big Play button breathes softly while it waits. */
-.btn--play:not(:disabled) {
+/* The big Play button breathes softly while it waits: a glow around it comes and goes. The glow is a
+   layer of its own around the button (.play-glow: the button clips what is inside it, for the glint),
+   and only its opacity changes, which the graphics card does by itself — a breathing filter on the
+   button had the whole page put together again every frame. */
+.play-glow {
+  position: relative;
+  display: grid;
+}
+
+.play-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  box-shadow: 0 0 12px var(--color-accent-glow);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.play-glow:has(> .btn--play:not(:disabled))::before {
   animation: play-breathe 3.2s ease-in-out infinite;
 }
 
 @keyframes play-breathe {
-  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
-  50% { filter: drop-shadow(0 0 12px var(--color-accent-glow)); }
+  50% { opacity: 1; }
 }
 
 /* Sidebar icons hop under the pointer. */
@@ -196,15 +213,27 @@
   75% { rotate: -4deg; }
 }
 
-/* The X of the name glints now and then, like a crystal catching the light. */
+/* The X of the name glints now and then, like a crystal catching the light: a brighter copy of the
+   letter over it fades in and out. Only its opacity changes, which the graphics card does by itself;
+   a changing shadow had the whole window drawn again every frame. */
 .brand-x {
+  position: relative;
   display: inline-block;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 6px rgba(180, 140, 255, 0.35);
+}
+
+.brand-x::after {
+  content: "x";
+  position: absolute;
+  inset: 0;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 14px rgba(214, 190, 255, 0.9);
+  opacity: 0;
+  pointer-events: none;
   animation: x-glint 3.2s ease-in-out infinite;
 }
 
 @keyframes x-glint {
-  0%, 100% { text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 6px rgba(180, 140, 255, 0.35); }
-  50% { text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 14px rgba(214, 190, 255, 0.9); }
+  50% { opacity: 1; }
 }
 
 /* Buttons give a little under the click. */

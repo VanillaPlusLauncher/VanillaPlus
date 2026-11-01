@@ -1470,8 +1470,9 @@
 }
 
 /* --- Instance page: rows that come in, light up and react (components/contentList.js) ------------- */
-/* Only when the list is opened (not on every change): the rows come in one after another. */
-.content-rows--enter .content-row {
+/* Only when the list is opened (not on every change): the first rows come in one after another. The
+   rest, below the fold, are just there: 150 cards sliding in at once kept the window busy. */
+.content-rows--enter .content-row:nth-child(-n + 24) {
   animation: row-in 360ms var(--ease-out) both;
   animation-delay: calc(var(--row, 0) * 28ms);
 }
@@ -2121,88 +2122,4 @@
 .content-toolbar__more .dots {
   font-size: 18px;
   line-height: 1;
-}
-
-/* --- An instance opening: its picture and "Загружаем сборку" until its list is drawn (instancePage.js).
-   Over the whole page area; everything here moves on the compositor (transforms only), so it keeps
-   moving while the page underneath is being built. */
-.instance-loading {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  background: rgba(14, 11, 20, 0.9);
-  animation: fadeIn 160ms both;
-}
-
-.instance-loading--leaving {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 220ms var(--ease-out);
-}
-
-.instance-loading__card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 28px 36px;
-  text-align: center;
-}
-
-.instance-loading__icon {
-  width: 84px;
-  height: 84px;
-  margin-bottom: 12px;
-  border-radius: 16px;
-  object-fit: contain;
-  filter: drop-shadow(0 10px 24px rgba(var(--accent-rgb), 0.35));
-  animation: mark-bob 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-}
-
-.instance-loading__title {
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: 22px;
-}
-
-.instance-loading__name {
-  max-width: 420px;
-  overflow: hidden;
-  color: var(--color-text-soft);
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.instance-loading__hint {
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.instance-loading__bar {
-  position: relative;
-  width: 180px;
-  height: 6px;
-  margin-top: 10px;
-  overflow: hidden;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.instance-loading__bar i {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 40%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--color-accent-strong), var(--color-accent));
-  animation: instance-loading-run 1.1s ease-in-out infinite;
-}
-
-@keyframes instance-loading-run {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(250%); }
 }

@@ -104,7 +104,8 @@ export function createInstancePage() {
       h(
         'div',
         { class: 'instance-hero__actions' },
-        playButton,
+        // The glow that breathes around the button (alive.css .play-glow).
+        h('span', { class: 'play-glow' }, playButton),
         h('button', { class: 'btn btn--secondary btn--compact', type: 'button', onclick: () => openFolder() }, icon('folder'), 'Папка'),
         h('button', { class: 'btn btn--secondary btn--compact', type: 'button', title: 'Код сборки или файл: Modrinth, CurseForge или .zip', onclick: () => openShareDialog(instance()) }, icon('export'), 'Экспортировать'),
         // Fixes and installs made by the helper show in the mod list at once.
@@ -199,7 +200,6 @@ export function createInstancePage() {
       lastSection = tab;
       tabHost.replaceChildren(settingsView);
     }
-    // What the tab loads, so the first open can wait for it (the loading screen below).
     if (lists[tab]) {
       tabHost.replaceChildren(lists[tab].element);
       return lists[tab].load();
@@ -226,50 +226,6 @@ export function createInstancePage() {
     const renderers = { version: renderVersion, java: renderJava, settings: renderSettings };
     return renderers[tab]();
   }
-
-  /*
-   * Opening an instance (the first time, or another one): its picture and "Загружаем сборку" over the
-   * page until the open tab has loaded and drawn its rows — a big pack takes a moment, and buttons
-   * pressed meanwhile would only answer late. Shown at least LOADING_MIN_MS, so it does not flash.
-   */
-  const LOADING_MIN_MS = 350;
-  const LOADING_MAX_MS = 10000;
-  const loadingScreen = h('div', { class: 'instance-loading', role: 'status', 'aria-live': 'polite' });
-  let loadingToken = 0;
-  let loadingSince = 0;
-
-  function showLoading(current) {
-    loadingScreen.replaceChildren(
-      h(
-        'div',
-        { class: 'instance-loading__card' },
-        iconImage(current.icon, 'instance-loading__icon'),
-        h('b', { class: 'instance-loading__title' }, 'Загружаем сборку'),
-        h('span', { class: 'instance-loading__name', 'data-i18n': 'off' }, current.name),
-        h('span', { class: 'instance-loading__hint' }, 'Подождите немного…'),
-        h('span', { class: 'instance-loading__bar' }, h('i')),
-      ),
-    );
-    loadingScreen.classList.remove('instance-loading--leaving');
-    // Over the whole page area (the page itself scrolls), not inside it.
-    (element.parentElement ?? document.body).append(loadingScreen);
-    loadingSince = performance.now();
-    const token = ++loadingToken;
-    setTimeout(() => hideLoading(token), LOADING_MAX_MS);
-    return token;
-  }
-
-  function hideLoading(token) {
-    if (token !== loadingToken || !loadingScreen.isConnected) return;
-    setTimeout(() => {
-      if (token !== loadingToken) return;
-      loadingScreen.classList.add('instance-loading--leaving');
-      setTimeout(() => token === loadingToken && loadingScreen.remove(), 220);
-    }, Math.max(0, LOADING_MIN_MS - (performance.now() - loadingSince)));
-  }
-
-  /** Resolves once the browser has drawn what was just put on the page. */
-  const painted = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   async function loadWorlds() {
     worldsGrid.replaceChildren(h('div', { class: 'skeleton', style: { height: '90px' } }));
@@ -748,20 +704,13 @@ export function createInstancePage() {
       go('builds');
       return;
     }
-    const token = changed ? showLoading(instance()) : 0;
     if (changed) {
       Object.values(lists).forEach((list) => list.reset());
       filesTab.reset();
     }
     renderHeader();
-    const loading = showTab(openInstanceTab ?? (changed ? 'mod' : tab), { logId: openInstanceLog ?? null });
+    showTab(openInstanceTab ?? (changed ? 'mod' : tab), { logId: openInstanceLog ?? null });
     store.set({ openInstanceTab: null, openInstanceLog: null });
-    if (token) {
-      Promise.resolve(loading)
-        .catch(() => {})
-        .then(painted)
-        .then(() => hideLoading(token));
-    }
   }
 
   store.subscribe(['instances'], () => {
@@ -781,8 +730,6 @@ export function createInstancePage() {
       logTab.hide();
       notesTab.hide();
       closeAssistant();
-      loadingToken += 1;
-      loadingScreen.remove();
     },
   };
 }

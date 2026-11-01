@@ -115,7 +115,8 @@ export function createShell({ onNavigate, onOpenAccounts }) {
     buttons.forEach((button, position) => {
       button.setAttribute('aria-current', position === currentIndex ? 'page' : 'false');
     });
-    placeIndicator();
+    // Measured with the next frame: measuring now would lay out the page being opened ahead of time.
+    requestAnimationFrame(placeIndicator);
     titleElement.textContent = ROUTE_TITLES[name] ?? '';
   }
 

@@ -211,6 +211,9 @@ export function createContentList(getInstance, type) {
     h('p', { class: 'content-hint' }, 'Файлы можно перетащить прямо в окно. Выключенные остаются в папке, но игра их не загружает.'),
   );
 
+  /** What a row shows of a file: rows of files that look the same are kept when the list is read again. */
+  const rowKey = (item) => JSON.stringify([item.file, item.enabled, item.folder, item.title, item.version, item.authors?.slice(0, 2), item.size, item.icon, item.side, item.platform]);
+
   async function load({ quiet = false } = {}) {
     const instance = getInstance();
     if (!instance) {
@@ -218,7 +221,8 @@ export function createContentList(getInstance, type) {
     }
     const token = ++state.token;
     autoUpdateInput.checked = Boolean(instance.overrides?.autoUpdateMods);
-    if (!quiet) {
+    // Placeholders only before the first list: read again, the drawn list stays until the new one is in.
+    if (!quiet && state.items.length === 0) {
       rows.replaceChildren(...Array.from({ length: 4 }, () => h('div', { class: 'skeleton', style: { height: '58px' } })));
     }
     try {
@@ -226,7 +230,10 @@ export function createContentList(getInstance, type) {
       if (token !== state.token) {
         return;
       }
-      state.items = items;
+      // A file that has not changed keeps its item, and so its row (renderRows draws only new ones):
+      // coming back to the tab no longer builds ~150 cards with their pictures again.
+      const before = new Map(state.items.map((item) => [rowKey(item), item]));
+      state.items = items.map((item) => before.get(rowKey(item)) ?? item);
       renderRows();
       // Files added by hand get their names and icons from Modrinth or CurseForge, once per visit.
       if (!state.identified && items.some((item) => !item.platform && !item.folder)) {
@@ -864,5 +871,21 @@ export function createContentList(getInstance, type) {
     }
   }
 
-  return { element, load, addFiles, reset: () => { state.updates = new Map(); state.identified = false; state.sidesResolved = false; state.side = ''; if (sideSelect) sideSelect.value = ''; updateAllButton.hidden = true; } };
+  /** Another instance is opened: nothing of the last one's list is kept. */
+  function reset() {
+    state.token += 1;
+    state.items = [];
+    state.selected.clear();
+    state.updates = new Map();
+    state.identified = false;
+    state.sidesResolved = false;
+    state.side = '';
+    if (sideSelect) sideSelect.value = '';
+    updateAllButton.hidden = true;
+    drawn = new WeakMap();
+    rowElements.clear();
+    rows.replaceChildren();
+  }
+
+  return { element, load, addFiles, reset };
 }

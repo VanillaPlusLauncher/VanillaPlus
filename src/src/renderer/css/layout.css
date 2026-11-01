@@ -213,6 +213,13 @@
   transform: translate3d(0, -10px, 0);
 }
 
+/* A page left behind, once it has faded out (router.js): not styled, laid out or drawn, its animations
+   cost nothing; its scroll and state are kept for the next visit. */
+.page--asleep {
+  visibility: hidden;
+  content-visibility: hidden;
+}
+
 .page-header {
   display: flex;
   align-items: flex-end;

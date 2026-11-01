@@ -274,7 +274,8 @@ function createPlayBar({ navigate }) {
     h('div', { class: 'play-bar__meta' }, nameElement, subtitleElement),
     h('span', { class: 'play-bar__divider' }),
     h('div', { class: 'play-bar__status' }, h('div', { class: 'play-bar__status-line' }, statusDot, statusText), progressRow),
-    h('div', { class: 'play-bar__actions' }, playButton, switchButton),
+    // The glow that breathes around the button (alive.css .play-glow).
+    h('div', { class: 'play-bar__actions' }, h('span', { class: 'play-glow' }, playButton), switchButton),
   );
 
   let iconKey = null;
