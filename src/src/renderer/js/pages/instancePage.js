@@ -711,7 +711,17 @@ export function createInstancePage() {
     renderHeader();
     showTab(openInstanceTab ?? (changed ? 'mod' : tab), { logId: openInstanceLog ?? null });
     store.set({ openInstanceTab: null, openInstanceLog: null });
+    // While it is open, its mods, packs and shaders are watched on disk (below).
+    api.content.watch(instanceId).catch(() => {});
   }
+
+  // A mod that came in or went while the page is open — an install finishing in the background, the
+  // helper, Explorer, a launch — shows at once: the list is read again quietly (unchanged rows stay).
+  api.events.onContentChanged((event) => {
+    if (isActive() && event?.instanceId === instanceId && lists[event.type]) {
+      lists[event.type].load({ quiet: true });
+    }
+  });
 
   store.subscribe(['instances'], () => {
     if (isActive()) {
@@ -730,6 +740,7 @@ export function createInstancePage() {
       logTab.hide();
       notesTab.hide();
       closeAssistant();
+      api.content.watch(null).catch(() => {});
     },
   };
 }

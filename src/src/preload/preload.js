@@ -95,6 +95,8 @@ const bridge = {
     versions: (platform, id, filters) => invoke(CHANNELS.content.versions, platform, id, filters),
     install: (request) => invoke(CHANNELS.content.install, request),
     list: (instanceId, type) => invoke(CHANNELS.content.list, instanceId, type),
+    /** Watch this instance's mods, packs and shaders on disk (null: stop); changes come as onContentChanged. */
+    watch: (instanceId) => invoke(CHANNELS.content.watch, instanceId ?? null),
     setEnabled: (instanceId, type, file, enabled) => invoke(CHANNELS.content.setEnabled, instanceId, type, file, enabled),
     remove: (instanceId, type, file) => invoke(CHANNELS.content.remove, instanceId, type, file),
     addFiles: (instanceId, type, paths) => invoke(CHANNELS.content.addFiles, instanceId, type, paths),
@@ -236,6 +238,7 @@ const bridge = {
     onGameLog: (listener) => subscribe(CHANNELS.events.gameLog, listener),
     onMcResources: (listener) => subscribe(CHANNELS.events.mcResources, listener),
     onInstancesChanged: (listener) => subscribe(CHANNELS.events.instancesChanged, listener),
+    onContentChanged: (listener) => subscribe(CHANNELS.events.contentChanged, listener),
     onGameCrash: (listener) => subscribe(CHANNELS.events.gameCrash, listener),
     onServerLog: (listener) => subscribe(CHANNELS.events.serverLog, listener),
     onServerState: (listener) => subscribe(CHANNELS.events.serverState, listener),

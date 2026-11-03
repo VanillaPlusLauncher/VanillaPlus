@@ -13,6 +13,7 @@ const worldBackups = require('../minecraft/worldBackups');
 const gameService = require('../minecraft/gameService');
 const javaService = require('../java/javaService');
 const contentService = require('../content/contentService');
+const contentWatcher = require('../content/contentWatcher');
 const modpackService = require('../content/modpackService');
 const { listLoaderVersions } = require('../minecraft/loaderMeta');
 const { ensureMcResources, ensureMusic, readManifest } = require('../minecraft/mcResources');
@@ -214,6 +215,8 @@ function registerDomainHandlers(handle) {
     if (gameService.isInstanceRunning(id)) {
       throw new Error('Нельзя удалить сборку, которая сейчас запущена.');
     }
+    // A watched folder may stay behind on Windows.
+    contentWatcher.stopWatching();
     await instanceService.deleteInstance(await settings(), id);
     instancesChanged(id);
   });
@@ -290,6 +293,15 @@ function registerDomainHandlers(handle) {
     return { instance: result.instance, recognised: result.recognised };
   });
   handle(CHANNELS.content.list, async (_event, instanceId, type) => contentService.listContent(await settings(), instanceId, type));
+  // The instance page open now (null: none): its content folders are watched (contentWatcher.js).
+  handle(CHANNELS.content.watch, async (_event, instanceId) => {
+    if (!instanceId) {
+      contentWatcher.stopWatching();
+      return;
+    }
+    const instance = await instanceService.getInstance(await settings(), String(instanceId));
+    contentWatcher.watchInstance(instance.id, instance.directory);
+  });
   handle(CHANNELS.content.setEnabled, async (_event, instanceId, type, file, enabled) =>
     contentService.setEnabled(await settings(), instanceId, type, file, Boolean(enabled)),
   );

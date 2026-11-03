@@ -34,6 +34,8 @@ const OVERRIDE_KEYS = [
   'shaders',
   // Mods the launcher does not know, as the player answered: { file: 'server' | 'client' } (serverService.js).
   'serverMods',
+  // false: the player removed CustomSkinLoader here, it is not put back in at a launch (customSkins.js).
+  'skinsInMods',
 ];
 const writeQueue = new SerialQueue();
 const log = createLogger('instances');

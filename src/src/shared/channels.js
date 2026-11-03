@@ -70,6 +70,7 @@ const CHANNELS = Object.freeze({
     versions: 'content:versions',
     install: 'content:install',
     list: 'content:list',
+    watch: 'content:watch',
     setEnabled: 'content:set-enabled',
     remove: 'content:remove',
     addFiles: 'content:add-files',
@@ -209,6 +210,8 @@ const CHANNELS = Object.freeze({
     gameLog: 'event:game-log',
     mcResources: 'event:mc-resources',
     instancesChanged: 'event:instances-changed',
+    /** Mods, resource packs or shaders of the watched instance changed on disk ({ instanceId, type }). */
+    contentChanged: 'event:content-changed',
     gameCrash: 'event:game-crash',
     serverLog: 'event:server-log',
     serverState: 'event:server-state',

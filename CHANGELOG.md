@@ -129,6 +129,8 @@
 - The installer started while the launcher was open stopped with "could not close all applications": it now closes the launcher itself and goes on
 - The mod check called CustomSkinLoader, which the launcher puts in itself, "not for NeoForge": its Universal jar has only a Fabric descriptor and comes into Forge and NeoForge as a mod locator and a ModLauncher service. Such services now count for those loaders
 - The "⋯" and "×" on mod tiles and other small square buttons sat 2 px right of the middle (the browser's own button padding)
+- A mod that came into an instance after its page had read the list — an install finishing in the background, a file copied in from Explorer — did not show, and one removed outside stayed. While an instance is open, its mods, resource packs and shaders folders are watched now, and the list follows them by itself
+- CustomSkinLoader, which the launcher puts into modded instances, is marked as the launcher's: "Скины Amethyx" with the Amethyx X instead of "Клиент", and a line under its name; a click on the mark says what it is for and what happens without it. Removing it asks in those words, and the launcher no longer puts it back in at the next launch (the instance remembers it; to bring it back, install it from the Library)
 - "Check for updates" no longer offers an older version as an update (a beta newer than the latest release, like JEI 19.70 → 19.64)
 - "Find mods" in an instance opens the Library for that instance, and "Installed" shows only what is in it (it showed the mods of the instance chosen before); a new instance becomes the chosen one
 - Instances imported from Prism with the Java flag `-Xlog:...file=logs/gc.log` did not start ("Could not create the Java Virtual Machine")

@@ -704,6 +704,77 @@
   border-color: rgba(255, 160, 70, 0.35);
 }
 
+/* CustomSkinLoader, put in by the launcher: a plate in the theme colour with the Amethyx X; a click
+   says what it is for (contentList.js explainSkinLoader). */
+.launcher-tag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 5px;
+  border: 1px solid rgba(var(--accent-rgb), 0.45);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.16);
+  color: var(--color-text);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  cursor: var(--cursor-hand);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.launcher-tag:hover {
+  border-color: rgba(var(--accent-rgb), 0.75);
+  background: rgba(var(--accent-rgb), 0.3);
+}
+
+.launcher-tag__mark {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+/* What CustomSkinLoader is for: the X, its name, three short paragraphs. */
+.skin-loader-info {
+  display: grid;
+  gap: 10px;
+  max-width: 470px;
+  color: var(--color-text-soft);
+  line-height: 1.5;
+}
+
+.skin-loader-info p {
+  margin: 0;
+}
+
+.skin-loader-info__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+
+.skin-loader-info__head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.skin-loader-info__mark {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(var(--accent-rgb), 0.45));
+}
+
+.skin-loader-info__head b {
+  color: var(--color-text);
+  font-size: 16px;
+}
+
+.skin-loader-info__head span {
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
 .auto-update {
   display: inline-flex;
   align-items: center;
@@ -1966,6 +2037,16 @@
   padding: 1px 7px;
   font-size: 11px;
   background: rgba(12, 9, 18, 0.78);
+}
+
+/* The launcher's own mod: the same place, its own plate. */
+.content-rows--grid .launcher-tag {
+  position: relative;
+  z-index: 2;
+  order: -1;
+  padding: 1px 8px 1px 4px;
+  font-size: 11px;
+  background: rgba(30, 16, 52, 0.88);
 }
 
 .content-rows--grid .content-row__title {

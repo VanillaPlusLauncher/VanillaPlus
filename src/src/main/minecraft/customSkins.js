@@ -96,6 +96,11 @@ async function prepareCustomSkins({ settings, instance, session, gameDirectory, 
       onLog('Скины Amethyx: CustomSkinLoader выключен в этой сборке');
       return;
     }
+    if (!state && instance.overrides?.skinsInMods === false) {
+      // The player removed it from this instance in the launcher (contentList.js): it stays out.
+      onLog('Скины Amethyx: CustomSkinLoader удалён из этой сборки, не ставим');
+      return;
+    }
     if (!state) {
       onLog('Скины Amethyx: ставим мод CustomSkinLoader…');
       try {

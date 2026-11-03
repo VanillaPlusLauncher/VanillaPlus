@@ -14,6 +14,7 @@ import { openShaderDialog } from './shaderDialog.js';
 import { toast } from './toast.js';
 import { updateInstance } from '../state/actions.js';
 import { projectIcon } from '../core/projectIcon.js';
+import { assetUrl } from '../core/assets.js';
 
 /** Mods: where they are needed (Modrinth data or the mod's own file). */
 const SIDE_LABELS = { client: 'Клиент', server: 'Сервер', both: 'Везде' };
@@ -28,6 +29,30 @@ const SIDE_FILTERS = [
 /** Folder of each content type inside an instance. */
 const FOLDERS = { mod: 'mods', resourcepack: 'resourcepacks', shader: 'shaderpacks' };
 const VERSION_TYPE_LABELS = { release: 'релиз', beta: 'бета', alpha: 'альфа' };
+
+/**
+ * CustomSkinLoader, which the launcher puts into modded instances itself (main/minecraft/customSkins.js,
+ * the same Modrinth project): marked as the launcher's, with what it is for, so a player does not
+ * wonder where it came from.
+ */
+const SKIN_LOADER_PROJECT = 'idMHQ4n2';
+const isSkinLoader = (item) => item.projectId === SKIN_LOADER_PROJECT || /customskinloader/i.test(item.file);
+
+/** What CustomSkinLoader is for, and what happens without it. */
+function explainSkinLoader() {
+  const modal = openModal({
+    title: 'Скины Amethyx в игре',
+    content: h(
+      'div',
+      { class: 'skin-loader-info' },
+      h('div', { class: 'skin-loader-info__head' }, h('img', { class: 'skin-loader-info__mark', src: assetUrl('branding/amethyx-mark.png'), alt: '' }), h('div', null, h('b', null, 'CustomSkinLoader'), h('span', null, 'Поставил лаунчер Amethyx'))),
+      h('p', null, 'Через этот мод в игре видны скины и плащи из Гардероба Amethyx — ваш и других игроков Amethyx, даже с офлайн-аккаунтом.'),
+      h('p', null, 'Он меняет только то, как выглядят игроки: миры, предметы и другие моды он не трогает.'),
+      h('p', null, 'Он не обязателен. Без него игра запустится как обычно, просто в этой сборке будут обычные скины Minecraft. Если выключить или удалить его, лаунчер больше не будет ставить его сюда сам. Вернуть — найдите CustomSkinLoader в «Библиотеке». Для всех сборок сразу: «Настройки» → «Друзья и скины» → «Скины и плащи в игре».'),
+    ),
+    footer: [h('button', { class: 'btn btn--primary btn--compact', type: 'button', onclick: () => modal.close() }, 'Понятно')],
+  });
+}
 
 function projectPage(item) {
   if (item.platform === 'modrinth') return `https://modrinth.com/project/${encodeURIComponent(item.projectId)}`;
@@ -233,8 +258,11 @@ export function createContentList(getInstance, type) {
       // A file that has not changed keeps its item, and so its row (renderRows draws only new ones):
       // coming back to the tab no longer builds ~150 cards with their pictures again.
       const before = new Map(state.items.map((item) => [rowKey(item), item]));
-      state.items = items.map((item) => before.get(rowKey(item)) ?? item);
-      renderRows();
+      const next = items.map((item) => before.get(rowKey(item)) ?? item);
+      // Nothing new (read again after a change on disk that was the launcher's own): nothing is drawn.
+      const unchanged = next.length === state.items.length && next.every((item, index) => item === state.items[index]);
+      state.items = next;
+      if (!unchanged || !rows.querySelector('.content-row')) renderRows();
       // Files added by hand get their names and icons from Modrinth or CurseForge, once per visit.
       if (!state.identified && items.some((item) => !item.platform && !item.folder)) {
         state.identified = true;
@@ -344,6 +372,7 @@ export function createContentList(getInstance, type) {
       h('span', { class: 'toggle__thumb' }),
     );
     const selected = state.selected.has(item.file);
+    const skinLoader = isMods && isSkinLoader(item);
     const check = h('input', { type: 'checkbox', class: 'content-check', checked: selected, title: 'Выбрать', onchange: (event) => { if (event.target.checked) state.selected.add(item.file); else state.selected.delete(item.file); anchor = item; syncSelection(); } });
     // A row: the tick, the switch, the picture, the name with the version and a line of who made it and
     // what file it is, where it is needed, where it comes from, then the update and the actions.
@@ -364,9 +393,12 @@ export function createContentList(getInstance, type) {
         'div',
         { class: 'content-row__meta' },
         h('div', { class: 'content-row__title' }, h('span', { class: 'content-row__name', title: item.title }, item.title), item.version ? h('span', { class: 'content-row__version' }, item.version) : null),
-        h('div', { class: 'content-row__sub' }, [item.authors?.length ? item.authors.slice(0, 2).join(', ') : null, item.file, item.folder ? 'папка' : formatBytes(item.size)].filter(Boolean).join(' · ')),
+        h('div', { class: 'content-row__sub' }, [skinLoader ? 'Поставил лаунчер: скины и плащи Amethyx в игре' : item.authors?.length ? item.authors.slice(0, 2).join(', ') : null, item.file, item.folder ? 'папка' : formatBytes(item.size)].filter(Boolean).join(' · ')),
       ),
-      item.side && item.side !== 'both' ? h('span', { class: `side-tag side-tag--${item.side}`, title: item.side === 'client' ? 'Нужен только в игре: на сервер ставить не надо' : 'Нужен только на сервере' }, SIDE_LABELS[item.side]) : null,
+      // The launcher's own mod says so (and what it is for, on a click) instead of a bare "Клиент".
+      skinLoader
+        ? h('button', { class: 'launcher-tag', type: 'button', title: 'Поставил лаунчер, чтобы в игре были видны скины Amethyx. Нажмите, чтобы узнать больше', onclick: () => explainSkinLoader() }, h('img', { class: 'launcher-tag__mark', src: assetUrl('branding/amethyx-mark.png'), alt: '' }), 'Скины Amethyx')
+        : item.side && item.side !== 'both' ? h('span', { class: `side-tag side-tag--${item.side}`, title: item.side === 'client' ? 'Нужен только в игре: на сервер ставить не надо' : 'Нужен только на сервере' }, SIDE_LABELS[item.side]) : null,
       item.platform ? h('span', { class: `badge badge--${item.platform}` }, h('span', { class: `platform-logo platform-logo--${item.platform}` }), PLATFORM_LABELS[item.platform]) : null,
       update
         ? h('button', { class: 'btn btn--secondary btn--compact content-row__update', type: 'button', title: `Обновить до ${update.version.versionNumber}`, onclick: (event) => applyUpdate(item, update, event.currentTarget) }, '↑ ', update.version.versionNumber)
@@ -414,13 +446,30 @@ export function createContentList(getInstance, type) {
     }
   }
 
+  /** CustomSkinLoader removed by the player: the launcher no longer puts it back in at every launch. */
+  async function keepSkinLoaderOut() {
+    const instance = getInstance();
+    await updateInstance(instance.id, { overrides: { ...(instance.overrides ?? {}), skinsInMods: false } }).catch(() => {});
+  }
+
   async function remove(item) {
-    const confirmed = await confirmDialog({ title: `Удалить «${item.title}»?`, message: `Файл ${item.file} будет удалён из сборки.`, confirmLabel: 'Удалить', danger: true });
+    const skinLoader = isMods && isSkinLoader(item);
+    const confirmed = await confirmDialog(
+      skinLoader
+        ? {
+            title: 'Удалить CustomSkinLoader?',
+            message: 'Его поставил лаунчер: через него в игре видны скины и плащи Amethyx — ваш и других игроков. Без него в этой сборке будут обычные скины Minecraft, а лаунчер больше не будет ставить его сюда сам. Вернуть — найдите CustomSkinLoader в «Библиотеке».',
+            confirmLabel: 'Удалить',
+            danger: true,
+          }
+        : { title: `Удалить «${item.title}»?`, message: `Файл ${item.file} будет удалён из сборки.`, confirmLabel: 'Удалить', danger: true },
+    );
     if (!confirmed) {
       return;
     }
     try {
       await api.content.remove(getInstance().id, type, item.file);
+      if (skinLoader) await keepSkinLoaderOut();
       sfx('delete');
       state.items = state.items.filter((candidate) => candidate !== item);
       renderRows();
@@ -581,6 +630,7 @@ export function createContentList(getInstance, type) {
       try {
         await api.content.remove(getInstance().id, type, item.file);
         removed += 1;
+        if (isMods && isSkinLoader(item)) await keepSkinLoaderOut();
       } catch (error) {
         toast(`${item.title}: ${errorMessage(error)}`, 'error');
       }
