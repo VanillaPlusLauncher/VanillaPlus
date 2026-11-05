@@ -134,13 +134,71 @@ async function importMrpack({ settings, zip, fields, reporter, created }) {
   let done = 0;
   await runWithConcurrency(files, parallelDownloads(1.5), async (file) => {
     const target = safeJoin(instance.directory, file.path);
-    await fetchFile(settings, file.downloads[0], target, { sha1: file.hashes?.sha1, size: file.fileSize });
+    // A pack may give several mirrors of a file: the next one is tried when one does not answer.
+    const links = (file.downloads ?? []).filter(Boolean);
+    if (links.length === 0) throw new Error(`У файла ${file.path} в модпаке нет ссылки для загрузки.`);
+    for (const [number, link] of links.entries()) {
+      try {
+        await fetchFile(settings, link, target, { sha1: file.hashes?.sha1, size: file.fileSize });
+        break;
+      } catch (error) {
+        if (number === links.length - 1) throw error;
+        log.warn(`${file.path}: зеркало ${link} не ответило (${error.message}), пробуем следующее`);
+      }
+    }
     done += 1;
     reporter.report('Файлы модпака', 10 + (done / Math.max(1, files.length)) * 80, `${done}/${files.length}`);
   });
+  await indexMrpackFiles(instance.directory, files);
   reporter.report('Настройки модпака', 92, 'overrides');
   await extractOverrides(zip, ['overrides', 'client-overrides'], instance.directory);
   return instance;
+}
+
+/** Modrinth's file links name the project and the version: cdn.modrinth.com/data/<project>/versions/<version>/<file>. */
+const MODRINTH_CDN_FILE = /^https:\/\/cdn\.modrinth\.com\/data\/([A-Za-z0-9]{8})\/versions\/([A-Za-z0-9]{8})\//;
+const TYPE_BY_FOLDER = Object.fromEntries(Object.entries(FOLDERS).map(([type, folder]) => [folder, type]));
+
+/**
+ * A pack's mods, resource packs and shaders go into the content index like installed ones, so the
+ * Library marks them "Установлено" and they get updates; titles, icons and sides come from Modrinth in
+ * one request. Without an answer the ids are kept, and the pack's own client/server marks.
+ */
+async function indexMrpackFiles(directory, files) {
+  const indexed = {};
+  for (const file of files) {
+    const [folder, name, ...deeper] = String(file.path).split(/[\\/]+/);
+    const type = TYPE_BY_FOLDER[folder];
+    const link = (file.downloads ?? []).map((url) => MODRINTH_CDN_FILE.exec(url)).find(Boolean);
+    if (!type || !name || deeper.length || !link) continue;
+    indexed[entryKey(type, name)] = {
+      platform: 'modrinth',
+      projectId: link[1],
+      versionId: link[2],
+      versionNumber: null,
+      title: null,
+      iconUrl: null,
+      clientSide: file.env?.client ?? null,
+      serverSide: file.env?.server ?? null,
+      installedAt: new Date().toISOString(),
+    };
+  }
+  const entries = Object.values(indexed);
+  if (entries.length === 0) return;
+  try {
+    const projects = new Map((await modrinth.getProjectsBrief([...new Set(entries.map((entry) => entry.projectId))])).map((project) => [project.id, project]));
+    for (const entry of entries) {
+      const project = projects.get(entry.projectId);
+      if (!project) continue;
+      entry.title = project.title;
+      entry.iconUrl = project.iconUrl;
+      entry.clientSide = project.clientSide ?? entry.clientSide;
+      entry.serverSide = project.serverSide ?? entry.serverSide;
+    }
+  } catch (error) {
+    log.warn(`Названия модов модпака не получены с Modrinth: ${error.message}`);
+  }
+  await updateIndex(directory, (current) => Object.assign(current, indexed));
 }
 
 async function importCurseForge({ settings, zip, fields, reporter, created }) {
@@ -171,6 +229,12 @@ async function importCurseForge({ settings, zip, fields, reporter, created }) {
   ]);
   const modsById = new Map(mods.map((mod) => [mod.id, mod]));
   const failed = [];
+  // Files CurseForge no longer gives (removed by their authors) are named too, not left out silently.
+  const given = new Set(files.map((file) => String(file.id)));
+  for (const file of wanted.filter((candidate) => !given.has(String(candidate.fileID)))) {
+    failed.push(modsById.get(file.projectID)?.name ?? `файл ${file.fileID}`);
+    log.warn(`Файл ${file.fileID} (проект ${file.projectID}) больше не выдаётся CurseForge`);
+  }
   const indexed = {};
   let done = 0;
   await runWithConcurrency(files, parallelDownloads(1.5), async (file) => {
@@ -294,7 +358,9 @@ async function installModpack(settings, { platform, projectId, versionId, name, 
       const key = curseforge.apiKey(settings);
       version = versionId ? await curseforge.getVersion(key, projectId, versionId) : (await curseforge.getVersions(key, projectId))[0];
     } else {
-      version = versionId ? await modrinth.getVersion(versionId) : (await modrinth.getVersions(projectId)).find((candidate) => candidate.type === 'release');
+      // The newest release; a pack that has only betas gets its newest beta.
+      const versions = versionId ? null : await modrinth.getVersions(projectId);
+      version = versionId ? await modrinth.getVersion(versionId) : versions.find((candidate) => candidate.type === 'release') ?? versions[0];
     }
     if (!version) {
       throw new Error('У модпака нет доступных версий.');

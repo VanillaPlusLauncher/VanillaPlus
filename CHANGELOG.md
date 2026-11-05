@@ -142,6 +142,18 @@
 - Friends: a stray "null" under your name when your account has no code
 - In a narrow window the account and window buttons slid to the left of the top bar
 - While Ely.by is down the launcher no longer tells you to remove the account: it says Ely.by is not responding, and the saved sign-in stays
+- Mods that came with a modpack (Sodium and the rest) were not "Installed" in the Library; a mod from the other site or copied in by hand is recognised too
+- The Library's search jumped between tabs: a modpack's name typed under "Modpacks" showed up under "Mods" and the other way round. Each tab keeps its own search now
+- The Library's Minecraft version is picked in a window of its own instead of typed by hand: releases, snapshots, old betas and alphas, a search and "Any version"
+- A mod's name can be copied: select it with the mouse, or right-click the mod (in an instance or in the Library) → "Copy name"
+- One click sometimes played two sounds (lists, the version menu, switches): now one. The hover sound also plays over mods, worlds, screenshots and servers in an instance
+- Play with a Microsoft account waited for Microsoft: the sign-in is now renewed in the background ahead of time, and when it still has to be renewed, the game and Java are prepared meanwhile
+- Updating a mod that was turned off turned it back on: it stays off
+- Fabric API and other libraries were downloaded a second time when they had come from CurseForge, a modpack or by hand (two copies stop the game); a library deleted by hand was taken as still there
+- An update while the game runs left the old and the new file of a mod together: the launcher asks to close the game first
+- CurseForge modpacks from the Library now say which mods did not download; a Modrinth modpack with only betas installs; one broken mirror no longer stops a modpack
+- Quilt instances get libraries made only for Fabric (Fabric API); old Forge modpacks (1.7.10 and the like) install Forge again
+- The mod warning checks the version that will be installed (with the Library's version and loader); "Shaders" turns a shader pack back on when it was off
 
 ## 1.3.1 — 2026-10-19
 

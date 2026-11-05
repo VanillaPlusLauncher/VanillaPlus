@@ -83,7 +83,8 @@ async function prepareAmethyxSkins({ settings, instance, session, selectedId, ga
   const { serverUrl } = require('../cloud/cloudClient');
   const base = serverUrl(settings);
   if (base && selectedId) {
-    await require('../cloud/cloudSkins')
+    // Not waited for: a slow or failing upload (up to a minute) held the game back on every launch.
+    require('../cloud/cloudSkins')
       .syncAccount(selectedId)
       .catch((error) => pushLogLine(`Скин не отправлен на сервер Amethyx: ${error.message}`));
   }
@@ -189,8 +190,15 @@ async function launch(requestedInstanceId, { server = null } = {}) {
   }
   launchingId = instanceId;
   broadcastStatus();
-  const { selectedId } = await loadAccountStore();
-  const session = await getLaunchSession(selectedId);
+  const { selectedId, accounts } = await loadAccountStore();
+  // No account: said at once, not after the game has been installed.
+  if (!accounts.some((account) => account.id === selectedId)) {
+    throw new Error('Выберите аккаунт в правом верхнем углу или добавьте новый.');
+  }
+  // The account's session is got while the game, the loader and Java are made ready: for Microsoft it
+  // can be six requests in a row, and nothing before the start itself needs it.
+  const sessionReady = getLaunchSession(selectedId, { onRefresh: () => pushLogLine('Обновляем вход Microsoft…') });
+  sessionReady.catch(() => {});
 
   if (instanceId !== settings.selectedInstanceId) {
     settings = await updateSettings({ selectedInstanceId: instanceId });
@@ -210,6 +218,7 @@ async function launch(requestedInstanceId, { server = null } = {}) {
   const runSettings = instanceService.effectiveSettings(settings, instance);
   // Install and launch both need Java: fetch it first, so a missing runtime is downloaded before the game starts.
   const runtime = await resolveJavaForLaunch(await getRequiredJavaMajor(layout, versionId), runSettings);
+  const session = await sessionReady;
 
   const gameDirectory = layout.instanceDirectory(instance.id);
   runLog = { directory: gameDirectory, lines: [] };

@@ -129,6 +129,9 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
           });
           await refreshInstances();
           toast(`Сборка «${instance.name}» готова к игре`, 'success', 5000, { title: 'Модпак установлен', icon: 'enchanted_book', group: 'instances' });
+          if (instance.failed?.length) {
+            toast(`Не скачались: ${instance.failed.join(', ')}. Скачайте их с CurseForge и положите в папку mods сборки.`, 'error', 9000);
+          }
         },
       });
       packBrowsers[platform].refresh();

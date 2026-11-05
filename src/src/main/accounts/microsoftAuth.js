@@ -186,8 +186,8 @@ async function signInWithLiveAccessToken(liveAccessToken) {
     throw new Error('Microsoft не вернул данные пользователя Xbox.');
   }
   const minecraft = await loginMinecraftWithXbox(userHash, xsts.Token);
-  await assertOwnsJavaEdition(minecraft.access_token);
-  const profile = await fetchMinecraftProfile(minecraft.access_token);
+  // The licence and the profile do not depend on each other: asked for at the same time.
+  const [, profile] = await Promise.all([assertOwnsJavaEdition(minecraft.access_token), fetchMinecraftProfile(minecraft.access_token)]);
   return {
     profile: { id: profile.id, username: profile.name },
     xuid: xsts.DisplayClaims?.xui?.[0]?.xid ?? null,

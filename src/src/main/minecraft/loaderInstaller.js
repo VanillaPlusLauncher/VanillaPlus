@@ -14,6 +14,7 @@ const { createLogger } = require('../core/logger');
 const { getAppPaths } = require('../core/paths');
 const { resolveLibraries, mavenRelativePath } = require('./libraryResolver');
 const { resolveDescriptor } = require('./descriptor');
+const { listLoaderVersions } = require('./loaderMeta');
 
 /*
  * Installs mod loaders on top of an installed vanilla version. Each loader becomes a version of
@@ -91,6 +92,21 @@ function installerUrl(type, version) {
     return `https://maven.neoforged.net/releases/net/neoforged/forge/${version}/forge-${version}-installer.jar`;
   }
   return `https://maven.neoforged.net/releases/net/neoforged/neoforge/${version}/neoforge-${version}-installer.jar`;
+}
+
+/**
+ * A modpack names Forge by its number ("1.7.10-10.13.4.1614"), while some old builds are called
+ * "1.7.10-10.13.4.1614-1.7.10" on Forge's maven: the full name is taken from Forge's own list.
+ */
+async function forgeMavenVersion(minecraft, version) {
+  try {
+    const list = await listLoaderVersions('forge', minecraft);
+    if (list.some((entry) => entry.version === version)) return version;
+    const number = version.split('-')[1] ?? version;
+    return list.find((entry) => entry.version.split('-')[1] === number)?.version ?? version;
+  } catch {
+    return version;
+  }
 }
 
 function readZipJson(zip, name) {
@@ -231,7 +247,8 @@ async function installForgeLike({ type, minecraft, loaderVersion, layout, java, 
   const installerPath = path.join(workDirectory, 'installer.jar');
   try {
     onProgress?.(0.02, 'Установщик');
-    await downloadFile(installerUrl(type, loaderVersion), installerPath);
+    const mavenVersion = type === 'forge' ? await forgeMavenVersion(minecraft, loaderVersion) : loaderVersion;
+    await downloadFile(installerUrl(type, mavenVersion), installerPath);
     const zip = new AdmZip(installerPath);
     const profile = readZipJson(zip, 'install_profile.json');
     if (!profile) {

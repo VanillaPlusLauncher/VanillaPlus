@@ -217,6 +217,8 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  /* The name alone can be selected and copied (a click that only selects chooses nothing). */
+  user-select: text;
 }
 
 .content-row__version {

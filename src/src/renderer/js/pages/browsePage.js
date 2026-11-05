@@ -6,7 +6,7 @@ import { iconImage } from '../core/mc.js';
 import { openInstance } from '../core/nav.js';
 import { store } from '../state/appStore.js';
 import { refreshInstances, selectedInstance } from '../state/actions.js';
-import { createProjectBrowser } from '../components/projectBrowser.js';
+import { createProjectBrowser, titleKey } from '../components/projectBrowser.js';
 import { openCreateInstanceModal } from '../components/createInstanceModal.js';
 import { toast } from '../components/toast.js';
 import { beginInstall } from '../core/installQueue.js';
@@ -100,8 +100,13 @@ export function createBrowsePage() {
     worldSelect.value = worlds.some((world) => world.folder === keep) ? keep : worlds[0]?.folder ?? '';
   }
 
-  /** What the chosen instance has now; an answer for an instance no longer chosen is dropped. */
+  /**
+   * What the chosen instance has now, by project id and also by mod id and title: a mod that came
+   * with a modpack, or from the other site, is "Установлено" too. An answer for an instance no longer
+   * chosen is dropped.
+   */
   let installedAsk = 0;
+  const identified = new Set();
   async function loadInstalled() {
     const ask = ++installedAsk;
     const current = target();
@@ -113,8 +118,17 @@ export function createBrowsePage() {
     try {
       const items = await api.content.list(current.id, type);
       if (ask !== installedAsk) return;
-      installed = new Set(items.map((item) => item.projectId).filter(Boolean));
+      installed = new Set(
+        items.flatMap((item) => [item.projectId, item.modId && `slug:${item.modId.toLowerCase()}`, titleKey(item.title) && `title:${titleKey(item.title)}`]).filter(Boolean),
+      );
       browser.markInstalled();
+      // Files nobody told the launcher about (an older modpack, a copy by hand): recognised once,
+      // then marked by their Modrinth or CurseForge project.
+      const key = `${current.id}|${type}`;
+      if (!identified.has(key) && items.some((item) => !item.platform && !item.folder)) {
+        identified.add(key);
+        api.content.identify(current.id, type).then((count) => count > 0 && ask === installedAsk && loadInstalled()).catch(() => {});
+      }
     } catch {
       // The marks are a convenience only.
     }
@@ -140,6 +154,9 @@ export function createBrowsePage() {
       const instance = await api.content.installModpack({ platform: hit.platform, projectId: hit.id, versionId, title: hit.title, iconUrl: hit.iconUrl });
       await refreshInstances();
       toast(`Сборка «${instance.name}» готова к игре`, 'success', 6000, { title: 'Модпак установлен', icon: 'enchanted_book', group: 'instances' });
+      if (instance.failed?.length) {
+        toast(`Не скачались: ${instance.failed.join(', ')}. Скачайте их с CurseForge и положите в папку mods сборки.`, 'error', 9000);
+      }
       return;
     }
     const current = target();

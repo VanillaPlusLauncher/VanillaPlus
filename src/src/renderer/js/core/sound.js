@@ -205,6 +205,9 @@ export function previewSound(preset) {
   SOUND_PRESETS[preset]?.play(Math.floor(Math.random() * 7));
 }
 
+/** Counts the sounds actually played, so a click that already made its own sound gets no second one. */
+let playedCount = 0;
+
 export function sfx(name, ...args) {
   try {
     const action = ACTIONS_BY_KEY[name];
@@ -214,7 +217,10 @@ export function sfx(name, ...args) {
       return;
     }
     if (!settings[action.group]) return;
-    SOUND_PRESETS[presetFor(name)]?.play(...args);
+    const preset = presetFor(name);
+    if (preset === 'none' || !SOUND_PRESETS[preset]) return;
+    playedCount += 1;
+    SOUND_PRESETS[preset].play(...args);
   } catch {
     // Sounds never break the UI.
   }
@@ -306,33 +312,42 @@ export function configureSound(next) {
   }
 }
 
+/** Cards and list rows that answer the "hover" sound: the sidebar, instances, the Library and an instance's tabs. */
+const HOVER_TARGETS = '.nav-button, .instance-card, .project-card, .content-row, .world-card, .shot-card, .server-row, .recent-card, .news-tile, .shader-card';
+const HOVER_GAP_MS = 60;
+
 /** Plays UI click sounds for every button, chip and tab without each page wiring them. */
 export function installGlobalSounds() {
   document.addEventListener(
     'click',
     (event) => {
       const target = event.target instanceof Element ? event.target.closest('button, [role="button"], .toggle input, input[type="checkbox"]') : null;
-      if (!target || target.disabled || target.dataset.sound === 'none') {
+      if (!target || target.disabled || target.dataset.sound === 'none' || target.matches('.nav-button')) {
         return;
       }
       // A switch or a tick (its new state is already set when the click comes).
-      if (target.matches('.toggle input, input[type="checkbox"]')) {
-        sfx(target.checked ? 'toggleOn' : 'toggleOff');
-      } else if (target.matches('.tabs__button, .segmented button')) {
-        sfx('tab');
-      } else if (!target.matches('.nav-button')) {
-        sfx('click');
-      }
+      const name = target.matches('.toggle input, input[type="checkbox"]') ? (target.checked ? 'toggleOn' : 'toggleOff') : target.matches('.tabs__button, .segmented button') ? 'tab' : 'click';
+      // Heard once the click has been handled: when the button made its own sound (a choice in a
+      // list, a dialog opening, a deletion), that one is the click's only sound — two at once
+      // sounded like a doubled click.
+      const before = playedCount;
+      setTimeout(() => {
+        if (playedCount === before) sfx(name);
+      }, 0);
     },
     true,
   );
+  let lastHover = 0;
   document.addEventListener(
     'pointerover',
     (event) => {
-      const target = event.target instanceof Element ? event.target.closest('.nav-button, .instance-card, .project-card') : null;
-      if (target && !target.contains(event.relatedTarget)) {
-        sfx('hover');
-      }
+      const target = event.target instanceof Element ? event.target.closest(HOVER_TARGETS) : null;
+      if (!target || target.contains(event.relatedTarget)) return;
+      // Sweeping down a list of mods gives a tick per row, not a rattle.
+      const now = performance.now();
+      if (now - lastHover < HOVER_GAP_MS) return;
+      lastHover = now;
+      sfx('hover');
     },
     true,
   );

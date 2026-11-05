@@ -199,6 +199,10 @@ async function apply(settings, instanceId, choices = {}) {
     file = items.find((item) => item.projectId === pack.projectId)?.file ?? null;
     if (!file) failed.push(`${pack.title}: файл не найден в shaderpacks`);
   }
+  // A pack turned off earlier (name.zip.disabled) is turned on: Iris and Oculus do not load it by that name.
+  if (file && /\.disabled$/i.test(file)) {
+    file = await contentService.setEnabled(settings, instanceId, 'shader', file, true);
+  }
   if (file) {
     await writeProperties(configFile, { shaderPack: file, enableShaders: 'true', maxShadowRenderDistance: String(SHADOW_DISTANCE[level]) });
     summary.push(`Включён ${title}, тени до ${SHADOW_DISTANCE[level]} чанков`);

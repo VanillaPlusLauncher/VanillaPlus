@@ -182,7 +182,11 @@ async function pickVersion(api, projectId, instance, type, override = null) {
   const filters = instanceFilters(instance, type);
   if (override?.gameVersion) filters.gameVersion = String(override.gameVersion).slice(0, 32);
   if (override?.loader && type === 'mod') filters.loader = String(override.loader).slice(0, 16);
-  const versions = await api.getVersions(projectId, filters);
+  let versions = await api.getVersions(projectId, filters);
+  // Quilt runs Fabric mods: a mod (or a library like Fabric API) made only for Fabric fits too.
+  if (versions.length === 0 && filters.loader === 'quilt') {
+    versions = await api.getVersions(projectId, { ...filters, loader: 'fabric' });
+  }
   return versions.find((version) => version.type === 'release') ?? versions[0] ?? null;
 }
 
@@ -211,11 +215,26 @@ async function installVersionFiles({ directory, type, version, meta, onProgress,
   }
   const fileName = assertFileName(file.filename);
   const target = path.join(directory, FOLDERS[type], fileName);
+  // An update of a file the player turned off stays off (a mod that crashed is not switched back on).
+  const keepDisabled = Boolean(replaceFile && replaceFile.toLowerCase().endsWith(DISABLED_SUFFIX));
+  const oldNames = new Set([replaceFile && assertFileName(replaceFile)].filter(Boolean));
   await downloadFile(file.url, target, { sha1: file.sha1 ?? undefined, size: file.size, onProgress });
-  await removeIndexedProject(directory, type, version.platform, version.projectId, fileName);
-  if (replaceFile && replaceFile !== fileName) {
-    const old = path.join(directory, FOLDERS[type], assertFileName(replaceFile));
-    await fsp.rm(old, { force: true });
+  try {
+    await removeIndexedProject(directory, type, version.platform, version.projectId, fileName);
+    if (replaceFile && replaceFile !== fileName) {
+      await fsp.rm(path.join(directory, FOLDERS[type], assertFileName(replaceFile)), { force: true });
+    }
+    if (keepDisabled) {
+      await fsp.rename(target, `${target}${DISABLED_SUFFIX}`);
+    }
+  } catch (error) {
+    // The old file is held by the running game (Windows does not let it go): the new one is taken
+    // away again, so the next launch does not find two versions of one mod.
+    if (!oldNames.has(fileName)) await fsp.rm(target, { force: true }).catch(() => {});
+    if (['EBUSY', 'EPERM', 'EACCES'].includes(error.code)) {
+      throw new Error('Файл мода занят запущенной игрой. Закройте игру и попробуйте снова.');
+    }
+    throw error;
   }
   await updateIndex(directory, (entries) => {
     entries[entryKey(type, fileName)] = {
@@ -232,6 +251,36 @@ async function installVersionFiles({ directory, type, version, meta, onProgress,
     };
   });
   return fileName;
+}
+
+/**
+ * Required dependencies the instance does not have yet. A project counts as there when a file of it
+ * is in the mods folder (an entry whose jar was deleted by hand does not), or, for Modrinth, when a
+ * jar there has the project's slug as its mod id: Fabric API that came from CurseForge, a modpack or
+ * a copy by hand is not downloaded a second time (two copies of one mod stop the game).
+ */
+async function missingDependencies(settings, instance, dependencies, platform) {
+  const required = (dependencies ?? []).filter((dependency) => dependency.type === 'required' && dependency.projectId);
+  if (required.length === 0) return [];
+  const prefix = `${FOLDERS.mod}/`;
+  const onDisk = new Set((await fsp.readdir(path.join(instance.directory, FOLDERS.mod)).catch(() => [])).map((name) => name.replace(/\.disabled$/i, '')));
+  const index = await readIndex(instance.directory);
+  const present = new Set(
+    Object.entries(index.entries)
+      .filter(([key]) => key.startsWith(prefix) && onDisk.has(key.slice(prefix.length)))
+      .map(([, entry]) => String(entry.projectId)),
+  );
+  let missing = required.filter((dependency) => !present.has(String(dependency.projectId)));
+  if (missing.length > 0 && platform === 'modrinth') {
+    const [projects, items] = await Promise.all([
+      modrinth.getProjectsBrief(missing.map((dependency) => dependency.projectId)).catch(() => []),
+      listContent(settings, instance.id, 'mod').catch(() => []),
+    ]);
+    const slugOf = new Map(projects.map((project) => [project.id, normalName(project.slug)]));
+    const modIds = new Set(items.map((item) => normalName(item.modId)).filter(Boolean));
+    missing = missing.filter((dependency) => !modIds.has(slugOf.get(dependency.projectId)));
+  }
+  return missing;
 }
 
 /**
@@ -287,10 +336,8 @@ async function installProject(settings, { instanceId, platform, projectId, versi
     if (type !== 'mod') {
       return;
     }
-    const index = await readIndex(instance.directory);
-    const present = new Set(Object.values(index.entries).map((entry) => entry.projectId));
     // Required libraries all at once (Zoomify needs three), not one after another.
-    const missing = version.dependencies.filter((candidate) => candidate.type === 'required' && candidate.projectId && !present.has(candidate.projectId));
+    const missing = await missingDependencies(settings, instance, version.dependencies, platform);
     await runWithConcurrency(missing, parallelDownloads(), (dependency) => installOne(dependency.projectId, platform === 'modrinth' ? dependency.versionId : null, null, depth + 1));
   }
 
@@ -619,13 +666,15 @@ function remembered(key, load) {
   return promise;
 }
 
-async function checkCompatibility(settings, instanceId, { platform, projectId, versionId, type = 'mod', title }) {
+async function checkCompatibility(settings, instanceId, { platform, projectId, versionId, type = 'mod', title, filters = null }) {
   if (type !== 'mod' || settings.compat?.warn === false) {
     return [];
   }
   const instance = await instanceService.getInstance(settings, instanceId);
   const api = platformApi(settings, platform);
-  const version = versionId ? await api.getVersion(projectId, versionId).catch(() => null) : await pickVersion(api, projectId, instance, type).catch(() => null);
+  // The version that will be installed: with the catalog's filters (another game version or loader
+  // picked there), checked against the instance itself.
+  const version = versionId ? await api.getVersion(projectId, versionId).catch(() => null) : await pickVersion(api, projectId, instance, type, filters).catch(() => null);
   if (!version) {
     return [];
   }

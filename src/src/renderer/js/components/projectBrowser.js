@@ -8,9 +8,14 @@ import { toast } from './toast.js';
 import { loadingState } from './controls.js';
 import { projectIcon } from '../core/projectIcon.js';
 import { resizeSmoothly } from '../core/effects.js';
+import { createGameVersionButton } from './gameVersionPicker.js';
+import { copyText, selectedText } from '../core/clipboard.js';
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 350;
+
+/** A title reduced to letters and digits: "Sodium" on Modrinth and on CurseForge, "Fabric API" and "FabricAPI". */
+export const titleKey = (title) => String(title ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 
 /**
  * Search over Modrinth or CurseForge with infinite scrolling.
@@ -57,12 +62,10 @@ export function createProjectBrowser(options) {
     { class: 'select', 'aria-label': 'Сортировка', onchange: (event) => { state.sort = event.target.value; reload(); } },
     SORTS.map((sort) => h('option', { value: sort.value }, sort.label)),
   );
-  const versionInput = h('input', {
-    class: 'input',
-    type: 'text',
-    placeholder: 'Версия MC',
-    'aria-label': 'Версия Minecraft',
-    onchange: (event) => { state.gameVersion = event.target.value.trim(); reload(); },
+  // A list of the game's versions in a window of its own, not a number typed by hand.
+  const versionPicker = createGameVersionButton({
+    onPick: (id) => { state.gameVersion = id; reload(); },
+    getInstanceVersion: () => (state.type === 'modpack' ? null : options.getInstance?.()?.minecraft ?? null),
   });
   const loaderSelect = h(
     'select',
@@ -99,7 +102,7 @@ export function createProjectBrowser(options) {
       { class: 'browser-toolbar' },
       platformSwitch,
       h('div', { class: 'input-with-icon browser-toolbar__search' }, icon('search'), searchInput),
-      h('div', { class: 'browser-toolbar__filters' }, resetFilters, versionInput, loaderSelect, sortSelect),
+      h('div', { class: 'browser-toolbar__filters' }, resetFilters, versionPicker.element, loaderSelect, sortSelect),
     ),
     results,
     footer,
@@ -155,7 +158,7 @@ export function createProjectBrowser(options) {
         state.gameVersion = own.gameVersion;
         state.loader = own.loader;
       }
-      versionInput.value = state.gameVersion;
+      versionPicker.setValue(state.gameVersion);
       loaderSelect.value = state.loader;
     }
     loaderSelect.disabled = state.type !== 'mod' && state.type !== 'modpack';
@@ -172,8 +175,40 @@ export function createProjectBrowser(options) {
   // Minecraft Inside's maps are downloaded on its page (the launcher opens it and takes the file).
   const addLabel = () => h('span', { class: 'project-card__install-label' }, icon('download'), state.type === 'modpack' ? 'Установить' : state.platform === 'mcinside' ? 'Скачать' : 'Добавить');
 
+  /**
+   * In the instance already: the same project, or the same mod from the other site or from a pack
+   * (its slug is the mod's id, or the titles match).
+   */
+  function isInstalled(hit, installed = options.installedProjects?.()) {
+    if (!installed || !hit) return false;
+    return installed.has(hit.id) || (hit.slug && installed.has(`slug:${hit.slug.toLowerCase()}`)) || installed.has(`title:${titleKey(hit.title)}`);
+  }
+
+  /** Right click on a card: copy its name, open it here or on its site. */
+  function openCardMenu(hit, pointer, openDetails) {
+    document.querySelector('.context-menu')?.remove();
+    const entry = (label, action, disabled = false) => h('button', { class: 'context-menu__item', type: 'button', disabled, onclick: () => { menu.remove(); action(); } }, label);
+    const menu = h(
+      'div',
+      { class: 'context-menu', role: 'menu' },
+      entry('Копировать название', () => copyText(hit.title, 'Название скопировано')),
+      entry('Подробнее', openDetails),
+      entry('Открыть сайт', () => api.app.openExternal(hit.url), !hit.url),
+    );
+    document.body.append(menu);
+    menu.style.left = `${Math.max(12, Math.min(pointer.clientX, window.innerWidth - menu.offsetWidth - 12))}px`;
+    menu.style.top = `${Math.max(12, Math.min(pointer.clientY, window.innerHeight - menu.offsetHeight - 12))}px`;
+    const close = (event) => {
+      if (!menu.contains(event.target)) {
+        menu.remove();
+        document.removeEventListener('pointerdown', close, true);
+      }
+    };
+    setTimeout(() => document.addEventListener('pointerdown', close, true));
+  }
+
   function cardFor(hit, index) {
-    const installed = options.installedProjects?.().has(hit.id);
+    const installed = isInstalled(hit);
     const installButton = h(
       'button',
       { class: `btn ${installed ? 'btn--ghost' : 'btn--secondary'} btn--compact project-card__install`, type: 'button', disabled: installed },
@@ -193,13 +228,16 @@ export function createProjectBrowser(options) {
         toast(errorMessage(error), 'error');
       }
     });
+    const openDetails = () => openProjectModal(hit, { instance: instanceFilters().instance, type: state.type, filters: installFilters(), onInstall: (versionId) => options.onInstall(hit, versionId, installFilters()) });
     return h(
       'article',
       {
         class: 'project-card rise',
         style: { '--delay': `${Math.min(index, 12) * 35}ms` },
         tabindex: '0',
-        onclick: () => openProjectModal(hit, { instance: instanceFilters().instance, type: state.type, filters: installFilters(), onInstall: (versionId) => options.onInstall(hit, versionId, installFilters()) }),
+        // The name can be selected and copied: a click that only selected text opens nothing.
+        onclick: () => { if (!selectedText()) openDetails(); },
+        oncontextmenu: (event) => { event.preventDefault(); openCardMenu(hit, event, openDetails); },
         onkeydown: (event) => {
           if (event.key === 'Enter') {
             event.currentTarget.click();
@@ -309,9 +347,15 @@ export function createProjectBrowser(options) {
     return load(false);
   }
 
+  /** Each tab keeps its own search: a modpack's name typed under "Модпаки" stays there, not in "Моды". */
+  const queries = {};
   function setType(type) {
     if (type !== state.type) {
+      queries[state.type] = state.query;
+      clearTimeout(searchTimer);
       state.type = type;
+      state.query = queries[type] ?? '';
+      searchInput.value = state.query;
       syncPlatforms();
       reload();
     }
@@ -340,7 +384,7 @@ export function createProjectBrowser(options) {
       const hit = state.hits[index];
       const button = card.querySelector('.project-card__install');
       if (!hit || !button) return;
-      if (installed.has(hit.id)) {
+      if (isInstalled(hit, installed)) {
         button.disabled = true;
         button.className = 'btn btn--ghost btn--compact project-card__install';
         button.replaceChildren('Установлено');

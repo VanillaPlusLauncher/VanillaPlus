@@ -218,6 +218,8 @@
   white-space: nowrap;
   flex: 0 1 auto;
   min-width: 0;
+  /* Can be selected and copied: a click that only selects opens nothing. */
+  user-select: text;
 }
 
 .project-card__author {
@@ -340,6 +342,7 @@
   gap: 10px;
   font-family: var(--font-display);
   font-size: 22px;
+  user-select: text;
 }
 
 .project-header__sub {
@@ -588,6 +591,69 @@
 /* Library: back to the instance's version and loader */
 .browser-toolbar__reset {
   white-space: nowrap;
+}
+
+/* The Minecraft version filter (components/gameVersionPicker.js): a dropdown-like button of a fixed
+   width, the text cut with "…" rather than running out of it. */
+.browser-toolbar__filters .version-filter {
+  width: 150px;
+  min-width: 0;
+}
+
+.version-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.version-dialog__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.version-dialog__search {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.version-dialog__tabs {
+  flex: none;
+}
+
+/* "Бета и альфа" stays on one line; the search field gives way instead. */
+.version-dialog__tabs .tabs__button {
+  white-space: nowrap;
+}
+
+.version-picker--dialog {
+  height: min(52vh, 480px);
+}
+
+/* Fixed columns: a row with a "Сборка" / "Скачана" mark keeps its type and date in line with the rest. */
+.version-picker--dialog .version-picker__item {
+  grid-template-columns: minmax(0, 1fr) 110px 110px 150px;
+}
+
+.version-picker--dialog .version-picker__item > .badge {
+  justify-self: center;
+}
+
+.version-picker--dialog .version-picker__id {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.version-dialog__count {
+  font-size: 12px;
+}
+
+.version-dialog__empty {
+  padding: 24px;
+  text-align: center;
 }
 
 /* Modrinth / CurseForge (components/projectBrowser.js): one plate in the platform's colour slides

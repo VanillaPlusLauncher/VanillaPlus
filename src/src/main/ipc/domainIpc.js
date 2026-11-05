@@ -266,6 +266,9 @@ function registerDomainHandlers(handle) {
   handle(CHANNELS.content.project, async (_event, platform, id) => contentService.getProject(await settings(), platform, String(id)));
   handle(CHANNELS.content.versions, async (_event, platform, id, filters) => contentService.getVersions(await settings(), platform, String(id), filters));
   handle(CHANNELS.content.install, async (_event, request) => {
+    if (request?.replaceFile && gameService.isInstanceRunning(request.instanceId)) {
+      throw new Error('Закройте игру, чтобы обновлять моды.');
+    }
     const result = await contentService.installProject(await settings(), request ?? {});
     instancesChanged(request?.instanceId);
     return result;
@@ -313,7 +316,13 @@ function registerDomainHandlers(handle) {
   handle(CHANNELS.content.checkUpdates, async (_event, instanceId, type) => contentService.checkUpdates(await settings(), instanceId, type));
   handle(CHANNELS.content.findIcon, async (_event, query) =>
     contentService.findIcon(await settings(), { title: String(query?.title ?? '').slice(0, 100), slug: String(query?.slug ?? '').slice(0, 100), type: ['mod', 'resourcepack', 'shader', 'modpack', 'datapack', 'world'].includes(query?.type) ? query.type : 'mod' }));
-  handle(CHANNELS.content.updateMany, async (_event, instanceId, type, updates) => contentService.updateMany(await settings(), instanceId, type, Array.isArray(updates) ? updates.slice(0, 1000) : []));
+  // The running game holds its mod files: an update then would leave the old and the new one together.
+  handle(CHANNELS.content.updateMany, async (_event, instanceId, type, updates) => {
+    if (gameService.isInstanceRunning(instanceId)) {
+      throw new Error('Закройте игру, чтобы обновлять моды.');
+    }
+    return contentService.updateMany(await settings(), instanceId, type, Array.isArray(updates) ? updates.slice(0, 1000) : []);
+  });
   handle(CHANNELS.content.setEnabledMany, async (_event, instanceId, type, files, enabled) => {
     if (gameService.isInstanceRunning(instanceId)) {
       throw new Error('Закройте игру, чтобы включать и выключать моды.');

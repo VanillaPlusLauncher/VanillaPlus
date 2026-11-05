@@ -266,9 +266,10 @@ function selectAccount(accountId) {
 
 /**
  * Returns what the game needs to start: name, UUID, access token and user type.
- * Microsoft tokens are renewed when they are close to expiry.
+ * Microsoft tokens are renewed when they are close to expiry (`margin` before it).
+ * `onRefresh()` is told when that renewal — six requests to Microsoft and Mojang — begins.
  */
-function getLaunchSession(accountId) {
+function getLaunchSession(accountId, { margin = SESSION_REFRESH_MARGIN_MS, onRefresh = null } = {}) {
   return writeQueue.run(async () => {
     const store = await loadAccountStore();
     const account = store.accounts.find((candidate) => candidate.id === accountId);
@@ -283,7 +284,7 @@ function getLaunchSession(accountId) {
     }
 
     const cachedToken = decryptSecret(account.secrets?.minecraftToken);
-    if (cachedToken && account.expiresAt - SESSION_REFRESH_MARGIN_MS > Date.now()) {
+    if (cachedToken && account.expiresAt - margin > Date.now()) {
       return { username: account.username, uuid: account.uuid, accessToken: cachedToken, userType: 'msa', xuid: account.xuid ?? '', provider: 'microsoft' };
     }
 
@@ -292,7 +293,10 @@ function getLaunchSession(accountId) {
       throw new Error(`Сессия аккаунта ${account.username} устарела. Добавьте аккаунт Microsoft заново.`);
     }
     log.info(`Обновляем сессию аккаунта ${account.username}`);
+    onRefresh?.();
+    const startedAt = Date.now();
     const session = await refreshMicrosoftSession(refreshToken);
+    log.info(`Сессия аккаунта ${account.username} обновлена за ${Math.round((Date.now() - startedAt) / 100) / 10} с`);
     const updated = {
       ...account,
       username: session.profile.username,
@@ -310,8 +314,30 @@ function getLaunchSession(accountId) {
   });
 }
 
+/**
+ * Microsoft sessions live a day. They are renewed in the background a few hours before they end,
+ * so pressing Play does not wait for the renewal (the first game of the day used to).
+ */
+const EARLY_REFRESH_MS = 3 * 60 * 60 * 1000;
+const EARLY_REFRESH_EVERY_MS = 30 * 60 * 1000;
+
+async function refreshExpiringSessions() {
+  const { accounts } = await loadAccountStore();
+  for (const account of accounts) {
+    if (account.type !== 'microsoft' || !account.secrets?.refreshToken || account.expiresAt - EARLY_REFRESH_MS > Date.now()) continue;
+    await getLaunchSession(account.id, { margin: EARLY_REFRESH_MS }).catch((error) => log.warn(`Сессия ${account.username} не обновлена заранее: ${error.message}`));
+  }
+}
+
+function startSessionRefresh() {
+  const run = () => refreshExpiringSessions().catch((error) => log.warn(`Сессии не проверены: ${error.message}`));
+  setTimeout(run, 15000).unref?.();
+  setInterval(run, EARLY_REFRESH_EVERY_MS).unref?.();
+}
+
 module.exports = {
   listAccounts,
+  startSessionRefresh,
   addOfflineAccount,
   addMicrosoftAccount,
   addElyAccount,

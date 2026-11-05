@@ -92,6 +92,8 @@ if (!singleInstance) {
           require('./core/progressReporter').runningTaskCount() > 0,
       });
       startVersionWatch();
+      // Microsoft sessions renewed ahead of time, so Play does not wait for Microsoft.
+      require('./accounts/accountService').startSessionRefresh();
       // "Online" for friends on the Amethyx server (nothing happens while no server is set up).
       require('./cloud/cloudFriends').startPresence();
       // New messages and read marks, asked for every few seconds.

@@ -15,6 +15,7 @@ import { toast } from './toast.js';
 import { updateInstance } from '../state/actions.js';
 import { projectIcon } from '../core/projectIcon.js';
 import { assetUrl } from '../core/assets.js';
+import { copyText, selectedText } from '../core/clipboard.js';
 
 /** Mods: where they are needed (Modrinth data or the mod's own file). */
 const SIDE_LABELS = { client: 'Клиент', server: 'Сервер', both: 'Везде' };
@@ -383,7 +384,11 @@ export function createContentList(getInstance, type) {
         class: `content-row${item.enabled ? '' : ' content-row--disabled'}${selected ? ' content-row--selected' : ''}`,
         style: { '--row': String(Math.min(rowElements.size, 14)) },
         'data-id': item.file.replace(/\.disabled$/, ''),
-        onclick: (event) => { if (!event.target.closest('button, label, input, a')) choose(item, event.shiftKey); },
+        // The name can be selected and copied: a click that only selected text chooses nothing, and
+        // Shift + click (choosing a range of rows) selects no text.
+        onmousedown: (event) => { if (event.shiftKey) event.preventDefault(); },
+        onclick: (event) => { if (!event.target.closest('button, label, input, a') && !selectedText()) choose(item, event.shiftKey); },
+        oncontextmenu: (event) => { if (event.target.closest('input')) return; event.preventDefault(); openRowMenu(item, event.currentTarget, event); },
       },
       check,
       toggle,
@@ -648,7 +653,8 @@ export function createContentList(getInstance, type) {
 
   // --- One file: menu, version, page ------------------------------------------------------
 
-  function openRowMenu(item, anchor) {
+  /** "⋯" on a row opens this under the button; a right click on the row, where the pointer is. */
+  function openRowMenu(item, anchor, pointer = null) {
     document.querySelector('.context-menu')?.remove();
     const page = projectPage(item);
     const entry = (label, action, disabled = false, danger = false) =>
@@ -656,6 +662,7 @@ export function createContentList(getInstance, type) {
     const menu = h(
       'div',
       { class: 'context-menu', role: 'menu' },
+      entry('Копировать название', () => copyText(item.title, 'Название скопировано')),
       entry('Сменить версию…', () => changeVersion(item), !item.platform),
       entry('Открыть страницу', () => api.app.openExternal(page), !page),
       entry('Показать в папке', () => api.instances.openEntry(getInstance().id, `${FOLDERS[type]}/${item.file}`, { reveal: true }).catch((error) => toast(errorMessage(error), 'error'))),
@@ -664,10 +671,15 @@ export function createContentList(getInstance, type) {
       entry('Удалить', () => remove(item), false, true),
     );
     document.body.append(menu);
-    const rect = anchor.getBoundingClientRect();
-    menu.style.left = `${Math.max(12, rect.right - menu.offsetWidth)}px`;
-    const below = rect.bottom + 6 + menu.offsetHeight < window.innerHeight;
-    menu.style.top = `${below ? rect.bottom + 6 : rect.top - menu.offsetHeight - 6}px`;
+    if (pointer) {
+      menu.style.left = `${Math.max(12, Math.min(pointer.clientX, window.innerWidth - menu.offsetWidth - 12))}px`;
+      menu.style.top = `${Math.max(12, Math.min(pointer.clientY, window.innerHeight - menu.offsetHeight - 12))}px`;
+    } else {
+      const rect = anchor.getBoundingClientRect();
+      menu.style.left = `${Math.max(12, rect.right - menu.offsetWidth)}px`;
+      const below = rect.bottom + 6 + menu.offsetHeight < window.innerHeight;
+      menu.style.top = `${below ? rect.bottom + 6 : rect.top - menu.offsetHeight - 6}px`;
+    }
     const close = (event) => {
       if (!menu.contains(event.target)) {
         menu.remove();
