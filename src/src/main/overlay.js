@@ -8,6 +8,7 @@ const { broadcast } = require('./core/broadcast');
 const { createLogger } = require('./core/logger');
 const { CHANNELS } = require('../shared/channels');
 const { getSettings } = require('./settings/settingsService');
+const { DEFAULT_OVERLAY_KEY, normalizeOverlayKey } = require('./settings/hotkeys');
 
 /*
  * The Amethyx panel over the game, like Steam's overlay: while the game's window is in front, a key
@@ -134,9 +135,6 @@ function focusGame() {
   }
 }
 
-/** The key combination from the settings, as Electron writes it. */
-const KEYS = { 'shift-tab': 'Shift+Tab', 'alt-x': 'Alt+X', f9: 'F9' };
-
 /** Takes the keys from the system (on) or gives them back (off). */
 function takeKeys(on) {
   if (!shortcut || on === registered) return;
@@ -215,10 +213,21 @@ async function startOverlay(pid) {
   const settings = await getSettings().catch(() => null);
   if (settings?.social?.overlay === false) return;
   gamePid = pid ?? null;
-  shortcut = KEYS[settings?.social?.overlayKey] ?? KEYS['shift-tab'];
+  shortcut = normalizeOverlayKey(settings?.social?.overlayKey) ?? DEFAULT_OVERLAY_KEY;
   warned = false;
   log.info(`Панель поверх игры: ${shortcut}`);
   watchForeground();
+  updateKeys();
+}
+
+/** The settings were saved: a new combination works at once in the running game. */
+function applySettings(settings) {
+  const next = normalizeOverlayKey(settings?.social?.overlayKey) ?? DEFAULT_OVERLAY_KEY;
+  if (!shortcut || next === shortcut) return;
+  takeKeys(false);
+  shortcut = next;
+  warned = false;
+  log.info(`Панель поверх игры: новое сочетание ${shortcut}`);
   updateKeys();
 }
 
@@ -242,4 +251,4 @@ function overlayKey() {
   return shortcut;
 }
 
-module.exports = { startOverlay, stopOverlay, show, hide, toggle, isOpen, overlayKey };
+module.exports = { startOverlay, stopOverlay, applySettings, show, hide, toggle, isOpen, overlayKey };

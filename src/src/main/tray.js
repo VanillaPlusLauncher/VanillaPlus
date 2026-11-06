@@ -89,4 +89,4 @@ function setupTray(window) {
   });
 }
 
-module.exports = { setupTray, showWindow };
+module.exports = { setupTray, showWindow, ensureTray };

@@ -2,6 +2,7 @@ import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
 import { assetUrl } from '../core/assets.js';
 import { errorMessage } from '../core/format.js';
+import { hotkeyLabel } from '../core/hotkey.js';
 import { setLanguage } from '../core/i18n.js';
 import { initMc } from '../core/mc.js';
 import { defaultHead, headFromSkin } from '../core/skinHead.js';
@@ -15,7 +16,6 @@ import { installClickSparks } from '../core/effects.js';
  * same keys take it away. It reads everything fresh each time it opens.
  */
 
-const KEY_LABELS = { 'Shift+Tab': 'Shift+Tab', 'Alt+X': 'Alt+X', F9: 'F9' };
 const panel = document.getElementById('overlay-panel');
 const dim = document.getElementById('overlay-dim');
 const state = { info: null, friends: [], view: 'home', inviting: false, chatWith: null, messages: [], sent: new Set() };
@@ -26,7 +26,7 @@ CSS.paintWorklet?.addModule(new URL('../core/pixelFrame.worklet.js', import.meta
 const nameOf = (user) => (user.tag ? `${user.name}#${user.tag}` : user.name);
 const statusOf = (user) => (user.online ? (user.presence?.status === 'playing' ? 'Играет' : 'В сети') : 'Не в сети');
 const dotClass = (user) => `friend__dot${user.online ? (user.presence?.status === 'playing' ? ' friend__dot--playing' : ' friend__dot--online') : ''}`;
-const keyLabel = () => KEY_LABELS[state.info?.key] ?? 'Shift+Tab';
+const keyLabel = () => hotkeyLabel(state.info?.key);
 
 function head(user, size = 32) {
   const image = h('img', { class: 'friend__img', width: size, height: size, alt: '' });

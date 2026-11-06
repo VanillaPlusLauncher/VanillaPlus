@@ -29,6 +29,8 @@ const OVERRIDE_KEYS = [
   'preLaunchCommand',
   'postExitCommand',
   'afterLaunch',
+  // true / false: the launcher's window comes back when the game closes (settings.showAfterGame).
+  'showAfterGame',
   'autoUpdateMods',
   // Shader optimization's choices: { enabled, auto, level, pack } (content/shaderService.js).
   'shaders',

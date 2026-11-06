@@ -39,7 +39,12 @@ function registerDomainHandlers(handle) {
   // curseforgeBuiltIn: the build carries a CurseForge key, so the catalog works without the user's own.
   const withFlags = (value) => ({ ...value, curseforgeBuiltIn: Boolean(require('../content/curseforge').builtInApiKey()) });
   handle(CHANNELS.settings.get, async () => withFlags(await settingsService.getSettings()));
-  handle(CHANNELS.settings.update, async (_event, patch) => withFlags(await settingsService.updateSettings(patch ?? {})));
+  handle(CHANNELS.settings.update, async (_event, patch) => {
+    const next = await settingsService.updateSettings(patch ?? {});
+    // A new key combination for the panel over the game works at once in a running game.
+    require('../overlay').applySettings(next);
+    return withFlags(next);
+  });
   handle(CHANNELS.settings.reset, () => settingsService.resetSettings());
 
   handle(CHANNELS.server.get, async (_event, instanceId) => serverService.getServer(await settings(), String(instanceId)));

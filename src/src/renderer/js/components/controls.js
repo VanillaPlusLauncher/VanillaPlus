@@ -33,11 +33,21 @@ export function loadingMark(className = 'loading-mark') {
 }
 
 /**
+ * A switch is often built anew right after a click: the settings page redraws its section once the
+ * setting is saved. The new switch then starts its thumb where the clicked one was, so the move stays
+ * one slide from the old option (it used to fly in from the left edge, or not move at all for the first option).
+ */
+const recentMoves = new Map();
+const CARRY_MS = 800;
+
+/**
  * Segmented control with a sliding thumb under the active option.
  * options: [{ value, label }]. Returns { element, setValue(value) }.
  */
 export function createSegmented({ options, value, onChange }) {
-  const thumb = h('span', { class: 'segmented__thumb' });
+  const signature = options.map((option) => String(option.value)).join('\u0001');
+  // Unseen until it is put in its place (the first frame the switch has a size).
+  const thumb = h('span', { class: 'segmented__thumb', style: { visibility: 'hidden' } });
   const buttons = options.map((option) =>
     h(
       'button',
@@ -58,21 +68,52 @@ export function createSegmented({ options, value, onChange }) {
 
   const element = h('div', { class: 'segmented', role: 'group' }, thumb, buttons);
 
+  let placed = false;
+
+  /** Where the thumb belongs for the current value, or null while the switch has no size. */
+  function target() {
+    const button = buttons[options.findIndex((option) => option.value === current)];
+    return button?.offsetWidth ? { x: button.offsetLeft - 4, width: button.offsetWidth } : null;
+  }
+
+  function put({ x, width }) {
+    thumb.style.width = `${width}px`;
+    thumb.style.transform = `translateX(${x}px)`;
+  }
+
+  /** Puts the thumb somewhere without the slide. */
+  function jump(position) {
+    thumb.style.transition = 'none';
+    put(position);
+    void thumb.offsetWidth;
+    thumb.style.transition = '';
+  }
+
   function moveThumb() {
-    const index = options.findIndex((option) => option.value === current);
-    const button = buttons[index];
-    if (!button) {
+    const next = target();
+    if (!next) {
       return;
     }
-    thumb.style.width = `${button.offsetWidth}px`;
-    thumb.style.transform = `translateX(${button.offsetLeft - 4}px)`;
+    if (!placed) {
+      // First placement: no slide in from the left edge, unless a twin switch was just clicked.
+      placed = true;
+      const carried = recentMoves.get(signature);
+      recentMoves.delete(signature);
+      jump(carried && performance.now() - carried.at < CARRY_MS ? carried : next);
+      thumb.style.visibility = '';
+    }
+    put(next);
   }
 
   function setValue(next) {
+    const from = placed ? target() : null;
     current = next;
     options.forEach((option, index) => {
       buttons[index].setAttribute('aria-pressed', String(option.value === next));
     });
+    if (from) {
+      recentMoves.set(signature, { ...from, at: performance.now() });
+    }
     moveThumb();
   }
 

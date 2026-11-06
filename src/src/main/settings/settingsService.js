@@ -7,6 +7,7 @@ const { SerialQueue } = require('../core/serialQueue');
 const { getAppPaths, getDefaultGameDirectory } = require('../core/paths');
 const { configureDownloads } = require('../core/downloadConfig');
 const { isLightSystem } = require('../core/system');
+const { DEFAULT_OVERLAY_KEY, normalizeOverlayKey } = require('./hotkeys');
 
 const MEGABYTE = 1024 * 1024;
 const MIN_RAM_MB = 512;
@@ -58,6 +59,8 @@ function buildDefaults() {
     javaPath: '',
     extraJvmArgs: '',
     afterLaunch: 'minimize',
+    /** Bring the launcher's window back when the game closes; off: the player has left, it stays where it was. */
+    showAfterGame: false,
     /** Closing the window keeps the launcher in the system tray (main/tray.js). */
     closeToTray: true,
     showLogOnLaunch: false,
@@ -137,9 +140,9 @@ function buildDefaults() {
       inviteUpload: 'always',
       /** A friend's invite, clicked: 'join' builds and joins at once, 'build' only builds the instance. */
       acceptInvite: 'join',
-      /** The Amethyx panel over the game (main/overlay.js) and the keys that open it. */
+      /** The Amethyx panel over the game (main/overlay.js) and the keys that open it (an accelerator, settings/hotkeys.js). */
       overlay: true,
-      overlayKey: 'shift-tab',
+      overlayKey: DEFAULT_OVERLAY_KEY,
     },
   };
 }
@@ -233,6 +236,9 @@ function sanitize(input, defaults) {
   if (AFTER_LAUNCH.includes(input.afterLaunch)) {
     result.afterLaunch = input.afterLaunch;
   }
+  if (typeof input.showAfterGame === 'boolean') {
+    result.showAfterGame = input.showAfterGame;
+  }
   if (typeof input.showLogOnLaunch === 'boolean') {
     result.showLogOnLaunch = input.showLogOnLaunch;
   }
@@ -287,7 +293,7 @@ function sanitize(input, defaults) {
     inviteUpload: ['always', 'never', 'ask'].includes(input.social?.inviteUpload) ? input.social.inviteUpload : defaults.social.inviteUpload,
     acceptInvite: ['join', 'build'].includes(input.social?.acceptInvite) ? input.social.acceptInvite : defaults.social.acceptInvite,
     overlay: typeof input.social?.overlay === 'boolean' ? input.social.overlay : defaults.social.overlay,
-    overlayKey: ['shift-tab', 'alt-x', 'f9'].includes(input.social?.overlayKey) ? input.social.overlayKey : defaults.social.overlayKey,
+    overlayKey: normalizeOverlayKey(input.social?.overlayKey) ?? defaults.social.overlayKey,
   };
   result.downloads = {
     parallel: Number.isFinite(input.downloads?.parallel) ? clampInt(input.downloads.parallel, 1, 32) : defaults.downloads.parallel,

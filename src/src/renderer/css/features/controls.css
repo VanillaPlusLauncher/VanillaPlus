@@ -307,3 +307,49 @@ textarea,
   flex: 1;
   justify-content: center;
 }
+
+/* A recorded key combination (components/hotkeyInput.js): key caps on a button, "Сбросить" beside it. */
+.hotkey {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.hotkey__button {
+  min-width: 170px;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.hotkey__cap {
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+  font: inherit;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.hotkey__plus {
+  opacity: 0.55;
+}
+
+.hotkey__button--recording {
+  color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent) !important;
+}
+
+.hotkey__wait {
+  animation: hotkey-wait 1.1s ease-in-out infinite;
+}
+
+@keyframes hotkey-wait {
+  50% {
+    opacity: 0.45;
+  }
+}

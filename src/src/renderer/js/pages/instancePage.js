@@ -335,6 +335,14 @@ export function createInstancePage() {
       h('option', { value: 'hide' }, 'Прятать до выхода из игры'),
     );
     afterLaunchSelect.value = overrides.afterLaunch ?? '';
+    const afterGameSelect = h(
+      'select',
+      { class: 'select' },
+      h('option', { value: '' }, `Как в общих настройках (${settings.showAfterGame ? 'открывать' : 'не открывать'})`),
+      h('option', { value: 'true' }, 'Открывать лаунчер'),
+      h('option', { value: 'false' }, 'Не открывать'),
+    );
+    afterGameSelect.value = typeof overrides.showAfterGame === 'boolean' ? String(overrides.showAfterGame) : '';
     const preLaunchInput = h('input', { class: 'input mono', type: 'text', placeholder: 'например: backup.bat', value: overrides.preLaunchCommand ?? '' });
     const postExitInput = h('input', { class: 'input mono', type: 'text', placeholder: 'например: explorer screenshots', value: overrides.postExitCommand ?? '' });
 
@@ -349,6 +357,7 @@ export function createInstancePage() {
           fullscreen: fullscreenSelect.value === '' ? null : fullscreenSelect.value === 'true',
           joinServer: serverInput.value.trim() || null,
           afterLaunch: afterLaunchSelect.value || null,
+          showAfterGame: afterGameSelect.value === '' ? null : afterGameSelect.value === 'true',
           preLaunchCommand: preLaunchInput.value.trim() || null,
           postExitCommand: postExitInput.value.trim() || null,
         },
@@ -365,13 +374,13 @@ export function createInstancePage() {
       ),
       card('Сервер при запуске', 'Игра сразу подключится к этому серверу.', serverInput),
       card('Запуск', 'Что делать с лаунчером и какие команды выполнить. Команды запускаются в папке сборки.',
-        field('Окно лаунчера во время игры', afterLaunchSelect),
+        h('div', { class: 'field-row' }, field('Окно лаунчера во время игры', afterLaunchSelect), field('Когда игра закроется', afterGameSelect)),
         h('div', { class: 'field-row' }, field('Команда перед запуском', preLaunchInput), field('Команда после выхода из игры', postExitInput)),
         h('span', { class: 'field__hint' }, 'Если команда перед запуском завершится с ошибкой, игра не запустится. Доступны переменные INST_NAME, INST_ID, INST_DIR, INST_MC_VERSION.'),
       ),
       h('div', { class: 'instance-settings__actions' }, h('button', { class: 'btn btn--secondary btn--compact btn--danger', type: 'button', onclick: () => removeInstance() }, 'Удалить сборку')),
     );
-    autoSave(save, nameInput, groupInput, widthInput, heightInput, fullscreenSelect, serverInput, afterLaunchSelect, preLaunchInput, postExitInput);
+    autoSave(save, nameInput, groupInput, widthInput, heightInput, fullscreenSelect, serverInput, afterLaunchSelect, afterGameSelect, preLaunchInput, postExitInput);
   }
 
   // "Java": memory, which Java, JVM and game arguments.

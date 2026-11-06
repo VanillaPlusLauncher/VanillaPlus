@@ -118,6 +118,8 @@ function setLauncherVisible(visible, mode) {
       window.restore();
       window.focus();
     } else if (mode === 'hide') {
+      // The tray icon opens it again: the window does not come back by itself after the game unless asked to.
+      require('../tray').ensureTray(window).catch(() => {});
       window.hide();
     } else if (mode === 'minimize') {
       window.minimize();
@@ -252,8 +254,16 @@ async function launch(requestedInstanceId, { server = null } = {}) {
     }
   }
   const afterLaunch = overrides.afterLaunch ?? settings.afterLaunch;
+  const showAfterGame = typeof overrides.showAfterGame === 'boolean' ? overrides.showAfterGame : settings.showAfterGame === true;
   await prepareAmethyxSkins({ settings, instance, session, selectedId, gameDirectory });
-  const skinAgent = await prepareSkinAgent({ session, layout, versionId, onLog: pushLogLine });
+  const skinAgent = await prepareSkinAgent({
+    session,
+    layout,
+    versionId,
+    minecraft: instance.minecraft,
+    serverUrl: require('../cloud/cloudClient').serverUrl(settings),
+    onLog: pushLogLine,
+  });
   let child;
   try {
     child = await startGameProcess({
@@ -282,6 +292,7 @@ async function launch(requestedInstanceId, { server = null } = {}) {
     startedAt: startedAt.toISOString(),
     skinAgent,
     afterLaunch,
+    showAfterGame,
     postExit: overrides.postExitCommand ? { command: overrides.postExitCommand, instance, directory: gameDirectory } : null,
     activity: { instanceName: instance.name, minecraft: instance.minecraft, loader: instance.loader.type, server: server || overrides.joinServer || null },
   };
@@ -310,7 +321,7 @@ function finish(exitCode) {
   if (!current) {
     return;
   }
-  const { instanceId, versionId, skinAgent, stopRequested, startedAt, afterLaunch, postExit } = current;
+  const { instanceId, versionId, skinAgent, stopRequested, startedAt, afterLaunch, showAfterGame, postExit } = current;
   current = null;
   skinAgent?.stop().catch(() => {});
   require('../cloud/tunnel').onGameExit();
@@ -335,7 +346,9 @@ function finish(exitCode) {
   }
   getSettings()
     .then(async (settings) => {
-      if (afterLaunch !== 'keep') {
+      // Off by default: a player who closed the game has finished playing; the window stays where it was
+      // (minimised, or in the tray) until they open it.
+      if (afterLaunch !== 'keep' && showAfterGame) {
         setLauncherVisible(true);
       }
       const instance = await instanceService.getInstance(settings, instanceId);

@@ -15,7 +15,7 @@
 - An invite in the chat is a card with the instance's picture, name and version. "Join" builds the instance if needed, starts it and joins at once; "Only build" just builds it; while it builds, "Stop" stops it and removes the half-built instance. If the friend already has the instance, it simply starts
 - Settings → "Friends and skins" → "Friend invites": whether the instance goes with an invite, whether mods not from Modrinth or CurseForge are uploaded (always, ask, never), and what the main button of a friend's invite does (join at once or only build)
 - A friend joining shows a small card over the game; when a friend's world is closed, the launcher says so instead of a silent "connection lost"
-- A panel over the game: while you play, press Shift+Tab and the Amethyx panel slides in from the right — invite a friend to your world or to your own server, reply in the chat, send your latest screenshot. The keys work only while the game's window is in front, so in other programs Shift+Tab does what it always does. Nothing goes into the game, so it works in every version and with every loader. A message card over the game says which keys answer it. The keys (Shift+Tab, Alt+X or F9) and the panel itself are in Settings → "Friends and skins"
+- A panel over the game: while you play, press Shift+Tab and the Amethyx panel slides in from the right — invite a friend to your world or to your own server, reply in the chat, send your latest screenshot. The keys work only while the game's window is in front, so in other programs Shift+Tab does what it always does. Nothing goes into the game, so it works in every version and with every loader. A message card over the game says which keys answer it. The keys and the panel itself are in Settings → "Friends and skins": press the button, then any combination (Ctrl+Alt+O, F9…); "Сбросить" brings back Shift+Tab. A new combination works at once, also in a running game
 - Export → "Send to a friend": the instance goes straight into the chat
 - Friends, chat and shared skins work through the Amethyx server; all of it can be turned off in Settings → "Friends and skins". The server moved from Cloudflare to the site's own hosting (the `website/cloud` folder, PHP): Cloudflare is blocked in Russia. Accounts, friends and skins move over from the old server; the launcher learns of new messages by asking the server every few seconds. Amethyx skins are now seen by everyone: before, a player with Microsoft did not see the skins of friends with offline accounts and the other way round
 - Where Cloudflare is blocked (Russia), Modrinth's and CurseForge's icons, files and modpacks did not load: when a site does not answer directly, the launcher gets the same through the Amethyx server (only from those sites)
@@ -27,6 +27,7 @@
 - Microsoft accounts: "Wear" also puts the skin on your real Minecraft profile, so every player on every server sees it; "Reset skin" brings back the default one
 - Ely.by accounts: an Amethyx skin (other Amethyx players see it in modded instances through CustomSkinLoader); "To Ely.by" hands the skin file over to the Ely.by upload page for everyone else
 - A skin per account; a sharper 3D model with correct colors and a crisp name tag
+- Old versions (up to 1.7.5) show the Amethyx skins and capes of every player without any mod: those versions ask for each player's skin by name, and the launcher answers them itself — Amethyx skins first, then the usual Mojang or Ely.by ones (before, old versions showed no skins at all, since Mojang's old addresses are gone)
 
 ### Instances and mods
 - Import from other launchers (Instances → "From other launchers"): Prism Launcher, ElyPrismLauncher, PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher and the official launcher are found automatically; the version, loader, mods, settings, resource packs, shaders, worlds and screenshots move over
@@ -119,6 +120,7 @@
 - Notifications no longer pile up in big cards: a small book in the corner hops and counts what is new, and a click opens the list in sections — mod downloads, instances, errors, the rest; each section is a stack that opens to show everything with how long ago it was. Only an error or a notice with a button still shows as a card
 - Shadows of cards and buttons no longer end in a hard line: instances, the "Recent instances" and "News" rows on Home, the friends panel, the wardrobe and dialogs
 - A new, calmer look (picked on the style page): soft raised buttons with round corners on lighter panels — a pressed one sinks in, a soft shine crosses it under the pointer; cards, fields, switches and menus match. Icons on buttons and in lists are in colour, like items in the inventory, and hop with a tilt under the pointer, like the instance icons; "Гардероб" on Home is a full button with its icon; the sidebar keeps its Minecraft pictures. In this look nothing is pixelated: the icons are smooth (the same colours), and lists, ticks, sliders, scrollbars and menus are round. Settings → "Оформление" → "Шрифт" offers eleven fonts, each shown in its own letters: Pixel, Inter, Golos, Onest, Manrope, Nunito, Rubik, Montserrat, Comfortaa, Exo 2, Unbounded. Settings → "Оформление" → "Кнопки" and "Иконки" bring back the pixel buttons and single-colour icons
+- The launcher no longer comes back by itself when the game closes: you played and left. Settings → "Лаунчер" → "Открывать лаунчер после игры" turns it back on, and an instance can choose for itself (its settings → "Запуск" → "Когда игра закроется"). With "Прятать" the launcher waits in the tray by the clock
 
 ### Fixes
 - A long mod list (150 mods) no longer stutters while scrolling or switching looks
@@ -154,6 +156,7 @@
 - CurseForge modpacks from the Library now say which mods did not download; a Modrinth modpack with only betas installs; one broken mirror no longer stops a modpack
 - Quilt instances get libraries made only for Fabric (Fabric API); old Forge modpacks (1.7.10 and the like) install Forge again
 - The mod warning checks the version that will be installed (with the Library's version and loader); "Shaders" turns a shader pack back on when it was off
+- Switches like "При запуске игры": the highlight now slides from the option that was chosen; it used to fly in from the left edge, and choosing "Оставлять" had no movement at all
 
 ## 1.3.1 — 2026-10-19
 

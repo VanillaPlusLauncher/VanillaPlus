@@ -8,6 +8,7 @@ import { store } from '../state/appStore.js';
 import { saveSettings } from '../state/actions.js';
 import { toast } from '../components/toast.js';
 import { createSegmented, createToggle, loadingMark } from '../components/controls.js';
+import { createHotkeyInput } from '../components/hotkeyInput.js';
 import { confirmDialog } from '../components/modal.js';
 import { startTour } from '../components/tour.js';
 import { createJavaPage } from './javaPage.js';
@@ -335,7 +336,7 @@ export function createSettingsPage() {
       save({ social: { ...social, serverUrl: value } }, false);
     });
     return [
-      card('Скины и плащи в игре', 'В сборках с модами (Fabric, Forge, NeoForge, Quilt) лаунчер ставит мод CustomSkinLoader: в игре видны ваш скин и плащ Amethyx и скины других игроков Amethyx. В сборках без модов так нельзя — там офлайн-аккаунты получают свой скин и плащ, а Microsoft и Ely.by остаются со своими.',
+      card('Скины и плащи в игре', 'В сборках с модами (Fabric, Forge, NeoForge, Quilt) лаунчер ставит мод CustomSkinLoader: в игре видны ваш скин и плащ Amethyx и скины других игроков Amethyx. На версиях до 1.7.5 они видны и без мода. В новых версиях без модов офлайн-аккаунты получают свой скин и плащ, а Microsoft и Ely.by остаются со своими.',
         row('Скины Amethyx в сборках с модами', 'Если выключить, мод больше не будет ставиться сам. Уже поставленный можно выключить на вкладке «Моды» сборки.', toggle(social.skinsInMods !== false, (value) => update({ skinsInMods: value }), 'Скины Amethyx')),
       ),
       card('Онлайн-функции', 'Друзья, статус «в сети» и скины, которые видят другие игроки Amethyx, работают через сервер Amethyx. На него уходят только ник, скин, плащ и (если разрешено) во что вы играете. Пароли и ключи входа туда не попадают.',
@@ -358,13 +359,12 @@ export function createSettingsPage() {
         }).element)),
       ),
       // The panel over the game (main/overlay.js): takes effect from the next game start.
-      card('Панель поверх игры', 'Во время игры нажмите сочетание клавиш — справа выедет панель Amethyx: позвать друга в мир, ответить в чате, отправить скриншот. В игру ничего не ставится, работает в любой версии. Изменения — со следующего запуска игры.',
+      card('Панель поверх игры', 'Во время игры нажмите сочетание клавиш — справа выедет панель Amethyx: позвать друга в мир, ответить в чате, отправить скриншот. В игру ничего не ставится, работает в любой версии.',
         row('Панель поверх игры', null, toggle(social.overlay !== false, (value) => update({ overlay: value }), 'Панель поверх игры')),
-        row('Открывать сочетанием', 'Если другая программа уже заняла сочетание, выберите другое.', nowrap(createSegmented({
-          options: [{ value: 'shift-tab', label: 'Shift+Tab' }, { value: 'alt-x', label: 'Alt+X' }, { value: 'f9', label: 'F9' }],
-          value: social.overlayKey ?? 'shift-tab',
+        row('Открывать сочетанием', 'Нажмите на кнопку, потом нужные клавиши. Если другая программа уже заняла сочетание, выберите другое.', createHotkeyInput({
+          value: social.overlayKey,
           onChange: (value) => update({ overlayKey: value }),
-        }).element)),
+        }).element),
       ),
     ];
   }
@@ -380,7 +380,8 @@ export function createSettingsPage() {
       onChange: (value) => save({ afterLaunch: value }, false),
     });
     return [
-      card('При запуске игры', 'Что делать с окном лаунчера, пока вы играете. «Прятать» — окно вернётся, когда игра закроется.', after.element,
+      card('При запуске игры', 'Что делать с окном лаунчера, пока вы играете. «Прятать» — лаунчер уйдёт к часам, открыть — кликом по значку.', after.element,
+        row('Открывать лаунчер после игры', 'Когда игра закроется, окно лаунчера появится снова.', toggle(settings.showAfterGame === true, (value) => save({ showAfterGame: value }), 'После игры')),
         row('Открывать журнал игры', 'Удобно, если игра вылетает и нужно понять почему.', toggle(settings.showLogOnLaunch, (value) => save({ showLogOnLaunch: value }), 'Журнал'))),
       card('При закрытии окна', null,
         row('Сворачивать в трей', 'Крестик прячет лаунчер к часам: сообщения друзей и загрузки продолжаются. Открыть — кликом по значку, выйти совсем — правой кнопкой по значку → «Выйти». Если выключить, крестик закрывает лаунчер.', toggle(settings.closeToTray !== false, (value) => save({ closeToTray: value }, false), 'Трей'))),

@@ -3,18 +3,21 @@
 const http = require('node:http');
 
 /*
- * Versions before 1.7 have no authlib: they download skins straight from Mojang's old
+ * Versions before 1.7.6 download every player's skin and cape by name, straight from Mojang's old
  * addresses (www.minecraft.net/skin/, s3.amazonaws.com/MinecraftSkins/, skins.minecraft.net),
- * which no longer serve anything. The game is started with -Dhttp.proxyHost pointing here,
- * so this proxy answers those requests with the player's own skin and passes every other
- * plain-HTTP request through unchanged. HTTPS does not use http.proxyHost and is not affected.
+ * which no longer serve anything. The game is started with -Dhttp.proxyHost pointing here, so this
+ * proxy answers those requests itself — Amethyx skins of all players, no mod needed (playerSkins.js) —
+ * and passes every other plain-HTTP request through unchanged. HTTPS does not use http.proxyHost.
  */
 
 const SKIN_PATHS = [
-  /^\/MinecraftSkins\/([^/]+)\.png$/i, // beta and release up to 1.6
+  /^\/MinecraftSkins\/([^/]+)\.png$/i, // beta and release up to 1.7.5
   /^\/skin\/([^/]+)\.png$/i, // classic, indev, alpha (www.minecraft.net)
 ];
-const CLOAK_PATHS = [/^\/MinecraftCloaks\//i, /^\/cloak\//i];
+const CLOAK_PATHS = [
+  /^\/MinecraftCloaks\/([^/]+)\.png$/i, // beta and release up to 1.7.5
+];
+const CLOAK_PAGE = /^\/cloak\/get\.jsp$/i; // alpha: www.minecraft.net/cloak/get.jsp?user=<name>
 const RESOURCES_PATH = /^\/MinecraftResources\/?$/i;
 // The old resource bucket is gone; an empty listing makes the game skip it instead of logging an error.
 const EMPTY_BUCKET =
@@ -64,11 +67,39 @@ function forward(request, response, target) {
   request.pipe(upstream);
 }
 
+function sendPng(response, png) {
+  response.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': png.length });
+  response.end(png);
+}
+
 /**
- * skins: Map<lower-case username, PNG Buffer in the 64x32 layout old versions expect>.
- * Resolves with { port, close() }.
+ * lookup(name) → Promise<{ png, cape, source } | null> (playerSkins.js); toLegacy(png) turns a skin
+ * into the 64x32 layout old versions expect. Resolves with { port, close() }.
  */
-function startLegacySkinProxy({ skins, onLog = () => {} }) {
+function startLegacySkinProxy({ lookup, toLegacy = (png) => png, onLog = () => {} }) {
+  const told = new Set();
+  /** Answers a skin or cape request for `name`; 404 when the player has none. */
+  function answer(response, name, kind) {
+    lookup(safeDecode(name))
+      .then((found) => {
+        const png = kind === 'skin' ? found?.png && toLegacy(found.png) : found?.cape;
+        if (!png) {
+          response.writeHead(404).end();
+          return;
+        }
+        const note = `${kind}:${name.toLowerCase()}`;
+        if (!told.has(note)) {
+          told.add(note);
+          onLog(`Скин: ${kind === 'skin' ? 'скин' : 'плащ'} игрока ${safeDecode(name)} (${found.source})`);
+        }
+        sendPng(response, png);
+      })
+      .catch(() => {
+        if (!response.headersSent) response.writeHead(404);
+        response.end();
+      });
+  }
+
   return new Promise((resolve, reject) => {
     const server = http.createServer((request, response) => {
       let target;
@@ -86,18 +117,12 @@ function startLegacySkinProxy({ skins, onLog = () => {} }) {
 
       const skinMatch = SKIN_PATHS.map((pattern) => pattern.exec(target.pathname)).find(Boolean);
       if (skinMatch) {
-        const png = skins.get(safeDecode(skinMatch[1]).toLowerCase());
-        if (png) {
-          onLog('Скин: игра загрузила текстуру скина');
-          response.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': png.length });
-          response.end(png);
-        } else {
-          response.writeHead(404).end();
-        }
+        answer(response, skinMatch[1], 'skin');
         return;
       }
-      if (CLOAK_PATHS.some((pattern) => pattern.test(target.pathname))) {
-        response.writeHead(404).end();
+      const cloakMatch = CLOAK_PATHS.map((pattern) => pattern.exec(target.pathname)).find(Boolean);
+      if (cloakMatch || CLOAK_PAGE.test(target.pathname)) {
+        answer(response, cloakMatch ? cloakMatch[1] : target.searchParams.get('user') ?? '', 'cape');
         return;
       }
       if (target.hostname === RELEASE_FLAG.hostname && target.pathname === RELEASE_FLAG.pathname) {
