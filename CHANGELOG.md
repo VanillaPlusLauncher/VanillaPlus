@@ -78,7 +78,7 @@
 - "Loading" everywhere is the launcher's X; mods without a picture get one from CurseForge or Modrinth by their name (BadOptimizations, for example)
 - Installing several mods sounds once at the start and once when all are done
 - Home: "All instances" and "minecraft.net" readable over any panorama; a recent instance opens with a click (the one Home plays is chosen in the play bar)
-- The tray icon's menu and the tray notice in the launcher's pixel-cut style: cut corners, an even frame, pixel icons, the version, in the pixel font and in the interface's language
+- The tray icon's menu and the tray notice look like the launcher: soft (round corners, 3D icons) or pixel, as chosen in "Оформление", with the font, theme colour and icons chosen there, the version, in the interface's language. The notice no longer vanishes before it shows
 - Panels and dialogs have an even frame all round instead of a light strip along the top edge, which showed as a white line over the panorama; no white square where two scrollbars meet, and dialogs never scroll sideways
 - Toasts no longer cover each other: only the newest shows, with a small grey "×N" in its corner; pointing at it spreads them into a list
 - "Loading…" in the Library and Friends while the first answer is on its way; rows of the instance page come in, light up when ticked (a wave for "All"), and the selection bar slides in
