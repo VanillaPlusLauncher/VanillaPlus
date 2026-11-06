@@ -124,8 +124,14 @@ return false;
   const ini = writeIni();
   const port = await freePort();
   base = `http://127.0.0.1:${port}`;
+  // PHP for Windows makes keys (signed skins) only with its own OpenSSL configuration.
+  const opensslConf = path.join(path.dirname(php), 'extras', 'ssl', 'openssl.cnf');
   server = spawn(php, ['-c', ini, '-S', `127.0.0.1:${port}`, '-t', site, path.join(work, 'router.php')], {
-    env: { ...process.env, AMX_CLOUD_TEST_SESSION_SERVER: `http://127.0.0.1:${fake.address().port}` },
+    env: {
+      ...process.env,
+      AMX_CLOUD_TEST_SESSION_SERVER: `http://127.0.0.1:${fake.address().port}`,
+      ...(!process.env.OPENSSL_CONF && fs.existsSync(opensslConf) ? { OPENSSL_CONF: opensslConf } : {}),
+    },
     stdio: ['ignore', 'ignore', 'pipe'],
   });
   let stderr = '';
@@ -380,6 +386,77 @@ test('skin and cape, /csl and /textures, players found across account kinds', as
   assert.equal(r.status, 404);
   r = await call('GET', '/csl/ms/Alex.json');
   assert.deepEqual(r.body, { username: 'Alex', cape: capeHash });
+});
+
+/** The id an offline server gives a name (Java's UUID.nameUUIDFromBytes("OfflinePlayer:" + name)). */
+function offlineUuid(name) {
+  const hash = crypto.createHash('md5').update(`OfflinePlayer:${name}`, 'utf8').digest();
+  hash[6] = (hash[6] & 0x0f) | 0x30;
+  hash[8] = (hash[8] & 0x3f) | 0x80;
+  return hash.toString('hex');
+}
+
+test('signed skins: the key, a profile by name and by offline id, signatures a game accepts', async () => {
+  let r = await call('GET', '/skin-key');
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.headers.get('cache-control'), 'public, max-age=3600');
+  const key = crypto.createPublicKey({ key: Buffer.from(r.body.publicKey, 'base64'), format: 'der', type: 'spki' });
+  assert.equal(key.asymmetricKeyDetails.modulusLength, 4096);
+  assert.equal((await call('GET', '/skin-key')).body.publicKey, r.body.publicKey, 'one key, kept');
+
+  /** Checks the profile as authlib would: SHA1withRSA over the base64 value, then the payload. */
+  const opened = (profile) => {
+    assert.equal(profile.properties.length, 1);
+    const [property] = profile.properties;
+    assert.equal(property.name, 'textures');
+    assert.ok(crypto.verify('sha1', Buffer.from(property.value), key, Buffer.from(property.signature, 'base64')), 'signature');
+    return JSON.parse(Buffer.from(property.value, 'base64').toString('utf8'));
+  };
+
+  r = await call('POST', '/v1/auth/offline', { name: 'Sigma', secret: 'e'.repeat(64) });
+  const sigma = r.body.token;
+  const skin = (await call('PUT', '/v1/me/skin', { png: png(64, 64, 9), model: 'slim' }, sigma)).body.hash;
+  const cape = (await call('PUT', '/v1/me/cape', { png: png(64, 32, 4) }, sigma)).body.hash;
+
+  r = await call('GET', '/signed/offline/Sigma.json');
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.headers.get('cache-control'), 'public, max-age=60');
+  assert.equal(r.body.id, offlineUuid('Sigma'));
+  assert.equal(r.body.name, 'Sigma');
+  let payload = opened(r.body);
+  assert.equal(payload.profileId, offlineUuid('Sigma'));
+  assert.equal(payload.profileName, 'Sigma');
+  assert.deepEqual(payload.textures, { SKIN: { url: `${base}/cloud/textures/${skin}`, metadata: { model: 'slim' } }, CAPE: { url: `${base}/cloud/textures/${cape}` } });
+  // The texture itself comes from the address in the payload.
+  assert.equal((await fetch(payload.textures.SKIN.url)).status, 200);
+
+  // The id the asking launcher uses; a viewer of another kind finds Sigma as /csl does.
+  r = await call('GET', `/signed/ms/Sigma.json?uuid=${uuid}`);
+  assert.equal(r.body.id, uuid);
+  assert.equal(opened(r.body).profileId, uuid);
+  r = await call('GET', '/signed/offline/Sigma.json?uuid=not-an-id');
+  assert.equal(r.body.id, offlineUuid('Sigma'));
+  r = await call('GET', '/signed/offline/Nobody.json');
+  assert.equal(r.status, 404);
+  assert.deepEqual(r.body, { errno: 404, msg: 'not found' });
+  // A classic skin carries no metadata.
+  r = await call('GET', '/signed/ely/Elfy.json');
+  assert.deepEqual(Object.keys(opened(r.body).textures), ['SKIN']);
+  assert.equal(opened(r.body).textures.SKIN.metadata, undefined);
+
+  // By the id an offline server gives: the name's exact case counts, offline accounts first.
+  r = await call('GET', `/signed/uuid/${offlineUuid('Sigma')}.json`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.name, 'Sigma');
+  assert.equal(opened(r.body).textures.SKIN.url, `${base}/cloud/textures/${skin}`);
+  assert.equal((await call('GET', `/signed/uuid/${offlineUuid('sigma')}.json`)).status, 404);
+  r = await call('GET', `/signed/uuid/${offlineUuid('Duo')}.json`);
+  assert.equal(opened(r.body).textures.SKIN.url, `${base}/cloud/textures/${sha(Buffer.from(png(64, 64, 8), 'base64'))}`);
+  r = await call('GET', `/signed/uuid/${offlineUuid('Elfy')}.json`);
+  assert.equal(r.body.name, 'Elfy');
+  // Version-4 ids (Microsoft, Ely.by) bring their skins with them: never looked up.
+  assert.equal((await call('GET', `/signed/uuid/${'d'.repeat(12)}4${'d'.repeat(19)}.json`)).status, 404);
+  assert.equal((await call('GET', '/signed/uuid/XYZ.json')).status, 404);
 });
 
 test('friends: request, list, accept, presence, remove, mutual requests', async () => {

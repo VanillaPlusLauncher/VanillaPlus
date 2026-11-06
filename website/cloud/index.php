@@ -11,6 +11,7 @@ require __DIR__ . '/../lib/amethyx.php';
 require __DIR__ . '/lib/schema.php';
 require __DIR__ . '/lib/core.php';
 require __DIR__ . '/lib/accounts.php';
+require __DIR__ . '/lib/signed.php';
 require __DIR__ . '/lib/social.php';
 require __DIR__ . '/lib/files.php';
 require __DIR__ . '/lib/proxy.php';
@@ -28,6 +29,10 @@ function cloud_route(string $method, string $path): ?array {
 
   if ($method === 'GET' && preg_match('#^/csl/(ms|ely|offline)/([A-Za-z0-9_]{1,16})\.json$#D', $path, $match)) return cloud_csl_profile($match[1], $match[2]);
   if ($method === 'GET' && preg_match('#^/(?:csl/(?:ms|ely|offline)/)?textures/([0-9a-f]{64})$#D', $path, $match)) return cloud_texture($match[1]);
+  // Signed skins for games without mods (lib/signed.php).
+  if ($method === 'GET' && $path === '/skin-key') return cloud_skin_key_answer();
+  if ($method === 'GET' && preg_match('#^/signed/(ms|ely|offline)/([A-Za-z0-9_]{1,16})\.json$#D', $path, $match)) return cloud_signed_by_name($match[1], $match[2]);
+  if ($method === 'GET' && preg_match('#^/signed/uuid/([0-9a-f]{32})\.json$#D', $path, $match)) return cloud_signed_by_uuid($match[1]);
   if ($method === 'GET' && preg_match('#^/packs/([0-9a-f]{32})$#D', $path, $match)) return cloud_pack_info($match[1]);
   if ($method === 'GET' && preg_match('#^/packs/([0-9a-f]{32})/([0-9a-f]{64})/(\d{1,4})$#D', $path, $match)) return cloud_pack_part($match[1], $match[2], (int) $match[3]);
   if ($method === 'GET' && $path === '/proxy') return cloud_proxy();

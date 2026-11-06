@@ -13,6 +13,7 @@ const { startSkinServer } = require('./skinServer');
 const { startRealmsStub } = require('./realmsStub');
 const { startLegacySkinProxy } = require('./legacySkinProxy');
 const { createSkinLookup } = require('./playerSkins');
+const { loadServerKey, createSignedSkins } = require('./signedSkins');
 const { ensureAuthlibInjector } = require('./authlibInjector');
 const { fetchMojangServices } = require('./servicesDiscovery');
 const { loadLocalDescriptor } = require('./gameLauncher');
@@ -101,25 +102,33 @@ async function startLegacyServices({ session, serverUrl, own, onLog }) {
   return { args: ['-Dhttp.proxyHost=127.0.0.1', `-Dhttp.proxyPort=${proxy.port}`], stop: () => proxy.close() };
 }
 
-/** Starts the local profile/skin server and returns the JVM arguments that point the game at it. */
-async function startProfileServices({ session, uuid, skin, mode, onLog }) {
+/**
+ * Starts the local profile/skin server and returns the JVM arguments that point the game at it.
+ * serverUrl: the Amethyx server; its signed skins make other Amethyx players' skins show (signedSkins.js).
+ */
+async function startProfileServices({ session, uuid, skin, mode, serverUrl, onLog }) {
   const { toolsDirectory } = getAppPaths();
-  const [signingKey, services, jarPath] = await Promise.all([
+  const [signingKey, services, jarPath, serverKey] = await Promise.all([
     loadSigningKey(toolsDirectory),
     mode === 'discovery' ? fetchMojangServices() : null,
     mode === 'injector' ? ensureAuthlibInjector(toolsDirectory) : null,
+    serverUrl ? loadServerKey(serverUrl, toolsDirectory) : null,
   ]);
   const profiles = new Map(skin?.png || skin?.cape ? [[uuid, { username: session.username, model: skin.model, png: skin.png, cape: skin.cape }]] : []);
   const server = await startSkinServer({
     profiles,
     signingKey,
     services,
+    amethyx: serverKey ? { url: serverUrl, key: serverKey, signed: createSignedSkins(serverUrl) } : null,
     onLog: (message) => {
       log.info(message);
       onLog(message);
     },
   });
   log.info(`Локальный сервер профилей запущен: ${server.url} (режим ${mode})`);
+  if (serverKey) {
+    onLog('Скины игроков: скины Amethyx друзей видны в игре без мода');
+  }
   const args =
     mode === 'discovery' ? [`-Dminecraft.api.discovery.host=${server.discoveryUrl}`] : [`-javaagent:${jarPath}=${server.url}`];
   return { args, stop: () => server.close() };
@@ -214,10 +223,11 @@ async function prepareSkinAgent({ session, layout, versionId, minecraft = null, 
     if (skin?.png) {
       onLog(`Скин: подключён свой скин (${skin.model === 'slim' ? 'тонкая модель' : 'классическая модель'})`);
     }
-  } else if (uuid && (skin || mode === 'discovery')) {
-    // Older authlib needs authlib-injector (a download) for this, so it gets it only with a skin.
+  } else if (uuid && (skin || mode === 'discovery' || serverUrl)) {
+    // Older authlib needs authlib-injector (a download) for this: with a skin of the player's own,
+    // or for the Amethyx skins of the others (and a friend's world: joining needs it, see skinServer.js).
     try {
-      const profileServices = await startProfileServices({ session, uuid, skin, mode, onLog });
+      const profileServices = await startProfileServices({ session, uuid, skin, mode, serverUrl, onLog });
       args.push(...profileServices.args);
       stops.push(profileServices.stop);
       if (skin?.png) {
@@ -228,7 +238,7 @@ async function prepareSkinAgent({ session, layout, versionId, minecraft = null, 
       }
     } catch (error) {
       log.error(`Офлайн-сервисы не запущены: ${error.message}`);
-      onLog(`Скин не применён: ${error.message}`);
+      onLog(`Скины не подключены: ${error.message}`);
     }
   }
 

@@ -28,6 +28,7 @@
 - Ely.by accounts: an Amethyx skin (other Amethyx players see it in modded instances through CustomSkinLoader); "To Ely.by" hands the skin file over to the Ely.by upload page for everyone else
 - A skin per account; a sharper 3D model with correct colors and a crisp name tag
 - Old versions (up to 1.7.5) show the Amethyx skins and capes of every player without any mod: those versions ask for each player's skin by name, and the launcher answers them itself — Amethyx skins first, then the usual Mojang or Ely.by ones (before, old versions showed no skins at all, since Mojang's old addresses are gone)
+- Newer versions (1.7.6 and up, 26.x too) show friends' Amethyx skins and capes without any mod when you play with an offline account: the Amethyx server signs its skins and the launcher tells the game to trust that signature. It works in a world opened to LAN, and on servers without login checks in 1.13–1.20.1 too
 
 ### Instances and mods
 - Import from other launchers (Instances → "From other launchers"): Prism Launcher, ElyPrismLauncher, PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher and the official launcher are found automatically; the version, loader, mods, settings, resource packs, shaders, worlds and screenshots move over

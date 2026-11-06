@@ -83,14 +83,23 @@ async function fetchMojangServices() {
   };
 }
 
-/** Mojang's document with the profile, public key and texture entries pointing at the local server. */
-function buildDiscoveryDocument(template, baseUrl) {
+/**
+ * Mojang's document with the profile, public key and texture entries pointing at the local server.
+ * amethyxUrl: the Amethyx server, whose signed skins (textures on its own address) the game then
+ * accepts; joining a world and letting friends in go through the local server too, as with
+ * authlib-injector on older versions (see skinServer.js).
+ */
+function buildDiscoveryDocument(template, baseUrl, amethyxUrl = null) {
   const document = structuredClone(template);
   const services = (document.discovery ??= {});
   const endpoints = (service) => ((services[service] ??= {}).endpoints ??= {});
 
   endpoints('authentication').getPublicKeys = { uri: `${baseUrl}/minecraftservices/publickeys` };
   endpoints('session').getProfileById = { uri: `${baseUrl}/sessionserver/session/minecraft/profile/{profileId}` };
+  if (amethyxUrl) {
+    endpoints('session').verify = { uri: `${baseUrl}/sessionserver/session/minecraft/hasJoined` };
+    endpoints('session').join = { uri: `${baseUrl}/sessionserver/session/minecraft/join` };
+  }
   // Mojang answers 401 to the offline token "0"; the local answers keep the log clean.
   endpoints('player').getAttributes = { uri: `${baseUrl}/minecraftservices/player/attributes` };
   endpoints('player').updateAttributes = { uri: `${baseUrl}/minecraftservices/player/attributes` };
@@ -98,16 +107,19 @@ function buildDiscoveryDocument(template, baseUrl) {
   const texture = endpoints('profiles').getTexture ?? {};
   endpoints('profiles').getTexture = {
     ...texture,
-    validUris: [...(texture.validUris ?? []), `${baseUrl}/textures/{textureId}`],
+    validUris: [...(texture.validUris ?? []), `${baseUrl}/textures/{textureId}`, ...(amethyxUrl ? [`${amethyxUrl}/textures/{textureId}`] : [])],
   };
   return document;
 }
 
-/** Public key set: ours signs the local profiles, Mojang's keep other players' skins valid. */
-function buildPublicKeys(mojangKeys, ownPublicKeyDer) {
+/**
+ * Public key set: ours signs the local profiles, the Amethyx server's (extra) other Amethyx players'
+ * skins, Mojang's keep Microsoft players' skins valid.
+ */
+function buildPublicKeys(mojangKeys, ownPublicKeyDer, extraKeysDer = []) {
   return {
     ...mojangKeys,
-    profilePropertyKeys: [{ publicKey: ownPublicKeyDer.toString('base64') }, ...(mojangKeys.profilePropertyKeys ?? [])],
+    profilePropertyKeys: [ownPublicKeyDer, ...extraKeysDer].map((key) => ({ publicKey: key.toString('base64') })).concat(mojangKeys.profilePropertyKeys ?? []),
     playerCertificateKeys: mojangKeys.playerCertificateKeys ?? [],
   };
 }

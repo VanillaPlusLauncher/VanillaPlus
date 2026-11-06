@@ -244,18 +244,25 @@ function cloud_set_presence(array $user): array {
 
 // ---- CustomSkinLoader -----------------------------------------------------
 
+// Whose skin a viewer with this kind of account sees under this name (see cloud_csl_profile), or
+// null when that player has neither skin nor cape.
+function cloud_skin_owner(string $ns, string $name): ?array {
+  $user = cloud_user_by_name($ns, $name);
+  if (!$user) {
+    $user = cloud_row(cloud_db(), 'SELECT * FROM users WHERE name_lower = ? AND ns <> ? AND (skin_hash IS NOT NULL OR cape_hash IS NOT NULL)
+      ORDER BY last_seen DESC, created_at DESC LIMIT 1', [strtolower($name), $ns]);
+  }
+  return $user && ($user['skin_hash'] || $user['cape_hash']) ? $user : null;
+}
+
 // GET /csl/<ns>/<name>.json in CustomSkinAPI format. The game asks with the viewer's kind of
 // account. A player of that kind with this name is the answer; when there is none, the player may
 // use another kind (on an offline server Microsoft, Ely.by and offline players meet): then the one
 // of the other kinds seen last that has a skin or a cape.
 function cloud_csl_profile(string $ns, string $name): array {
   $cache = ['Cache-Control' => 'public, max-age=60'];
-  $user = cloud_user_by_name($ns, $name);
-  if (!$user) {
-    $user = cloud_row(cloud_db(), 'SELECT * FROM users WHERE name_lower = ? AND ns <> ? AND (skin_hash IS NOT NULL OR cape_hash IS NOT NULL)
-      ORDER BY last_seen DESC, created_at DESC LIMIT 1', [strtolower($name), $ns]);
-  }
-  if (!$user || (!$user['skin_hash'] && !$user['cape_hash'])) return cloud_json(['errno' => 404, 'msg' => 'not found'], 404, $cache);
+  $user = cloud_skin_owner($ns, $name);
+  if (!$user) return cloud_json(['errno' => 404, 'msg' => 'not found'], 404, $cache);
   $body = ['username' => $user['name']];
   if ($user['skin_hash']) $body['skins'] = [$user['skin_model'] === 'slim' ? 'slim' : 'default' => $user['skin_hash']];
   if ($user['cape_hash']) $body['cape'] = $user['cape_hash'];
