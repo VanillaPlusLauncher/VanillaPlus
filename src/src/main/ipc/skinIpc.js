@@ -8,7 +8,7 @@ const { saveSkin, loadSkin, deleteSkin, saveCape, loadCape, deleteCape } = requi
 const { publishSoon } = require('../cloud/cloudSkins');
 const { assertSkinPng, MAX_SKIN_BYTES } = require('../skins/pngValidation');
 const { openSkinSite, modelOf, nameOf } = require('../skins/skinSite');
-const { skinByName, accountSkin, uploadMicrosoftSkin, resetMicrosoftSkin, listLibrary, saveToLibrary, removeFromLibrary, listSlots, saveToSlot, clearSlot } = require('../skins/skinSources');
+const { skinByName, accountSkin, uploadMicrosoftSkin, listLibrary, saveToLibrary, removeFromLibrary, listSlots, saveToSlot, clearSlot } = require('../skins/skinSources');
 const { loadAccountStore } = require('../accounts/accountStore');
 const { getLaunchSession } = require('../accounts/accountService');
 
@@ -61,7 +61,7 @@ function registerSkinHandlers(handle) {
       throw new Error('Загрузить скин в профиль можно только для аккаунта Microsoft.');
     }
     const session = await getLaunchSession(accountId);
-    await uploadMicrosoftSkin(session.accessToken, Buffer.from(String(pngBase64 ?? ''), 'base64'), model);
+    await uploadMicrosoftSkin(session.accessToken, Buffer.from(String(pngBase64 ?? ''), 'base64'), model === 'slim' ? 'slim' : 'classic');
   });
 
   async function findAccount(accountId) {
@@ -72,33 +72,19 @@ function registerSkinHandlers(handle) {
   }
 
   /**
-   * "Надеть" in the Wardrobe. The launcher keeps the skin for every account (offline: the skin in
-   * the game; Ely.by: the Amethyx skin, seen through CustomSkinLoader); a Microsoft account also
-   * gets it on its real profile, so everyone on every server sees it. A failed upload keeps the
-   * launcher's copy and is reported as `uploadError`.
+   * "Надеть" in the Wardrobe: the skin the launcher keeps for the account (offline: the skin in the
+   * game; Microsoft and Ely.by: the Amethyx skin, seen through CustomSkinLoader and on old versions).
+   * The real profile is changed apart: "В профиль Microsoft" (skins.uploadMicrosoft), "На Ely.by".
    */
   handle(CHANNELS.skins.wear, async (_event, accountId, pngBase64, model) => {
     const account = await findAccount(accountId);
-    const png = Buffer.from(String(pngBase64 ?? ''), 'base64');
-    await saveSkin(account.uuid, png, model);
+    await saveSkin(account.uuid, Buffer.from(String(pngBase64 ?? ''), 'base64'), model);
     publishSoon(account.uuid);
-    if (account.type !== 'microsoft') return { uploaded: false };
-    try {
-      const session = await getLaunchSession(accountId);
-      await uploadMicrosoftSkin(session.accessToken, png, model === 'slim' ? 'slim' : 'classic');
-      return { uploaded: true };
-    } catch (error) {
-      return { uploaded: false, uploadError: error.message };
-    }
   });
 
-  /** "Сбросить": the launcher's skin is forgotten; a Microsoft profile gets its default skin back. */
+  /** "Сбросить": the launcher's skin is forgotten; Microsoft and Ely.by show their profile's skin again. */
   handle(CHANNELS.skins.reset, async (_event, accountId) => {
     const account = await findAccount(accountId);
-    if (account.type === 'microsoft') {
-      const session = await getLaunchSession(accountId);
-      await resetMicrosoftSkin(session.accessToken);
-    }
     await deleteSkin(account.uuid);
     publishSoon(account.uuid);
   });

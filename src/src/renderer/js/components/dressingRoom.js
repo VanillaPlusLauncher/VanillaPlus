@@ -62,8 +62,8 @@ export function openDressingRoom({ onApplied } = {}) {
   let busy = false;
   let greeted = false;
   let defaults = null;
-  // Ely.by accounts only: the skin in the middle is taken to the Ely.by site (see below).
-  let elyButton = null;
+  // Microsoft and Ely.by accounts: the skin in the middle goes on the real profile (see below).
+  let profileButton = null;
 
   const effects = createParticles(stage);
   const models = [0, 1, 2, 3].map(() => {
@@ -117,11 +117,13 @@ export function openDressingRoom({ onApplied } = {}) {
     );
     wearButton.disabled = !current || current.current || current.empty;
     wearButton.textContent = current?.current ? 'Надет' : 'Надеть';
-    if (elyButton) elyButton.disabled = !current || current.empty;
+    if (profileButton) profileButton.disabled = !current || current.empty;
     removeButton.hidden = !current?.libraryId;
     // New skins are written only into the slot in the middle, never over the main one.
     const target = targetSlot();
-    for (const button of tools.querySelectorAll('button')) button.disabled = target === null && button !== elyButton;
+    for (const button of tools.querySelectorAll('button')) {
+      if (button !== profileButton) button.disabled = target === null;
+    }
     writeHint.textContent = target === null
       ? 'Это ваш основной скин, его не перезаписать. Чтобы записать новый скин, стрелками перейдите на слот 2–5.'
       : current.empty
@@ -268,18 +270,16 @@ export function openDressingRoom({ onApplied } = {}) {
     const chosen = presets[index];
     if (!chosen) return;
     wearButton.disabled = true;
-    wearButton.textContent = account.type === 'microsoft' ? 'Загружаем…' : 'Надеваем…';
+    wearButton.textContent = 'Надеваем…';
     try {
-      // Offline: the skin in the game. Microsoft: also the profile's real skin (every server shows
-      // it). Ely.by: the Amethyx skin; the site's own skin is changed on ely.by ("На Ely.by").
-      const result = await api.skins.wear(account.id, chosen.pngBase64, chosen.model);
+      // Offline: the skin in the game. Microsoft and Ely.by: the Amethyx skin; the profile's real
+      // skin is changed apart ("В профиль Microsoft", "На Ely.by").
+      await api.skins.wear(account.id, chosen.pngBase64, chosen.model);
       forgetAccountHead(account.id);
       store.set({ accounts: [...store.get().accounts] });
       sfx('skinSaved');
-      if (account.type === 'microsoft' && result?.uploadError) {
-        toast(`Скин надет в лаунчере, но в профиль Microsoft не загружен: ${result.uploadError}`, 'error', 7000);
-      } else if (account.type === 'microsoft') {
-        toast(`Скин «${chosen.name}» надет: его видят все игроки на любых серверах`, 'success');
+      if (account.type === 'microsoft') {
+        toast(`Скин «${chosen.name}» надет как скин Amethyx. Чтобы его видели все на любых серверах — кнопка «В профиль Microsoft» в гардеробе.`, 'success', 7000);
       } else if (account.type === 'ely') {
         toast(`Скин «${chosen.name}» надет как скин Amethyx. Чтобы его видели все на серверах Ely.by — кнопка «На Ely.by» в гардеробе.`, 'success', 7000);
       } else {
@@ -298,7 +298,7 @@ export function openDressingRoom({ onApplied } = {}) {
   resetButton.addEventListener('click', async () => {
     const message =
       account.type === 'microsoft'
-        ? 'В профиле Microsoft снова будет стандартный скин (Стив или Алекс) — во всех играх и на всех серверах.'
+        ? 'Скин Amethyx уберётся, снова будет виден скин вашего профиля Microsoft.'
         : account.type === 'ely'
           ? 'Скин Amethyx уберётся, снова будет виден скин вашего профиля Ely.by.'
           : 'В игре снова будет стандартный скин.';
@@ -347,7 +347,7 @@ export function openDressingRoom({ onApplied } = {}) {
   );
   if (account.type === 'ely') {
     // Ely.by lets no launcher change the skin: the file is handed over for the site's upload page.
-    elyButton = tool('image', 'На Ely.by', async () => {
+    profileButton = tool('image', 'На Ely.by', async () => {
       const chosen = presets[index];
       if (!chosen) return;
       try {
@@ -357,7 +357,28 @@ export function openDressingRoom({ onApplied } = {}) {
         toast(errorMessage(error), 'error');
       }
     });
-    tools.append(elyButton);
+    tools.append(profileButton);
+  } else if (account.type === 'microsoft') {
+    // The profile's real skin: every game and every server shows it.
+    profileButton = tool('image', 'В профиль Microsoft', async () => {
+      const chosen = presets[index];
+      if (!chosen || chosen.empty) return;
+      const yes = await confirmDialog({ title: 'Сменить скин профиля Microsoft?', message: `«${chosen.name}» станет скином вашего профиля Microsoft: его увидят все на любых серверах.`, confirmLabel: 'Сменить' });
+      if (!yes) return;
+      profileButton.disabled = true;
+      try {
+        await api.skins.uploadMicrosoft(account.id, chosen.pngBase64, chosen.model);
+        forgetAccountHead(account.id);
+        store.set({ accounts: [...store.get().accounts] });
+        sfx('skinSaved');
+        toast(`Скин «${chosen.name}» загружен в профиль Microsoft`, 'success');
+      } catch (error) {
+        toast(errorMessage(error), 'error');
+      } finally {
+        profileButton.disabled = false;
+      }
+    });
+    tools.append(profileButton);
   }
   /** How skins get here, in three steps (the sites were not obvious). */
   const step = (number, text) => h('li', { class: 'wardrobe__step' }, h('span', { class: 'wardrobe__step-number' }, String(number)), h('span', null, text));
