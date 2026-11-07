@@ -33,16 +33,18 @@
 - `website/cloud`: `$env:AMETHYX_TEST_PHP = "$env:TEMP\rldev\php74\php.exe"; node --test website/cloud/test/cloud.test.mjs`.
 - Старый воркер Cloudflare: `server/test/worker.test.mjs`.
 
-## Выпуск беты по шагам
-1. `.\installer\build.ps1 -Iscc $env:TEMP\rldev\inno-setup\inno\ISCC.exe -Version 1.7.1-beta.N`
+## Выпуск обновления по шагам
+Версии `X.Y.Z` без беты: 1.7.2, 1.7.3 … 1.7.9, затем 1.8.0 (docs/DECISIONS.md, «Версии и обновления»).
+1. `.\installer\build.ps1 -Iscc $env:TEMP\rldev\inno-setup\inno\ISCC.exe -Version 1.7.N`
    (без `-Publish`). Готовая копия: `%TEMP%\amethyx-stage-<версия>\Amethyx.exe`.
 2. Запустить её в тестовом профиле со `smoke.js`, прочитать `.out.txt`.
 3. Заметка — одна короткая строка для игроков в UTF-8 файле. Затем
-   `.\installer\publish-site.ps1 -File build\Amethyx-Setup-<версия>.exe -Channel beta -Latest -Version <версия> -Notes (Get-Content -Raw -Encoding utf8 <файл>)`.
+   `.\installer\publish-site.ps1 -File build\Amethyx-Setup-<версия>.exe -Channel release -Latest -Version <версия> -Notes (Get-Content -Raw -Encoding utf8 <файл>)`.
+   Канал только `release`: в бете обновление не увидят лаунчеры без «beta» в номере.
 4. То же для Windows 7: `build.ps1 … -Legacy`, затем `publish-site.ps1` с файлом `build\Amethyx-Setup-<версия>-win7.exe`.
 5. Mac в фоне (~12 минут, дольше лимита команды):
    `.\installer\build-mac.ps1 -Version <версия> -Publish -Notes 'Открывается без Терминала: «Системные настройки» → «Конфиденциальность и безопасность» → «Всё равно открыть».'`
-6. Проверить `https://launcher.x-world.plus/updates/beta.json`, `beta-win7.json` и `api.php?a=site` (версия,
+6. Проверить `https://launcher.x-world.plus/updates/latest.json`, `latest-win7.json` и `api.php?a=site` (версия,
    заметка, sha256, размер). Если PowerShell не запускается (EPERM) — через встроенный браузер.
 7. CHANGELOG.md и CHANGELOG.ru.md — вместе; записать этап в docs/PROGRESS.md.
 

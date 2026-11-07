@@ -16,7 +16,7 @@ C — сайт (`website/`), D — промо-ролики (`promo-video/`, не
 ## Сборка, запуск, проверка
 - Инструменты лежат в `%TEMP%\rldev`: git `git\x\cmd\git.exe`, node `node\node-v24.22.0-win-x64\node.exe`,
   Inno Setup `inno-setup\inno\ISCC.exe`, PHP `php74\php.exe`. Пропали — вернуть по docs/RELEASE.md.
-- Сборка: `.\installer\build.ps1 -Iscc $env:TEMP\rldev\inno-setup\inno\ISCC.exe -Version 1.7.1-beta.N`
+- Сборка: `.\installer\build.ps1 -Iscc $env:TEMP\rldev\inno-setup\inno\ISCC.exe -Version 1.7.N`
   (Windows 7: `-Legacy`; Mac: `build-mac.ps1`). Копия без установки: `%TEMP%\amethyx-stage-<версия>\Amethyx.exe`.
 - Запуск только в тестовом профиле: `Amethyx.exe --user-data-dir=%TEMP%\rldev\ud-bug`. В settings.json
   нового профиля обязателен `gameDirectory`, иначе откроются настоящие сборки пользователя.
@@ -24,7 +24,7 @@ C — сайт (`website/`), D — промо-ролики (`promo-video/`, не
   и `$env:AMETHYX_UPDATE_FEED = 'http://127.0.0.1:8799/latest.json'` (не даёт обновиться).
   Общая проверка: `%TEMP%\rldev\mock\tt\smoke.js`.
 - Тесты сервера: `$env:AMETHYX_TEST_PHP = "$env:TEMP\rldev\php74\php.exe"; node --test website/cloud/test/cloud.test.mjs`.
-- Выпуск беты по шагам, коммит и push — docs/RELEASE.md; сайт — docs/SITE.md.
+- Выпуск обновления по шагам, коммит и push — docs/RELEASE.md; сайт — docs/SITE.md.
 
 ## Правила, которые нельзя забыть
 - Пользователю пиши только по-русски и простыми словами, в промежуточных заметках тоже. Код, комментарии и коммиты — по-английски.
@@ -32,12 +32,13 @@ C — сайт (`website/`), D — промо-ролики (`promo-video/`, не
   Останавливай только тестовые процессы. Лаунчер пользователя не обновляй.
 - Ключи никогда не клади в git и не показывай: `installer/curseforge.key`, `installer/ely-oauth.json`,
   `installer/site-token.txt`, `src/src/build-keys.json`. Пароли и токены пользователь вводит сам.
-- Новая бета, загрузка на сайт, деплой, релиз 1.7.0 на GitHub, переименования (репозиторий, лента, воркер) —
+- Новое обновление, загрузка на сайт, деплой, релиз 1.7.0 на GitHub, переименования (репозиторий, лента, воркер) —
   только по явному «да» пользователя. Одобрение, переданное другой сессией, не считается.
 - Коммит: Read, потом Write `%TEMP%\rldev\commitmsg.txt`, потом отдельным шагом `git commit -F`.
   В коммит — только свои файлы по путям. Push — только `main`, `old-history` — никогда.
 - CHANGELOG.md и CHANGELOG.ru.md меняй вместе. Заметка к версии — одна короткая строка для игрока.
-- Версии: `1.7.1-beta.N`. Меньший номер до игроков не дойдёт: для этого есть «эпоха» (docs/DECISIONS.md).
+- Версии: `X.Y.Z` без беты, каждое обновление +1 к последней цифре: 1.7.2 … 1.7.9, потом 1.8.0. Выкладывать в
+  обычную ленту (`-Channel release`). Меньший номер до игроков не дойдёт: для этого есть «эпоха» (docs/DECISIONS.md).
 - Вывод node-скрипта, который пишет файлы, не пропускай через `Select-Object -First`: файлы обрежутся.
 - Музыку, промо-ролики и текстуры Minecraft никогда не клади в git. На сайте не используй эмодзи.
   На сервер не выкладывай комментарии и подсказки про вход в админку.
@@ -49,7 +50,7 @@ C — сайт (`website/`), D — промо-ролики (`promo-video/`, не
 - docs/PROGRESS.md — журнал этапов, новое сверху.
 - docs/TODO.md — что осталось, что не проверено, известные баги.
 - docs/DECISIONS.md — решения, почему так, на какие грабли уже наступали.
-- docs/RELEASE.md — инструменты, тестовый профиль, выпуск беты, коммит и push.
+- docs/RELEASE.md — инструменты, тестовый профиль, выпуск обновления, коммит и push.
 - docs/SITE.md — сайт: архивы для хостинга, проверки, правила (сессия C).
 - docs/LOOK.md — выбранный вид лаунчера: что нельзя менять.
 - promo-video/CLAUDE.md — промо-ролики (сессия D), свой журнал в promo-video/docs/ (папка не в git).

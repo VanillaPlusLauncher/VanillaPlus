@@ -8,9 +8,10 @@
  * left alone: anything inside [data-i18n="off"], inputs, textareas, code and the game log.
  */
 
+// English first: it is the default language (the first-start question shows it as the big button).
 export const LANGUAGES = [
-  { code: 'ru', label: 'Русский' },
   { code: 'en', label: 'English' },
+  { code: 'ru', label: 'Русский' },
   { code: 'uk', label: 'Українська' },
   { code: 'pl', label: 'Polski' },
   { code: 'de', label: 'Deutsch' },
@@ -28,6 +29,8 @@ const RUSSIAN_DATE = new RegExp(`^(\\d{1,2}) (${RUSSIAN_MONTHS.join('|')}) (\\d{
 
 let language = 'ru';
 let dictionary = null;
+// Whether any other language was on in this window (then Russian keeps the watch too).
+let translatedBefore = false;
 let patterns = [];
 let observer = null;
 // Original Russian of each translated text node / attribute, so switching back (or to another
@@ -167,7 +170,7 @@ export function currentLanguage() {
 
 /** Switches the whole window to `code` (one of LANGUAGES). */
 export async function setLanguage(code) {
-  const next = LANGUAGES.some((entry) => entry.code === code) ? code : 'ru';
+  const next = LANGUAGES.some((entry) => entry.code === code) ? code : 'en';
   if (next === language && (next === 'ru' || dictionary)) return;
   if (next === 'ru') {
     dictionary = null;
@@ -184,7 +187,11 @@ export async function setLanguage(code) {
   }
   language = next;
   document.documentElement.lang = next;
+  if (dictionary) translatedBefore = true;
   translateTree(document.body);
-  if (dictionary) startObserver();
+  // Back in Russian the watch stays on once anything was translated: pages kept aside while
+  // another language was on (an instance's mods list) come back with that language's text and
+  // are put back to Russian when they are shown again.
+  if (dictionary || translatedBefore) startObserver();
   else observer?.disconnect();
 }

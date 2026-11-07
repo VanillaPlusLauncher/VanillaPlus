@@ -6,11 +6,11 @@ import { store } from '../state/appStore.js';
 import { openModal } from './modal.js';
 
 /**
- * The first start: the launcher asks which language to speak, once. All languages are the same
- * button in a 3 × 3 grid, in a fixed order, none put first; closing the window without a choice
- * keeps Windows' language. The names stay in their own language.
+ * The first start: the launcher asks which language to speak, once. English, the default, is the
+ * big button (2 × 2 in a 3-column grid), the others follow in a fixed order; closing the window
+ * without a choice keeps `fallback` (English). The names stay in their own language.
  */
-export function askLanguageOnce(systemLanguage) {
+export function askLanguageOnce(fallback) {
   if (store.get().settings?.ui?.language) return;
   let chosen = false;
   const choose = async (code) => {
@@ -29,13 +29,18 @@ export function askLanguageOnce(systemLanguage) {
       ...LANGUAGES.map((entry) =>
         h(
           'button',
-          { class: 'language-picker__item', type: 'button', lang: entry.code, onclick: () => choose(entry.code) },
+          {
+            class: `language-picker__item${entry.code === 'en' ? ' language-picker__item--main' : ''}`,
+            type: 'button',
+            lang: entry.code,
+            onclick: () => choose(entry.code),
+          },
           h('span', { class: 'language-picker__code' }, entry.code.toUpperCase()),
           h('span', { class: 'language-picker__name' }, entry.label),
         ),
       ),
     ),
-    onClose: () => choose(systemLanguage),
+    onClose: () => choose(fallback),
   });
   return modal;
 }

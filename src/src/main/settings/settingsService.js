@@ -79,7 +79,7 @@ function buildDefaults() {
     ui: {
       accent: 'amethyst',
       background: 'panorama',
-      // null: the system's language until one is chosen (renderer/js/core/i18n.js).
+      // null: not chosen yet — English, and the first start asks (renderer/js/components/languagePicker.js).
       language: null,
       font: 'pixel',
       sidebar: 'labels',

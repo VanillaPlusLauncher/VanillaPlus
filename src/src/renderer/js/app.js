@@ -84,12 +84,9 @@ function setupLogsButton() {
 }
 
 /** Appearance settings: theme colour, font, blur, animations, zoom and background. */
-/** The chosen language, or the system's when none was chosen yet (Russian for be/kk, else English). */
+/** The chosen language; English until one is chosen (the default, whatever Windows speaks). */
 function resolveLanguage(chosen) {
-  if (chosen) return chosen;
-  const system = (navigator.language || 'en').slice(0, 2).toLowerCase();
-  if (['be', 'kk'].includes(system)) return 'ru';
-  return LANGUAGES.some((entry) => entry.code === system) ? system : 'en';
+  return LANGUAGES.some((entry) => entry.code === chosen) ? chosen : 'en';
 }
 
 function setupAppearance() {
@@ -282,9 +279,9 @@ async function start() {
     ],
   });
   if (dataError) toast(errorMessage(dataError), 'error', 8000);
-  // The very first start: which language (Windows' one is offered first), then a short walk
+  // The very first start: which language (English when the question is closed), then a short walk
   // through the launcher.
-  askLanguageOnce(resolveLanguage(null));
+  askLanguageOnce('en');
   startTourOnce();
 }
 

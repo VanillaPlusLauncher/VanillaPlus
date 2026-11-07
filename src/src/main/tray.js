@@ -29,10 +29,10 @@ let tray = null;
 let quitting = false;
 let hintShown = false;
 
-/** In the interface's language (the system's while none is chosen), else English. */
+/** In the interface's language (English, the default, while none is chosen). */
 async function texts() {
   const settings = await getSettings().catch(() => null);
-  const language = String(settings?.ui?.language ?? app.getLocale()).slice(0, 2).toLowerCase();
+  const language = String(settings?.ui?.language ?? 'en').slice(0, 2).toLowerCase();
   return TEXTS[language] ?? TEXTS.en;
 }
 

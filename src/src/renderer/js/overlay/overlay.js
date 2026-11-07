@@ -329,9 +329,9 @@ window.addEventListener('keydown', (event) => {
   try {
     const settings = await api.settings.get();
     configureSound(settings.sounds);
-    await setLanguage(settings.ui?.language || 'ru');
+    await setLanguage(settings.ui?.language || 'en');
   } catch {
-    // Defaults: Russian, sounds as they are.
+    // Defaults: the source (Russian) texts, sounds as they are.
   }
   render();
 })();

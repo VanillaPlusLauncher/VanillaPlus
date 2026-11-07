@@ -68,7 +68,7 @@
 - Amethyx's own notifications: a soft card in the corner of the screen with the launcher's icon and text in its pixel font; appears at once and hides by itself
 - Background: panoramas from 19 Minecraft versions (1.7.10 to 26.3), loaded quickly and applied at once
 - The music is silent while the game runs and pauses when the window is not in focus; a sound of your choice for every action
-- Nine languages: Russian, English, Ukrainian, Polish, German, French, Spanish, Portuguese and Chinese; on the first start the launcher asks which one, nine equal buttons in a 3 × 3 grid (closing the question keeps Windows' language)
+- Nine languages: Russian, English, Ukrainian, Polish, German, French, Spanish, Portuguese and Chinese; on the first start the launcher asks which one. English is the default: the biggest button in the question, and what stays when the question is closed
 - Top left: the version, a floating logo (leads Home) and the name; a "Full screen" button (F11); more light animations (can be turned off in settings)
 - Ely.by sign-in on the Ely.by website; password sign-in stays as a fallback
 - Fixed: after opening the Wardrobe several times the player on the home screen turned into a white box (the 3D views were not released)
@@ -142,6 +142,7 @@
 - Big instances opened slowly and froze the launcher: every mod jar was read whole to learn its name and icon (a 159-mod pack: 15.7 s with the window stuck). Now only the few small files needed are read, in the background, and remembered on disk: 0.25 s the first time, 0.1 s after a restart. Adding a mod checks compatibility faster too
 - Before mod updates and version changes every world was copied again, even ones not played for weeks (a 14-world pack: about 1.1 GB each time). Now only worlds played since their last copy are copied
 - In other languages the start screen's steps ("3D models…") and the dates of Minecraft news stayed in Russian
+- After switching back to Russian, some pages (an instance's mods) kept the previous language; "Smart helper" and the "For hosting" mod counter are translated now too
 - Friends: a stray "null" under your name when your account has no code
 - In a narrow window the account and window buttons slid to the left of the top bar
 - While Ely.by is down the launcher no longer tells you to remove the account: it says Ely.by is not responding, and the saved sign-in stays
