@@ -34,7 +34,8 @@ New-Item -ItemType Directory -Force $Output | Out-Null
 #    macOS 12 and everything newer, a version behind the Windows build.
 $electronVersion = '43.8.3'
 $base = "https://github.com/electron/electron/releases/download/v$electronVersion"
-$cache = Join-Path $env:TEMP "amethyx-electron-mac-$electronVersion"
+# Kept next to the Windows runtime (build\Amethyx), not in %TEMP%: a Windows cleanup empties that.
+$cache = Join-Path $root "build\electron-mac-$electronVersion"
 New-Item -ItemType Directory -Force $cache | Out-Null
 $sums = Join-Path $cache 'SHASUMS256.txt'
 if (-not (Test-Path $sums)) { Invoke-WebRequest "$base/SHASUMS256.txt" -OutFile $sums -UseBasicParsing }
@@ -104,11 +105,16 @@ python -I (Join-Path $PSScriptRoot 'tools\make_icns.py') $icns @pngs
 
 # 4. rcodesign (apple-codesign, open source) signs the app ad hoc: without it macOS calls the
 #    changed app "damaged" and only Terminal opens it; signed, "Open Anyway" in Privacy & Security does.
+#    The shared tools folder's copy (%USERPROFILE%\Tools\rcodesign) when it is this version, else a
+#    checked download.
 $rcVersion = '0.29.0'
 $rcZipName = "apple-codesign-$rcVersion-x86_64-pc-windows-msvc.zip"
 $rcSha = '54bb500e2da7a8de02fcae0f331d1cac6e6d7173b4281042ff9c528ba3159aaa'
 $rcCache = Join-Path $env:TEMP "amethyx-rcodesign-$rcVersion"
-$rcodesign = Join-Path $rcCache "apple-codesign-$rcVersion-x86_64-pc-windows-msvc\rcodesign.exe"
+$rcodesign = Join-Path $env:USERPROFILE 'Tools\rcodesign\rcodesign.exe'
+if (-not ((Test-Path $rcodesign) -and ("$(& $rcodesign --version)" -match [regex]::Escape($rcVersion)))) {
+  $rcodesign = Join-Path $rcCache "apple-codesign-$rcVersion-x86_64-pc-windows-msvc\rcodesign.exe"
+}
 if (-not (Test-Path $rcodesign)) {
   New-Item -ItemType Directory -Force $rcCache | Out-Null
   $rcZip = Join-Path $rcCache $rcZipName
@@ -137,3 +143,6 @@ foreach ($a in $Arch) {
   Write-Output $out
   if ($Publish) { & (Join-Path $PSScriptRoot 'publish-site.ps1') -File $out -Latest -Notes $Notes }
 }
+# What was only needed on the way (the source copy holds a copy of the keys).
+Remove-Item $copy -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $asar -Force -ErrorAction SilentlyContinue

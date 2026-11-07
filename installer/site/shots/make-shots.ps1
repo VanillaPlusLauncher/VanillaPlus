@@ -14,10 +14,13 @@ param(
   [string]$Only = '',
   [string]$Out = '',
   [int]$Port = 8797,
-  [string]$Node = (Join-Path $env:TEMP 'rldev\node\node-v24.22.0-win-x64\node.exe'),
-  [string]$Ffmpeg = (Join-Path $env:TEMP 'rldev\ffmpeg\bin\ffmpeg.exe')
+  # Node from PATH, ffmpeg from the shared tools folder (%USERPROFILE%\Tools).
+  [string]$Node = '',
+  [string]$Ffmpeg = (Join-Path $env:USERPROFILE 'Tools\ffmpeg\bin\ffmpeg.exe')
 )
 $ErrorActionPreference = 'Stop'
+if (-not $Node) { $Node = (Get-Command node -ErrorAction SilentlyContinue).Source }
+if (-not $Node) { throw 'Нужен Node.js 24 (node в PATH).' }
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $runtime = Join-Path $repo 'build\Amethyx'
 foreach ($need in @($Node, $Ffmpeg, (Join-Path $runtime 'Amethyx.exe'))) {

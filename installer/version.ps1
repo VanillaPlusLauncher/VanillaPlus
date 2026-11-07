@@ -9,7 +9,7 @@ $full = (Get-Content (Join-Path $root 'src\package.json') -Raw | ConvertFrom-Jso
 $base = $full -replace '^(\d+\.\d+)\.0$', '$1'
 if ($Release) { return $base }
 $git = (Get-Command git -ErrorAction SilentlyContinue).Source
-if (-not $git) { $git = Join-Path $env:TEMP 'rldev\git\x\cmd\git.exe' }
+if (-not $git) { $git = Join-Path $env:USERPROFILE 'Tools\git\cmd\git.exe' }
 if (-not (Test-Path $git)) { Write-Warning 'git не найден: сборка без номера беты.'; return $base }
 # The commit that last changed the "version" line of package.json.
 $since = & $git -C $root log -1 --format=%H -G '"version"' -- src/package.json 2>$null

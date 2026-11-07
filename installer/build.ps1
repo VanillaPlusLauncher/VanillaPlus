@@ -17,6 +17,8 @@
 # -Legacy builds the launcher for Windows 7 and 8: the same app on Electron 22 (the last one that
 # runs there), installer Amethyx-Setup-<version>-win7.exe for Windows 7 SP1 and newer.
 #
+# Tools: Python 3 in PATH; Inno Setup and rcedit from %USERPROFILE%\Tools when they are there.
+#
 # Usage: .\build.ps1 [-Iscc <path to ISCC.exe>] [-Version 1.3.1 | -Release] [-Output <folder>] [-Legacy] [-Publish] [-Notes "…"]
 param(
   [string]$Iscc = '',
@@ -34,7 +36,8 @@ $suffix = if ($Legacy) { '-win7' } else { '' }
 if (-not $Version) { $Version = & (Join-Path $PSScriptRoot 'version.ps1') -Release:$Release }
 if (-not $Output) { $Output = Join-Path $root 'build' }
 if (-not $Iscc) {
-  $Iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  # The shared tools folder first (%USERPROFILE%\Tools, one copy for every project), then an installed Inno Setup.
+  $Iscc = @("$env:USERPROFILE\Tools\inno-setup\ISCC.exe", "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
   if (-not $Iscc) { throw 'Не найден Inno Setup 6 (ISCC.exe). Укажите путь: -Iscc <путь>.' }
 }
 
@@ -102,11 +105,15 @@ if ($keys.Count) {
 }
 python -I (Join-Path $PSScriptRoot 'tools\asar.py') pack $source (Join-Path $stage 'resources\app.asar') | Out-Null
 if (-not (Test-Path (Join-Path $stage 'resources\app.asar'))) { throw 'app.asar не собран.' }
+# The copy is packed: it goes (it holds a copy of the keys, and every build makes a new one).
+Remove-Item $copy -Recurse -Force -ErrorAction SilentlyContinue
 
 # Icon and file details of Amethyx.exe (Explorer, taskbar, "Properties"), set with Electron's
-# rcedit. The download is checked against a pinned SHA-256 (the same file as in npm's "rcedit").
-$rcedit = Join-Path $env:TEMP 'rcedit-x64-2.0.0.exe'
+# rcedit 2.0.0: the shared tools folder's copy, else a download checked against a pinned SHA-256
+# (the same file as in npm's "rcedit").
 $rceditSha256 = '3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a'
+$rcedit = Join-Path $env:USERPROFILE 'Tools\rcedit\rcedit-x64.exe'
+if (-not (Test-Path $rcedit) -or (Get-FileHash $rcedit -Algorithm SHA256).Hash.ToLower() -ne $rceditSha256) { $rcedit = Join-Path $env:TEMP 'rcedit-x64-2.0.0.exe' }
 if (-not (Test-Path $rcedit) -or (Get-FileHash $rcedit -Algorithm SHA256).Hash.ToLower() -ne $rceditSha256) {
   Invoke-WebRequest 'https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe' -OutFile $rcedit -UseBasicParsing
   if ((Get-FileHash $rcedit -Algorithm SHA256).Hash.ToLower() -ne $rceditSha256) { Remove-Item $rcedit; throw 'Контрольная сумма rcedit не совпала.' }

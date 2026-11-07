@@ -14,16 +14,19 @@ C — сайт (`website/`), D — промо-ролики (`promo-video/`, не
 - Остальные docs целиком не читай без надобности: ищи нужное поиском (Grep). Чужие файлы правь через Read + Edit, не Write.
 
 ## Сборка, запуск, проверка
-- Инструменты лежат в `%TEMP%\rldev`: git `git\x\cmd\git.exe`, node `node\node-v24.22.0-win-x64\node.exe`,
-  Inno Setup `inno-setup\inno\ISCC.exe`, PHP `php74\php.exe`. Пропали — вернуть по docs/RELEASE.md.
-- Сборка: `.\installer\build.ps1 -Iscc $env:TEMP\rldev\inno-setup\inno\ISCC.exe -Version 1.7.N`
-  (Windows 7: `-Legacy`; Mac: `build-mac.ps1`). Копия без установки: `%TEMP%\amethyx-stage-<версия>\Amethyx.exe`.
+- Инструменты — общие на весь компьютер, своих копий не скачивать: `%USERPROFILE%\Tools` (git `git\cmd\git.exe`,
+  Inno Setup, rcedit, rcodesign, ffmpeg, PHP `php74\php.exe`; список — `%USERPROFILE%\Tools\README.md`),
+  node, python и gh — из PATH. Скрипты сборки находят их сами.
+- Сборка: `.\installer\build.ps1 -Version 1.7.N` (Windows 7: `-Legacy`; Mac: `build-mac.ps1`).
+  Копия без установки: `%TEMP%\amethyx-stage-<версия>\Amethyx.exe`.
 - Запуск только в тестовом профиле: `Amethyx.exe --user-data-dir=%TEMP%\rldev\ud-bug`. В settings.json
   нового профиля обязателен `gameDirectory`, иначе откроются настоящие сборки пользователя.
 - Проверка: `$env:AMETHYX_MAIN_SCRIPT = '<скрипт.js>'` (вывод в `<скрипт.js>.out.txt`, лаунчер сам закроется)
   и `$env:AMETHYX_UPDATE_FEED = 'http://127.0.0.1:8799/latest.json'` (не даёт обновиться).
   Общая проверка: `%TEMP%\rldev\mock\tt\smoke.js`.
-- Тесты сервера: `$env:AMETHYX_TEST_PHP = "$env:TEMP\rldev\php74\php.exe"; node --test website/cloud/test/cloud.test.mjs`.
+- Тесты сервера: `$env:AMETHYX_TEST_PHP = "$env:USERPROFILE\Tools\php74\php.exe"; node --test website/cloud/test/cloud.test.mjs`.
+- В `%TEMP%\rldev` остались только тестовые данные: скрипты проверок `mock\tt`, профиль `ud-bug` + `game-bug`,
+  `commitmsg*.txt`. Их не удалять (скриптов проверок нет в репозитории).
 - Выпуск обновления по шагам, коммит и push — docs/RELEASE.md; сайт — docs/SITE.md.
 
 ## Правила, которые нельзя забыть

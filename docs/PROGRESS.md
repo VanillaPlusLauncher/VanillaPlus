@@ -3,6 +3,16 @@
 Новое сверху. Формат: дата — что сделано; файлы; чем закончилось. Подробности для игроков — в CHANGELOG.md,
 в коде — в сообщении коммита (`git show <хеш>`). Читай только верхние записи, остальное ищи поиском.
 
+## 2026-11-07 — Сборка на общих инструментах (`%USERPROFILE%\Tools`)
+- По правилу пользователя для всех проектов: `build.ps1` сам берёт Inno Setup и rcedit из Tools (rcedit 2.0.0
+  поставлен туда, строка в Tools\README.md), `build-mac.ps1` — rcodesign 0.29.0 из Tools, Electron для Mac теперь
+  в `build\electron-mac-43.8.3` (перенесён из %TEMP%); `version.ps1` — git из Tools; `make-shots.ps1` — node из PATH,
+  ffmpeg из Tools. Копии исходников с ключом (`%TEMP%\amethyx-src-*`) сборки удаляют сами. CLAUDE.md, RELEASE.md
+  (+ шаг 8: убрать старые копии после выпуска), DECISIONS.md, `.claude/launch.json` (без ссылок на черновики).
+- Итог: пробная сборка 1.7.2-tools без `-Iscc` — установщик Windows и zip Mac arm64 (подпись прошла), значок и
+  версия у Amethyx.exe на месте; `make-shots.ps1 -Only home` снял оба языка. Пробные файлы удалены.
+  В `%TEMP%\rldev` остаются только тестовые данные: `mock\tt`, `ud-bug` + `game-bug`, `commitmsg*.txt`.
+
 ## 2026-11-07 — Вышла 1.7.2 (Windows, Windows 7, Mac arm64 и x64) — первая версия без беты
 - По «да» пользователя, в обычную ленту: Гардероб Microsoft (19f348a), английский по умолчанию и исправления
   перевода (73e2f06). Заметка: «Скин Amethyx для аккаунтов Microsoft без смены профиля, английский язык по
