@@ -23,6 +23,7 @@ import { importModpackFiles, openCreateInstanceModal } from './components/create
 import { toast } from './components/toast.js';
 import { installDropdowns } from './components/dropdown.js';
 import { showCrashDialog } from './components/crashDialog.js';
+import { setupDevConfirm } from './components/devConfirm.js';
 import { errorMessage } from './core/format.js';
 import { initMc, onMcReady } from './core/mc.js';
 import { configureSound, installGlobalSounds } from './core/sound.js';
@@ -195,7 +196,18 @@ async function start() {
   api.events.onGameState(applyGameState);
   api.events.onGameLog(appendLogLine);
   api.events.onInstancesChanged(() => refreshInstances().catch(() => {}));
-  api.events.onGameCrash((report) => showCrashDialog(report));
+  api.events.onGameCrash((report) => {
+    // An AI's test instance (developer mode) may crash again and again while a mod is being fixed:
+    // a short note instead of a dialog the player has to close each time; the AI reads the report itself.
+    const instance = store.get().instances?.find((entry) => entry.id === report?.instanceId);
+    if (instance?.test) {
+      toast(`Тестовая сборка вылетела: ${instance.name}`, 'info', 3500, { group: 'instances', silent: true });
+      return;
+    }
+    showCrashDialog(report);
+  });
+  // Developer mode: an AI tool asks to change one of the player's instances ("Разрешить ИИ?").
+  setupDevConfirm();
   // Pictures of Modrinth and CurseForge that do not load (where Cloudflare is blocked) come once more
   // through the Amethyx server's proxy (website/cloud /proxy, the sites of main/core/http.js); the
   // picture's own error handling (a cube instead, projectIcon.js) runs only if that fails too.

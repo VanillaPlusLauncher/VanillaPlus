@@ -13,6 +13,7 @@ import { confirmDialog } from '../components/modal.js';
 import { startTour } from '../components/tour.js';
 import { createJavaPage } from './javaPage.js';
 import { currentLanguage, LANGUAGES, locale } from '../core/i18n.js';
+import { devSection } from './devSection.js';
 
 const RAM_STEP_MB = 256;
 const MIN_RAM_MB = 512;
@@ -25,6 +26,8 @@ const SECTIONS = [
   { key: 'online', label: 'Друзья и скины', icon: 'item:cake' },
   { key: 'launcher', label: 'Лаунчер', icon: 'item:redstone' },
   { key: 'updates', label: 'Обновления', icon: 'item:clock_00' },
+  // Developer mode (devSection.js): off by default, everything in it is for making and testing mods.
+  { key: 'dev', label: 'Разработчик', icon: 'item:spyglass' },
 ];
 const ACCENTS = [
   { value: 'amethyst', label: 'Аметист', block: 'amethyst_block', colour: '#bea0ff' },
@@ -561,7 +564,7 @@ export function createSettingsPage() {
     const changedSection = !renderedKey.startsWith(`${section}|`);
     renderedKey = key;
     SECTIONS.forEach((entry, index) => navButtons[index].setAttribute('aria-current', String(entry.key === section)));
-    const builders = { game: gameSection, java: javaSection, appearance: appearanceSection, sounds: soundsSection, content: contentSection, online: onlineSection, launcher: launcherSection, updates: updatesSection };
+    const builders = { game: gameSection, java: javaSection, appearance: appearanceSection, sounds: soundsSection, content: contentSection, online: onlineSection, launcher: launcherSection, updates: updatesSection, dev: (current) => devSection(current, { card, row, toggle, save }) };
     const scroll = element.scrollTop;
     sectionHost.replaceChildren(...builders[section](settings, info));
     sectionHost.classList.toggle('settings-sections--enter', changedSection);

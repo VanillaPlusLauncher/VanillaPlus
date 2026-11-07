@@ -43,9 +43,15 @@ function registerDomainHandlers(handle) {
     const next = await settingsService.updateSettings(patch ?? {});
     // A new key combination for the panel over the game works at once in a running game.
     require('../overlay').applySettings(next);
+    // Developer mode's access for AI tools starts and stops with its switches (main/dev/devServer.js).
+    require('../dev/devServer').applySettings(next);
     return withFlags(next);
   });
-  handle(CHANNELS.settings.reset, () => settingsService.resetSettings());
+  handle(CHANNELS.settings.reset, async () => {
+    const next = await settingsService.resetSettings();
+    require('../dev/devServer').applySettings(next);
+    return next;
+  });
 
   handle(CHANNELS.server.get, async (_event, instanceId) => serverService.getServer(await settings(), String(instanceId)));
   handle(CHANNELS.server.create, async (_event, instanceId, options) => serverService.createServer(await settings(), String(instanceId), options ?? {}));

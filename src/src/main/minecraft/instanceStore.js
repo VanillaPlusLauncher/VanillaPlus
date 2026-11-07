@@ -76,6 +76,9 @@ function normalize(raw, id) {
     source: raw?.source && typeof raw.source === 'object' ? raw.source : null,
     // A copy whose files are still being copied (or whose copying broke off): instanceService.copyInstance.
     ...(raw?.copying === true ? { copying: true } : {}),
+    // Made by an AI tool through developer mode (main/dev): such an instance may be changed and
+    // deleted through the API without asking; any other only after "Разрешить" in the launcher.
+    ...(raw?.test === true ? { test: true } : {}),
   };
 }
 
@@ -259,6 +262,8 @@ function beginCopy(layout, id, options = {}) {
         lastPlayedAt: options.playTime ? source.lastPlayedAt : null,
         playTimeMs: options.playTime ? source.playTimeMs : 0,
         copying: true,
+        // A copy the player made is theirs, even of a test instance.
+        test: false,
       },
       newId,
     );

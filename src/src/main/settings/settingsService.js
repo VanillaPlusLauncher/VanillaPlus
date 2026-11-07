@@ -148,6 +148,20 @@ function buildDefaults() {
       overlay: true,
       overlayKey: DEFAULT_OVERLAY_KEY,
     },
+    /** Developer mode (Settings → «Разработчик», main/dev): everything below works only while `enabled`. */
+    dev: {
+      enabled: false,
+      /** The local API and MCP server for AI tools: 127.0.0.1 only, with a key (main/dev/devServer.js). */
+      api: false,
+      /** Debug lines in the game's log: the game, Fabric, Forge, NeoForge (main/dev/devLaunch.js). */
+      verboseLogs: false,
+      /** The Java debugger (JDWP) on 127.0.0.1:5005, for IntelliJ IDEA and the like. */
+      javaDebug: false,
+      /** Mixin writes the classes it changed into .mixin.out of the instance. */
+      mixinExport: false,
+      /** Commands (cheats) in every world of the instance while the game runs; put back after it. */
+      cheats: false,
+    },
   };
 }
 
@@ -301,6 +315,10 @@ function sanitize(input, defaults) {
     overlay: typeof input.social?.overlay === 'boolean' ? input.social.overlay : defaults.social.overlay,
     overlayKey: normalizeOverlayKey(input.social?.overlayKey) ?? defaults.social.overlayKey,
   };
+  result.dev = { ...defaults.dev };
+  for (const flag of Object.keys(defaults.dev)) {
+    if (typeof input.dev?.[flag] === 'boolean') result.dev[flag] = input.dev[flag];
+  }
   result.downloads = {
     parallel: Number.isFinite(input.downloads?.parallel) ? clampInt(input.downloads.parallel, 1, 32) : defaults.downloads.parallel,
     segments: Number.isFinite(input.downloads?.segments) ? clampInt(input.downloads.segments, 1, 16) : defaults.downloads.segments,
@@ -345,7 +363,7 @@ function updateSettings(patch) {
     const current = await readStoredSettings();
     // Nested groups are merged, so the UI can send { sounds: { volume: 40 } } alone.
     const merged = { ...current, ...patch };
-    for (const group of ['ui', 'sounds', 'updates', 'compat', 'social', 'downloads']) {
+    for (const group of ['ui', 'sounds', 'updates', 'compat', 'social', 'downloads', 'dev']) {
       if (patch[group] && typeof patch[group] === 'object') {
         merged[group] = { ...current[group], ...patch[group] };
       }

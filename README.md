@@ -34,6 +34,7 @@ The installed launcher updates itself: a new version downloads in the background
 - **Faster modpack installs:** 12 parallel downloads and a shared mod cache
 - **One-click own server**, **instance export** as a code or a file (.mrpack, CurseForge .zip, .zip), **world backups**, **mod compatibility checks**
 - **Tray:** the close button hides the launcher next to the clock; **own notifications** in the Amethyx style
+- **Developer mode for mod makers:** Java debugger, debug logs, Mixin export, commands in any world, and **AI access over MCP** — Claude Code or Cursor create a test instance with your mod, launch it and read the log, while your own instances stay protected ([how-to, in Russian](docs/DEV-MODE.md))
 - **Panoramas** from 19 Minecraft versions, **seven languages**, **a sound per action**, **Ely.by sign-in on the website**
 - New name, pixel X logo and an amethyst look; data of Vanilla+ Launcher and RichLauncher moves over by itself
 

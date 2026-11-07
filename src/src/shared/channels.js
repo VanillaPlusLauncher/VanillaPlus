@@ -204,6 +204,14 @@ const CHANNELS = Object.freeze({
     music: 'minecraft:music',
     news: 'minecraft:news',
   }),
+  /** Developer mode (main/dev): the AI access, the player's answers to it, folders and test instances. */
+  dev: Object.freeze({
+    status: 'dev:status',
+    newKey: 'dev:new-key',
+    answer: 'dev:answer',
+    openFolder: 'dev:open-folder',
+    removeTests: 'dev:remove-tests',
+  }),
   events: Object.freeze({
     taskProgress: 'event:task-progress',
     gameState: 'event:game-state',
@@ -222,6 +230,10 @@ const CHANNELS = Object.freeze({
     skinImported: 'event:skin-imported',
     /** The panel over the game opens ({ open: true }) or goes ({ open: false }). */
     overlay: 'event:overlay',
+    /** An AI tool asks to change one of the player's instances: { id, action, name, detail } or { id, cancel }. */
+    devConfirm: 'event:dev-confirm',
+    /** The AI access changed (on, off, new key, a new line in its journal). */
+    devStatus: 'event:dev-status',
   }),
 });
 

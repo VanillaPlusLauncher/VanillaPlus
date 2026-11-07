@@ -15,6 +15,7 @@ const { isComplete } = require('./installedVersions');
 const { createGameLogFormatter } = require('./gameLogFormatter');
 const { prepareLegacyAssets } = require('./assetInstaller');
 const { prepareLegacyHome } = require('./legacyGameHome');
+const devLaunch = require('../dev/devLaunch');
 
 const LAUNCHER_NAME = 'Amethyx';
 const LAUNCHER_VERSION = '1.0.0';
@@ -141,11 +142,12 @@ async function startGameProcess({
   const memoryArguments = [`-Xmx${settings.ramMb}M`, `-Xms${Math.min(settings.ramMb, 512)}M`];
   const logArgument = descriptor.logging?.client?.argument;
   // Versions with log4j get Mojang's config; older ones log through java.util.logging and get ours.
+  // Developer mode's "verbose logs" swaps Mojang's for a copy that lets debug lines through.
   const logConfig = descriptor.logging?.client?.file
-    ? [logArgument.replace('${path}', layout.logConfigPath(descriptor.logging.client.file.id))]
+    ? [logArgument.replace('${path}', await devLaunch.logConfigPath(settings, layout.logConfigPath(descriptor.logging.client.file.id)))]
     : [await legacyLoggingArgument(getAppPaths().toolsDirectory)];
 
-  const userJvmArgs = splitUserArguments(settings.extraJvmArgs);
+  const userJvmArgs = [...splitUserArguments(settings.extraJvmArgs), ...devLaunch.jvmArguments(settings, runtime.path)];
   await makeJvmLogFolders(userJvmArgs, gameDirectory);
   // macOS: the game's window must run on the first thread. New versions ask for it in their own
   // arguments; older ones (and some loaders) do not.
@@ -163,10 +165,16 @@ async function startGameProcess({
     ...game,
   ];
 
+  // Developer mode: commands in every world while the game runs, put back as they were after it.
+  const restoreCommands = await devLaunch.openCommands(settings, gameDirectory, (line) => onLog?.(line));
+  devLaunch.describeLaunch(settings, runtime.path).forEach((line) => onLog?.(line));
+
   log.info(`Запуск ${versionId} на Java ${runtime.majorVersion} (${runtime.path})`);
   const decode = await createConsoleDecoder();
   const env = mergeEnvironment(process.env, { ...extraEnv, ...legacyHome.env });
   const child = spawn(runtime.path, args, { cwd: gameDirectory, windowsHide: true, env });
+  child.once('exit', () => restoreCommands());
+  child.once('error', () => restoreCommands());
   attachLineReader(child.stdout, decode, onLog);
   attachLineReader(child.stderr, decode, onLog);
   return child;

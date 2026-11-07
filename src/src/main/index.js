@@ -81,6 +81,10 @@ if (!singleInstance) {
     getSettings()
       .then((settings) => ensureMcResources(settings))
       .catch((error) => log.warn(`Ресурсы Minecraft для интерфейса не подготовлены: ${error.message}`));
+    // Developer mode's access for AI tools, when the player turned it on (main/dev/devServer.js).
+    getSettings()
+      .then((settings) => require('./dev/devServer').applySettings(settings))
+      .catch((error) => log.warn(`Доступ для ИИ не включён: ${error.message}`));
 
     // New launcher versions: checked a few seconds after start and then every few hours.
     if (!process.env.AMETHYX_SCREENSHOT && !process.env.AMETHYX_MAIN_SCRIPT) {

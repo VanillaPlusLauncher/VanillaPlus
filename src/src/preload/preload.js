@@ -232,6 +232,16 @@ const bridge = {
     music: () => invoke(CHANNELS.minecraft.music),
     news: () => invoke(CHANNELS.minecraft.news),
   },
+  dev: {
+    /** The AI access: { running, url, apiUrl, key, port, error, journal }. */
+    status: () => invoke(CHANNELS.dev.status),
+    newKey: () => invoke(CHANNELS.dev.newKey),
+    /** The player's answer to an AI tool's request (events.onDevConfirm). */
+    answer: (id, yes) => invoke(CHANNELS.dev.answer, id, yes === true),
+    /** Opens a folder of an instance ('' = the instance itself, 'mods', 'config'…) or 'launcher-log' (no instance). */
+    openFolder: (instanceId, folder) => invoke(CHANNELS.dev.openFolder, instanceId ?? null, folder ?? ''),
+    removeTests: () => invoke(CHANNELS.dev.removeTests),
+  },
   events: {
     onTaskProgress: (listener) => subscribe(CHANNELS.events.taskProgress, listener),
     onGameState: (listener) => subscribe(CHANNELS.events.gameState, listener),
@@ -248,6 +258,8 @@ const bridge = {
     onFriendEvent: (listener) => subscribe(CHANNELS.events.friendEvent, listener),
     onSkinImported: (listener) => subscribe(CHANNELS.events.skinImported, listener),
     onOverlay: (listener) => subscribe(CHANNELS.events.overlay, listener),
+    onDevConfirm: (listener) => subscribe(CHANNELS.events.devConfirm, listener),
+    onDevStatus: (listener) => subscribe(CHANNELS.events.devStatus, listener),
   },
 };
 
