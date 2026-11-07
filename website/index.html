@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <title>Amethyx Launcher — лаунчер Minecraft с модами, скинами и друзьями</title>
-    <meta name="description" content="Бесплатный лаунчер Minecraft: Java Edition для Windows. Сборки с модами, Modrinth и CurseForge, гардероб скинов, друзья и чат, свой сервер, оптимизация в один клик." />
+    <meta name="description" content="Бесплатный лаунчер Minecraft: Java Edition для Windows и macOS. Сборки с модами, Modrinth и CurseForge, гардероб скинов, друзья и чат, свой сервер, оптимизация в один клик." />
     <meta name="theme-color" content="#0a080f" />
     <link rel="canonical" href="https://launcher.x-world.plus/" />
     <meta property="og:type" content="website" />
@@ -60,7 +60,7 @@
             </a>
             <a class="btn btn--ghost" href="https://github.com/VanillaPlusLauncher/VanillaPlus" target="_blank" rel="noopener" data-i18n="hero.source">Исходный код на GitHub</a>
           </div>
-          <p class="hero__meta"><span id="version-line">Версия 1.7</span> · Windows 10 / 11 · <span data-i18n="hero.free">бесплатно</span></p>
+          <p class="hero__meta"><span id="version-line">Версия 1.7</span> · Windows · macOS · <span data-i18n="hero.free">бесплатно</span></p>
           <div class="puzzle" id="puzzle" aria-hidden="true"></div>
         </div>
         <figure class="window reveal" id="hero-window">
@@ -83,42 +83,62 @@
           <article class="feature reveal">
             <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4-8 4-8-4 8-4Z" /><path d="m4 12 8 4 8-4" /><path d="m4 17 8 4 8-4" /></svg></span>
             <h3 data-i18n="f1.title">Удобные сборки</h3>
-            <p data-i18n="f1.text">Сборка с любым загрузчиком модов за пару кликов, свои группы и заметки. Сборки из других лаунчеров переносятся сами — с модами, мирами и настройками.</p>
+            <p data-i18n="f1.text">Сборка с любым загрузчиком модов за пару кликов, свои группы и заметки. Сборки из других лаунчеров переносятся сами, а своей можно поделиться коротким кодом.</p>
           </article>
           <article class="feature reveal">
             <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" /></svg></span>
             <h3 data-i18n="f2.title">Огромная библиотека модов</h3>
-            <p data-i18n="f2.text">Модпаки, моды, ресурспаки и шейдеры в одном месте. Лаунчер сам ставит всё нужное, проверяет совместимость и делает копию миров перед обновлением.</p>
+            <p data-i18n="f2.text">Модпаки, моды, ресурспаки, шейдеры, датапаки и карты в одном месте. Лаунчер сам ставит всё нужное, проверяет совместимость и делает копию миров перед обновлением.</p>
           </article>
           <article class="feature reveal">
             <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" /></svg></span>
             <h3 data-i18n="f3.title">Оптимизация в один клик</h3>
-            <p data-i18n="f3.text">Лаунчер изучает компьютер и сборку, добавляет моды для FPS и подбирает настройки. Не понравилось — всё возвращается одной кнопкой.</p>
+            <p data-i18n="f3.text">Лаунчер изучает компьютер и сборку, ставит моды для FPS, подбирает память, графику и шейдеры по силам компьютера. Не понравилось — всё возвращается одной кнопкой.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3l1.8 4.2L17 9l-4.2 1.8L11 15l-1.8-4.2L5 9l4.2-1.8L11 3Z" /><path d="M18 14l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z" /></svg></span>
+            <h3 data-i18n="f4.title">Умный помощник</h3>
+            <p data-i18n="f4.text">Проверяет моды на конфликты и исправляет их одной кнопкой, советует моды под вашу сборку и находит обновления.</p>
           </article>
           <article class="feature reveal">
             <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 3 6l2 5 2-1v10h10V10l2 1 2-5-5-3c0 2-1.8 3-4 3S8 5 8 3Z" /></svg></span>
-            <h3 data-i18n="f4.title">Скины и живой игрок</h3>
-            <p data-i18n="f4.text">Ваш игрок в 3D на главной: следит за мышкой, машет и танцует. Гардероб на несколько скинов, новый скин надевается одним кликом.</p>
+            <h3 data-i18n="f5.title">Скины и живой игрок</h3>
+            <p data-i18n="f5.text">Ваш игрок в 3D на главной: следит за мышкой, машет и танцует. В Гардеробе пять мест для скинов: скин, скачанный на The Skindex или NameMC, появляется там сам.</p>
           </article>
           <article class="feature reveal">
             <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5Z" /><path d="M8 9h8M8 12h5" /></svg></span>
-            <h3 data-i18n="f5.title">Друзья и чат</h3>
-            <p data-i18n="f5.text">Кто в сети и во что играет, сообщения и скриншоты. Друг заходит в ваш мир одной кнопкой, а нужную сборку лаунчер соберёт ему сам.</p>
+            <h3 data-i18n="f6.title">Друзья и чат</h3>
+            <p data-i18n="f6.text">Кто в сети и во что играет, сообщения и скриншоты. Друг заходит в ваш мир одной кнопкой, а нужную сборку лаунчер соберёт ему сам.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2" /><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" /></svg></span>
+            <h3 data-i18n="f7.title">Панель в игре</h3>
+            <p data-i18n="f7.text">Shift+Tab прямо в игре: позвать друга в мир, ответить в чате, отправить скриншот. Работает в любой версии, в игру ничего не ставится.</p>
           </article>
           <article class="feature reveal">
             <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" /><path d="M7 7.5h.01M7 16.5h.01" /></svg></span>
-            <h3 data-i18n="f6.title">Свой сервер</h3>
-            <p data-i18n="f6.text">Сервер из вашей сборки в пару кликов — на своём компьютере, а скоро и в облаке. Или готовый пак для любого хостинга.</p>
+            <h3 data-i18n="f8.title">Свой сервер</h3>
+            <p data-i18n="f8.text">Сервер из вашей сборки в пару кликов: консоль, все настройки, мир из сборки. Или готовый пак для любого хостинга.</p>
           </article>
           <article class="feature reveal">
             <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8" /><path d="M4 3v5h5" /><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16" /><path d="M20 21v-5h-5" /></svg></span>
-            <h3 data-i18n="f7.title">Быстро и всегда свежо</h3>
-            <p data-i18n="f7.text">Файлы качаются в несколько потоков, все моды обновляются разом. И сам лаунчер обновляется без вашего участия.</p>
+            <h3 data-i18n="f9.title">Быстро и всегда свежо</h3>
+            <p data-i18n="f9.text">Файлы качаются в несколько потоков, все моды обновляются разом. И сам лаунчер обновляется без вашего участия.</p>
           </article>
           <article class="feature reveal">
-            <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9l4-6Z" /><path d="M2 9h20M9 3l3 18M15 3l-3 18" /></svg></span>
-            <h3 data-i18n="f8.title">Красиво и понятно</h3>
-            <p data-i18n="f8.text">Мягкий аметистовый стиль с объёмными иконками, живые анимации, панорамы и звуки. Короткое обучение для новичков и несколько языков на выбор.</p>
+            <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" /><circle cx="15" cy="6" r="2" /><circle cx="9" cy="12" r="2" /><circle cx="17" cy="18" r="2" /></svg></span>
+            <h3 data-i18n="f10.title">Настройте под себя</h3>
+            <p data-i18n="f10.text">Мягкий или пиксельный вид, цвет темы, шрифт, значки и панорамы Minecraft. Приятные звуки и кнопки, которые отзываются на каждое нажатие. Всё настраивается под вас.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg></span>
+            <h3 data-i18n="f11.title">Windows и macOS</h3>
+            <p data-i18n="f11.text">Windows 10 и 11, отдельная сборка для Windows 7 и 8, macOS на Apple Silicon и Intel. На слабых компьютерах лаунчер сам начинает в лёгком режиме.</p>
+          </article>
+          <article class="feature reveal">
+            <span class="feature__icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg></span>
+            <h3 data-i18n="f12.title">Девять языков</h3>
+            <p data-i18n="f12.text">Английский, русский, украинский, польский, немецкий, французский, испанский, португальский и китайский. Язык меняется в настройках в любой момент.</p>
           </article>
         </div>
       </section>
@@ -126,13 +146,14 @@
       <!-- Screenshots -->
       <section class="section" id="shots">
         <h2 class="section__title reveal" data-i18n="shots.title">Скриншоты</h2>
+        <!-- Each picture has an English twin (-en.webp): script.js swaps them with the language. -->
         <div class="gallery">
-          <button class="shot reveal" type="button" data-full="assets/shots/mods.webp?v=d4e04b50"><img src="assets/shots/mods.webp?v=d4e04b50" alt="Моды сборки" loading="lazy" width="1440" height="900" /><span data-i18n="shots.mods">Моды сборки</span></button>
-          <button class="shot reveal" type="button" data-full="assets/shots/library.webp?v=06aa1ad3"><img src="assets/shots/library.webp?v=06aa1ad3" alt="Библиотека модов" loading="lazy" width="1440" height="900" /><span data-i18n="shots.library">Библиотека Modrinth и CurseForge</span></button>
-          <button class="shot reveal" type="button" data-full="assets/shots/wardrobe.webp?v=3962f9cb"><img src="assets/shots/wardrobe.webp?v=3962f9cb" alt="Гардероб" loading="lazy" width="1440" height="900" /><span data-i18n="shots.wardrobe">Гардероб скинов</span></button>
-          <button class="shot reveal" type="button" data-full="assets/shots/friends.webp?v=719d6aac"><img src="assets/shots/friends.webp?v=719d6aac" alt="Друзья и чат" loading="lazy" width="1440" height="900" /><span data-i18n="shots.friends">Друзья и чат</span></button>
-          <button class="shot reveal" type="button" data-full="assets/shots/servers.webp?v=ac295eed"><img src="assets/shots/servers.webp?v=ac295eed" alt="Сервер для хостинга" loading="lazy" width="1440" height="900" /><span data-i18n="shots.servers">Сервер для хостинга</span></button>
-          <button class="shot reveal" type="button" data-full="assets/shots/home.webp?v=cfee9851"><img src="assets/shots/home.webp?v=cfee9851" alt="Главный экран" loading="lazy" width="1440" height="900" /><span data-i18n="shots.home">Главный экран</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/mods.webp?v=5c831ca8" data-full-en="assets/shots/mods-en.webp?v=5a86a5f7"><img src="assets/shots/mods.webp?v=5c831ca8" data-src-en="assets/shots/mods-en.webp?v=5a86a5f7" alt="Моды сборки" loading="lazy" width="1440" height="900" /><span data-i18n="shots.mods">Моды сборки</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/library.webp?v=ba933e78" data-full-en="assets/shots/library-en.webp?v=83b9df3f"><img src="assets/shots/library.webp?v=ba933e78" data-src-en="assets/shots/library-en.webp?v=83b9df3f" alt="Библиотека модов" loading="lazy" width="1440" height="900" /><span data-i18n="shots.library">Библиотека Modrinth и CurseForge</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/wardrobe.webp?v=a013e8bb" data-full-en="assets/shots/wardrobe-en.webp?v=16e82a40"><img src="assets/shots/wardrobe.webp?v=a013e8bb" data-src-en="assets/shots/wardrobe-en.webp?v=16e82a40" alt="Гардероб" loading="lazy" width="1440" height="900" /><span data-i18n="shots.wardrobe">Гардероб скинов</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/friends.webp?v=d93ba60b" data-full-en="assets/shots/friends-en.webp?v=2f8a3fca"><img src="assets/shots/friends.webp?v=d93ba60b" data-src-en="assets/shots/friends-en.webp?v=2f8a3fca" alt="Друзья и чат" loading="lazy" width="1440" height="900" /><span data-i18n="shots.friends">Друзья и чат</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/servers.webp?v=90457fea" data-full-en="assets/shots/servers-en.webp?v=8f68f936"><img src="assets/shots/servers.webp?v=90457fea" data-src-en="assets/shots/servers-en.webp?v=8f68f936" alt="Сервер для хостинга" loading="lazy" width="1440" height="900" /><span data-i18n="shots.servers">Сервер для хостинга</span></button>
+          <button class="shot reveal" type="button" data-full="assets/shots/home.webp?v=849f89f8" data-full-en="assets/shots/home-en.webp?v=148a7279"><img src="assets/shots/home.webp?v=849f89f8" data-src-en="assets/shots/home-en.webp?v=148a7279" alt="Главный экран" loading="lazy" width="1440" height="900" /><span data-i18n="shots.home">Главный экран</span></button>
         </div>
       </section>
 
@@ -178,8 +199,8 @@
         <div class="faq">
           <details class="reveal"><summary data-i18n="q1">Нужна ли лицензия Minecraft?</summary><p data-i18n="a1">Нет. Можно играть офлайн или через Ely.by. Для серверов, которые проверяют лицензию, нужен аккаунт Microsoft.</p></details>
           <details class="reveal"><summary data-i18n="q2">Это безопасно?</summary><p data-i18n="a2">Код лаунчера открыт на GitHub. Пароли вводятся только на официальных сайтах Microsoft и Ely.by — лаунчер их не видит.</p></details>
-          <details class="reveal"><summary data-i18n="q3">Откуда берутся моды?</summary><p data-i18n="a3">С Modrinth и CurseForge — тех же сайтов, что используют все крупные лаунчеры. Зависимости и совместимость лаунчер проверяет сам.</p></details>
-          <details class="reveal"><summary data-i18n="q4">Как обновить лаунчер?</summary><p data-i18n="a4">Никак — он обновляется сам: скачивает новую версию и предлагает установить её одной кнопкой.</p></details>
+          <details class="reveal"><summary data-i18n="q3">Откуда берутся моды?</summary><p data-i18n="a3">С Modrinth и CurseForge — крупнейших сайтов модов для Minecraft. Зависимости и совместимость лаунчер проверяет сам.</p></details>
+          <details class="reveal"><summary data-i18n="q4">Как обновить лаунчер?</summary><p data-i18n="a4">Никак — он обновляется сам: скачивает новую версию и ставит её, когда вы не играете.</p></details>
           <details class="reveal"><summary data-i18n="q5">Можно перенести сборки из другого лаунчера?</summary><p data-i18n="a5">Да: Prism, ElyPrism, Modrinth App, CurseForge, TLauncher, Millida и другие находятся сами — моды, настройки, миры и скриншоты переезжают целиком.</p></details>
         </div>
       </section>
@@ -205,6 +226,6 @@
     </div>
 
     <script src="geode.js?v=8b13c549"></script>
-    <script src="script.js?v=ecc0c436"></script>
+    <script src="script.js?v=23343b86"></script>
   </body>
 </html>

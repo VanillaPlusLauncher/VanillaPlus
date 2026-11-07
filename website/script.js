@@ -17,21 +17,29 @@
     'features.title': 'What it does',
     'features.lead': 'Everything you need to play with mods and friends — in one window.',
     'f1.title': 'Easy instances',
-    'f1.text': 'An instance with any mod loader in a couple of clicks, your own groups and notes. Instances from other launchers move over by themselves — with mods, worlds and settings.',
+    'f1.text': 'An instance with any mod loader in a couple of clicks, your own groups and notes. Instances from other launchers move over by themselves, and you can share yours with a short code.',
     'f2.title': 'A huge mod library',
-    'f2.text': 'Modpacks, mods, resource packs and shaders in one place. The launcher installs everything they need, checks compatibility and backs up your worlds before updates.',
+    'f2.text': 'Modpacks, mods, resource packs, shaders, data packs and maps in one place. The launcher installs everything they need, checks compatibility and backs up your worlds before updates.',
     'f3.title': 'One-click optimization',
-    'f3.text': 'The launcher studies your PC and the instance, adds FPS mods and picks the settings. Don’t like it — everything goes back with one button.',
-    'f4.title': 'Skins and a living player',
-    'f4.text': 'Your player in 3D on the home screen: follows the mouse, waves and dances. A wardrobe for several skins; a new skin goes on in one click.',
-    'f5.title': 'Friends and chat',
-    'f5.text': 'Who is online and what they play, messages and screenshots. A friend joins your world with one button, and the launcher builds the right instance for them.',
-    'f6.title': 'Your own server',
-    'f6.text': 'A server from your instance in a couple of clicks — on your own PC, and soon in the cloud. Or a ready pack for any hosting.',
-    'f7.title': 'Fast and always fresh',
-    'f7.text': 'Files download in several streams, all mods update at once. And the launcher keeps itself up to date too.',
-    'f8.title': 'Beautiful and clear',
-    'f8.text': 'A soft amethyst look with 3D icons, lively animations, panoramas and sounds. A short tour for newcomers and several languages to choose from.',
+    'f3.text': 'The launcher studies your PC and the instance, adds FPS mods and picks memory, graphics and shaders your PC can handle. Don’t like it — everything goes back with one button.',
+    'f4.title': 'Smart helper',
+    'f4.text': 'Checks your mods for conflicts and fixes them with one button, suggests mods for your instance and finds updates.',
+    'f5.title': 'Skins and a living player',
+    'f5.text': 'Your player in 3D on the home screen: follows the mouse, waves and dances. The Wardrobe holds five skins: a skin downloaded on The Skindex or NameMC shows up there by itself.',
+    'f6.title': 'Friends and chat',
+    'f6.text': 'Who is online and what they play, messages and screenshots. A friend joins your world with one button, and the launcher builds the right instance for them.',
+    'f7.title': 'In-game panel',
+    'f7.text': 'Shift+Tab right in the game: invite a friend to your world, reply in chat, send a screenshot. Works in any version, nothing is added to the game.',
+    'f8.title': 'Your own server',
+    'f8.text': 'A server from your instance in a couple of clicks: console, every setting, the world from your instance. Or a ready pack for any hosting.',
+    'f9.title': 'Fast and always fresh',
+    'f9.text': 'Files download in several streams, all mods update at once. And the launcher keeps itself up to date too.',
+    'f10.title': 'Make it yours',
+    'f10.text': 'Soft or pixel look, theme colour, font, icons and Minecraft panoramas. Pleasant sounds and buttons that respond to every press. Everything can be tuned to you.',
+    'f11.title': 'Windows and macOS',
+    'f11.text': 'Windows 10 and 11, a separate build for Windows 7 and 8, macOS on Apple Silicon and Intel. On low-end PCs the launcher starts in a light mode by itself.',
+    'f12.title': 'Nine languages',
+    'f12.text': 'English, Russian, Ukrainian, Polish, German, French, Spanish, Portuguese and Chinese. Switch the language in settings at any time.',
     'shots.title': 'Screenshots',
     'shots.mods': 'Instance mods',
     'shots.library': 'Modrinth and CurseForge library',
@@ -51,9 +59,9 @@
     'q2': 'Is it safe?',
     'a2': 'The launcher’s code is open on GitHub. Passwords are typed only on the official Microsoft and Ely.by sites — the launcher never sees them.',
     'q3': 'Where do the mods come from?',
-    'a3': 'From Modrinth and CurseForge — the same sites every major launcher uses. The launcher checks dependencies and compatibility itself.',
+    'a3': 'From Modrinth and CurseForge — the biggest Minecraft mod sites. The launcher checks dependencies and compatibility itself.',
     'q4': 'How do I update the launcher?',
-    'a4': 'You don’t — it updates itself: it downloads the new version and offers to install it with one button.',
+    'a4': 'You don’t — it updates itself: it downloads the new version and installs it while you are not playing.',
     'q5': 'Can I bring instances from another launcher?',
     'a5': 'Yes: Prism, ElyPrism, Modrinth App, CurseForge, TLauncher, Millida and others are found automatically — mods, settings, worlds and screenshots move over whole.',
     'footer.note': 'Amethyx Launcher is an unofficial launcher. Not affiliated with or endorsed by Mojang Studios or Microsoft. Minecraft is a trademark of Mojang Studios.'
@@ -89,7 +97,7 @@
     document.title = english ? 'Amethyx Launcher — a Minecraft launcher with mods, skins and friends' : titleRu;
     if (descriptionMeta) {
       descriptionMeta.content = english
-        ? 'A free Minecraft: Java Edition launcher for Windows. Modded instances, Modrinth and CurseForge, a skin wardrobe, friends and chat, your own server, one-click optimization.'
+        ? 'A free Minecraft: Java Edition launcher for Windows and macOS. Modded instances, Modrinth and CurseForge, a skin wardrobe, friends and chat, your own server, one-click optimization.'
         : descriptionRu;
     }
     document.getElementById('version-line').textContent = (english ? 'Version ' : 'Версия ') + versionText(version);
@@ -103,6 +111,24 @@
       button.setAttribute('aria-label', english ? 'Close' : 'Закрыть');
     });
     document.getElementById('video-open').setAttribute('aria-label', english ? 'Watch the video with sound' : 'Смотреть видео со звуком');
+    // Screenshots in the page's language: the Russian picture is in src / data-full, the English
+    // one in data-src-en / data-full-en.
+    Array.prototype.forEach.call(document.querySelectorAll('.shot'), function (shot) {
+      var image = shot.querySelector('img');
+      if (!image) return;
+      if (!shot.hasAttribute('data-full-ru')) {
+        shot.setAttribute('data-full-ru', shot.getAttribute('data-full'));
+        image.setAttribute('data-src-ru', image.getAttribute('src'));
+        image.setAttribute('data-alt-ru', image.alt);
+      }
+      var en = english && image.getAttribute('data-src-en');
+      var src = en ? image.getAttribute('data-src-en') : image.getAttribute('data-src-ru');
+      if (image.getAttribute('src') !== src) image.setAttribute('src', src);
+      shot.setAttribute('data-full', en ? shot.getAttribute('data-full-en') : shot.getAttribute('data-full-ru'));
+      var caption = shot.querySelector('[data-i18n]');
+      var key = caption ? caption.getAttribute('data-i18n') : '';
+      image.alt = english && EN[key] ? EN[key] : image.getAttribute('data-alt-ru');
+    });
     renderDownloads();
   }
 
@@ -119,7 +145,7 @@
     ru: {
       downloadFor: 'Скачать для ', download: 'Скачать', latest: 'последняя',
       more: 'Другие версии', less: 'Скрыть версии', mb: ' МБ', none: 'Для этой системы версий пока нет.',
-      lead: { windows: 'Установщик для Windows. Дальше лаунчер обновляется сам.', 'windows-legacy': 'Установщик для Windows 7, 8 и Windows 10 до версии 1803. Дальше лаунчер обновляется сам.', mac: 'Сборка для macOS — пока бета, новые версии ставятся вручную.', linux: 'Сборка для Linux.' },
+      lead: { windows: 'Установщик для Windows. Дальше лаунчер обновляется сам.', 'windows-legacy': 'Установщик для Windows 7, 8 и Windows 10 до версии 1803. Дальше лаунчер обновляется сам.', mac: 'Сборка для macOS. Дальше лаунчер обновляется сам.', linux: 'Сборка для Linux.' },
       mobile: 'Amethyx работает на компьютере с Windows или macOS — скачайте его там.',
       noBuild: 'Для вашей системы сборки пока нет — вот версия для Windows.',
       noWin7: 'Для Windows 7, 8 и Windows 10 до версии 1803 сборки пока нет. Версия ниже работает только на Windows 10 (1803 и новее) и 11.',
@@ -128,7 +154,7 @@
       req: {
         windows: 'Windows 10 (версия 1803 и новее) или Windows 11, 64 бита. Для Windows 7, 8 и Windows 10 старше 1803 — отдельная сборка в «Других версиях». Java лаунчер скачает сам.',
         'windows-legacy': 'Windows 7 (SP1), 8, 8.1 или Windows 10 до версии 1803. Java лаунчер скачает сам.',
-        mac: 'Java лаунчер скачает сам.',
+        mac: 'macOS 12 Monterey или новее, Apple Silicon или Intel. Java лаунчер скачает сам.',
         linux: 'Java лаунчер скачает сам.'
       },
       macTitle: 'Как установить на Mac',
@@ -143,7 +169,7 @@
     en: {
       downloadFor: 'Download for ', download: 'Download', latest: 'latest',
       more: 'Other versions', less: 'Hide versions', mb: ' MB', none: 'No versions for this system yet.',
-      lead: { windows: 'An installer for Windows. After that the launcher updates itself.', 'windows-legacy': 'An installer for Windows 7, 8 and Windows 10 older than 1803. After that the launcher updates itself.', mac: 'A build for macOS — still a beta, new versions are installed by hand.', linux: 'A build for Linux.' },
+      lead: { windows: 'An installer for Windows. After that the launcher updates itself.', 'windows-legacy': 'An installer for Windows 7, 8 and Windows 10 older than 1803. After that the launcher updates itself.', mac: 'A build for macOS. After that the launcher updates itself.', linux: 'A build for Linux.' },
       mobile: 'Amethyx runs on a Windows or macOS computer — download it there.',
       noBuild: 'There is no build for your system yet — here is the Windows version.',
       noWin7: 'There is no build for Windows 7, 8 and Windows 10 older than 1803 yet. The version below runs on Windows 10 (1803 or newer) and 11 only.',
@@ -152,7 +178,7 @@
       req: {
         windows: 'Windows 10 (version 1803 or newer) or Windows 11, 64-bit. For Windows 7, 8 and Windows 10 older than 1803 there is a separate build under Other versions. The launcher downloads Java by itself.',
         'windows-legacy': 'Windows 7 (SP1), 8, 8.1 or Windows 10 older than 1803. The launcher downloads Java by itself.',
-        mac: 'The launcher downloads Java by itself.',
+        mac: 'macOS 12 Monterey or newer, Apple Silicon or Intel. The launcher downloads Java by itself.',
         linux: 'The launcher downloads Java by itself.'
       },
       macTitle: 'How to install on a Mac',
