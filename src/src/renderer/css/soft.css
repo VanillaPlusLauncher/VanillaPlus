@@ -39,6 +39,10 @@
   /* What is chosen: pressed in, darker than any plate or field (any tint would make it lighter than
      the plates around it, so it would read as raised); its text takes the theme colour. */
   --soft-chosen: hsl(var(--accent-hue) 25% 9.4%);
+  /* Buttons are keys (§4): the face, the face under the pointer, and the key's side under the face. */
+  --key-face: hsl(var(--accent-hue) 27.5% 22%);
+  --key-face-hover: hsl(var(--accent-hue) 28% 26%);
+  --key-base: hsl(var(--accent-hue) 30% 11%);
 
   /* The components' own rounding (features/pixel.css squares every corner only in the pixel look). */
   --radius-sm: 8px;
@@ -179,72 +183,86 @@
   text-shadow: none;
 }
 
-:root[data-style="soft"] .btn {
-  background: var(--soft-face);
-  color: var(--color-text);
-  box-shadow: var(--soft-raise), var(--soft-edge);
-  transition: transform 260ms var(--ease-spring), scale 260ms var(--ease-spring), background-color 160ms ease, box-shadow 200ms ease, color 160ms ease;
+/* Every button is a key standing on the panel: a face lit from above, its own side under it (the key's
+   thickness, a deep shade of its colour) and a soft shadow round its foot. Under the pointer the key
+   rises a little; pressed, the face goes down onto its side and the shadow shrinks. Every state uses the
+   one box-shadow list below, so each change glides: --key-gloss (light and shade on the face), --key-up
+   (how much of the side shows), --key-side (its colour), --key-glow (the main action's light). */
+:root[data-style="soft"] :is(.btn, .icon-button:not(.icon-button--window), .play-bar__actions .play-bar__arrow, .dropdown__button, .chip, .loader-button) {
+  --key-depth: 3px;
+  --key-up: var(--key-depth);
+  --key-colour: var(--key-face);
+  --key-side: var(--key-base);
+  --key-gloss: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -2px 3px rgba(0, 0, 0, 0.18);
+  --key-glow: 0 0 0 transparent;
+  border-color: transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.12)), var(--key-colour);
+  box-shadow: var(--key-gloss), 0 var(--key-up) 0 var(--key-side), 0 calc(var(--key-up) + 3px) calc(var(--key-up) * 2 + 5px) rgba(0, 0, 0, 0.42), var(--key-glow);
+  transition: transform 220ms var(--ease-out), scale 220ms var(--ease-out), translate 220ms var(--ease-out), box-shadow 220ms var(--ease-out), background-color 160ms ease, color 160ms ease;
 }
 
-:root[data-style="soft"] .btn:hover:not(:disabled) {
-  background: var(--soft-face-hover);
-  box-shadow: var(--soft-raise), var(--soft-edge);
+:root[data-style="soft"] :is(.btn, .play-bar__actions .play-bar__arrow) {
+  --key-depth: 4px;
+  color: var(--color-text);
+}
+
+:root[data-style="soft"] :is(.btn, .icon-button:not(.icon-button--window), .play-bar__actions .play-bar__arrow, .dropdown__button, .chip, .loader-button):hover:not(:disabled) {
+  --key-colour: var(--key-face-hover);
+  --key-up: calc(var(--key-depth) + 1px);
+  border-color: transparent;
   transform: translateY(-1px);
 }
 
-:root[data-style="soft"] .btn:active:not(:disabled) {
-  transform: none;
-  scale: 0.98;
-  background: var(--soft-pit);
-  box-shadow: var(--soft-sink);
-  transition-duration: 80ms;
+:root[data-style="soft"] :is(.btn, .icon-button:not(.icon-button--window), .play-bar__actions .play-bar__arrow, .dropdown__button, .chip, .loader-button):active:not(:disabled) {
+  --key-up: 1px;
+  --key-gloss: inset 0 2px 5px rgba(0, 0, 0, 0.3), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  transform: translateY(calc(var(--key-depth) - 1px));
+  scale: 1;
+  transition-duration: 70ms;
 }
 
-/* The main action: the same plate, lit by the theme colour. */
-:root[data-style="soft"] .btn--primary {
-  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.36), rgba(var(--accent-rgb), 0.16)), var(--soft-face);
-  color: #fff;
+/* The main action: a key of the theme colour, brighter under the pointer, with its light round it. */
+:root[data-style="soft"] .btn.btn--primary {
+  --key-colour: rgb(var(--accent-strong-rgb));
+  --key-side: var(--color-accent-deep);
+  --key-gloss: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -2px 3px rgba(0, 0, 0, 0.16);
+  color: var(--color-text-on-accent);
   font-weight: 700;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
-:root[data-style="soft"] .btn--primary:hover:not(:disabled) {
-  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.46), rgba(var(--accent-rgb), 0.22)), var(--soft-face);
-  box-shadow: var(--soft-raise), var(--soft-edge), 0 0 18px rgba(var(--accent-rgb), 0.22);
+:root[data-style="soft"] .btn.btn--primary:hover:not(:disabled) {
+  --key-colour: rgb(var(--accent-rgb));
+  --key-glow: 0 6px 22px rgba(var(--accent-rgb), 0.32);
+  color: var(--color-text-on-accent);
 }
 
-:root[data-style="soft"] .btn--primary:active:not(:disabled) {
-  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.2), rgba(var(--accent-rgb), 0.1)), var(--soft-pit);
-  box-shadow: var(--soft-sink);
+:root[data-style="soft"] .btn.btn--primary:active:not(:disabled) {
+  --key-glow: 0 2px 10px rgba(var(--accent-rgb), 0.22);
 }
 
-/* Quiet buttons: the same plate with a smaller relief, see-through, so they still read as buttons on
-   a panel, in a dialog's footer and over the panorama. */
-:root[data-style="soft"] .btn--ghost {
-  background: var(--soft-ghost);
+/* Quiet buttons: a lower key, a little see-through, so they still read as buttons on a panel, in a
+   dialog's footer and over the panorama. */
+:root[data-style="soft"] .btn.btn--ghost {
+  --key-depth: 3px;
+  --key-colour: hsl(var(--accent-hue) 27.5% 20% / 0.94);
+  --key-side: hsl(var(--accent-hue) 30% 9% / 0.92);
   color: var(--color-text);
-  box-shadow: var(--soft-raise-sm), var(--soft-edge);
 }
 
-:root[data-style="soft"] .btn--ghost:hover:not(:disabled) {
-  background: var(--soft-face-hover);
-  box-shadow: var(--soft-raise-sm), var(--soft-edge);
+:root[data-style="soft"] .btn.btn--danger:hover:not(:disabled) {
+  --key-colour: #452433;
+  --key-side: #1f0f17;
 }
 
-:root[data-style="soft"] .btn--ghost:active:not(:disabled) {
-  background: var(--soft-pit);
-  box-shadow: var(--soft-sink);
-}
-
-:root[data-style="soft"] .btn--danger:hover:not(:disabled) {
-  background: #382230;
-}
-
-/* A button that cannot be pressed now keeps its plate, only dimmed. */
-:root[data-style="soft"] .btn:disabled,
-:root[data-style="soft"] .btn--primary:disabled {
-  background: var(--soft-face);
+/* A button that cannot be pressed now: a low key, dimmed. */
+:root[data-style="soft"] :is(.btn, .icon-button:not(.icon-button--window), .dropdown__button):disabled {
+  --key-up: 2px;
+  --key-colour: var(--key-face);
+  --key-side: var(--key-base);
+  --key-glow: 0 0 0 transparent;
   color: var(--color-text-muted);
-  box-shadow: var(--soft-edge);
+  text-shadow: none;
   opacity: 0.55;
 }
 
@@ -282,48 +300,16 @@
   animation: btn-shine 620ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
 }
 
-/* Square icon buttons: the same plate, smaller. */
+/* Square icon buttons are keys too (above), 3 px high. */
 :root[data-style="soft"] .icon-button:not(.icon-button--window) {
   border: 0;
-  background: var(--soft-face);
-  box-shadow: var(--soft-raise-sm), var(--soft-edge);
 }
 
-:root[data-style="soft"] .icon-button:not(.icon-button--window):hover {
-  background: var(--soft-face-hover);
-  box-shadow: var(--soft-raise-sm), var(--soft-edge);
-}
-
-:root[data-style="soft"] .icon-button:not(.icon-button--window):active:not(:disabled) {
-  transform: none;
-  scale: 0.95;
-  background: var(--soft-pit);
-  box-shadow: var(--soft-sink);
-}
-
-/* Smaller plates that act like buttons. */
-:root[data-style="soft"] :is(.loader-button, .chip, .dropdown__button, .play-bar__actions .play-bar__arrow) {
-  border-color: transparent;
-  background: var(--soft-face);
-  box-shadow: var(--soft-raise-sm), var(--soft-edge);
-}
-
-:root[data-style="soft"] :is(.loader-button, .chip, .dropdown__button:not(:disabled), .play-bar__actions .play-bar__arrow):hover {
-  border-color: transparent;
-  background: var(--soft-face-hover);
-}
-
-/* "Гардероб" under the player on Home stands over the panorama: a full-size plate with its icon. */
+/* "Гардероб" under the player on Home stands over the panorama: a full-size key with its icon. */
 :root[data-style="soft"] .home-side__wardrobe {
   min-height: 44px;
   padding: 0 22px;
   font-size: 14px;
-  background: hsl(var(--accent-hue) 25.6% 16.9% / 0.92);
-  backdrop-filter: blur(10px);
-}
-
-:root[data-style="soft"] .home-side__wardrobe:hover:not(:disabled) {
-  background: var(--soft-plate-hover);
 }
 
 /* --- 5. Chosen things: pressed in and tinted, never a frame line ----------------------------------------- */
@@ -333,6 +319,11 @@
   background: var(--soft-chosen);
   box-shadow: var(--soft-sink);
   color: var(--color-accent);
+}
+
+/* A chosen key (a filter, a loader, an open list) stays pressed down onto its side. */
+:root[data-style="soft"] :is(.loader-button[aria-pressed="true"], .chip[aria-pressed="true"], .dropdown__button--open) {
+  translate: 0 calc(var(--key-depth) - 1px);
 }
 
 /* The sidebar: a panel of its own colour with a soft shadow instead of the black edge line, so the
@@ -536,7 +527,9 @@
   mask: var(--soft-check) center / contain no-repeat;
 }
 
-:root[data-style="soft"] .pixel-check[data-state="partial"]::after {
+/* Partly chosen: a bar, not a tick. Doubled class: the rule above wins otherwise (its :is() counts as
+   input[type]:not():checked), and its mask shorthand put the tick back. */
+:root[data-style="soft"] .pixel-check.pixel-check[data-state="partial"]:not(:checked)::after {
   -webkit-mask-image: var(--soft-check-bar);
   mask-image: var(--soft-check-bar);
 }

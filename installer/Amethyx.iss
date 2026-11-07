@@ -124,13 +124,30 @@ begin
   Result := ExpandConstant('{param:relaunch|0}') = '1';
 end;
 
-{ The window's pictures are drawn at 1x, 2x and 3x so they stay sharp: the one nearest to the
-  screen's scale is used (2x already from 125 %). }
+{ The window's pictures are drawn at Windows' usual scales (PICTURE_SCALES in make-update-art.ps1
+  and render-setup-ui.js), in percent; the one nearest to the screen's scale is used, so the window
+  is as big as it is meant to be. Only 1x, 2x and 3x used to be there: at 125 % the window got the
+  2x pictures and was 1.6 times too big (the install window 1520 × 920 on a 1920 × 1080 screen). }
 function PictureScale: Integer;
+var
+  Wanted: Integer;
 begin
-  Result := 1;
-  if ScaleX(100) > 112 then Result := 2;
-  if ScaleX(100) >= 250 then Result := 3;
+  { The borders lie halfway between two drawn scales. }
+  Wanted := ScaleX(100);
+  if Wanted < 113 then Result := 100
+  else if Wanted < 138 then Result := 125
+  else if Wanted < 163 then Result := 150
+  else if Wanted < 188 then Result := 175
+  else if Wanted < 213 then Result := 200
+  else if Wanted < 238 then Result := 225
+  else if Wanted < 275 then Result := 250
+  else Result := 300;
+end;
+
+{ A length of the 1x layout at the chosen scale, rounded like the pictures' own places. }
+function ScaledBy(Value, Percent: Integer): Integer;
+begin
+  Result := (Value * Percent + 50) div 100;
 end;
 
 type
@@ -253,7 +270,7 @@ begin
     DwmSetWindowAttribute(WizardForm.Handle, DWMWA_BORDER_COLOR, Value, 4);
     Exit;
   end;
-  Radius := UpdateCorner * UpdateScale;
+  Radius := ScaledBy(UpdateCorner, UpdateScale);
   { The window owns the region from here on. }
   SetWindowRgn(WizardForm.Handle, CreateRoundRectRgn(0, 0, WizardForm.ClientWidth + 1, WizardForm.ClientHeight + 1, Radius * 2, Radius * 2), True);
 end;
@@ -279,7 +296,7 @@ begin
   BitBlt(Canvas.Handle, 0, 0, W, H, UpdateBack.Bitmap.Canvas.Handle, UpdateStatus.Left, UpdateStatus.Top, SRCCOPY);
   Canvas.Brush.Style := bsClear;
   Canvas.Font.Name := 'Tiny5';
-  Canvas.Font.Height := -16 * UpdateScale;
+  Canvas.Font.Height := -ScaledBy(16, UpdateScale);
   Canvas.Font.Color := SoftTextColor;
   Canvas.TextOut(0, (H - Canvas.TextHeight(Step)) div 2, Step);
   if Percent >= 0 then
@@ -348,18 +365,24 @@ begin
   Result := DesktopIcon;
 end;
 
+{ A length of the 1x layout in this window's pixels. }
+function Px(Value: Integer): Integer;
+begin
+  Result := ScaledBy(Value, Scale);
+end;
+
 { One picture of art\setup-*.png at its place (1x coordinates). }
 function Part(const Name: String; X, Y: Integer): TBitmapImage;
 var
   FileName: String;
 begin
-  FileName := 'setup-' + Name + '-' + IntToStr(Scale) + 'x.png';
+  FileName := 'setup-' + Name + '-' + IntToStr(Scale) + '.png';
   ExtractTemporaryFile(FileName);
   Result := TBitmapImage.Create(WizardForm);
   Result.Parent := Screen;
   Result.BackColor := clNone;
   Result.PngImage.LoadFromFile(ExpandConstant('{tmp}\') + FileName);
-  Result.SetBounds(X * Scale, Y * Scale, Result.PngImage.Width, Result.PngImage.Height);
+  Result.SetBounds(Px(X), Px(Y), Result.PngImage.Width, Result.PngImage.Height);
 end;
 
 { An empty place over the window, at 1x coordinates: to click on, or for Setup to write into. }
@@ -368,13 +391,13 @@ begin
   Result := TBitmapImage.Create(WizardForm);
   Result.Parent := Screen;
   Result.BackColor := clNone;
-  Result.SetBounds(X * Scale, Y * Scale, W * Scale, H * Scale);
+  Result.SetBounds(Px(X), Px(Y), Px(W), Px(H));
 end;
 
 { A button: its picture and its lit picture at (X, Y), clicked on its own box. }
 procedure MakeButton(var Button: TSetupButton; const Name: String; X, Y, BoxX, BoxY, BoxW, BoxH: Integer; Click: TNotifyEvent);
 begin
-  Button.X := BoxX * Scale; Button.Y := BoxY * Scale; Button.W := BoxW * Scale; Button.H := BoxH * Scale;
+  Button.X := Px(BoxX); Button.Y := Px(BoxY); Button.W := Px(BoxW); Button.H := Px(BoxH);
   Button.Normal := Part(Name, X, Y);
   Button.Hover := Part(Name + '-hover', X, Y);
   Button.Hover.Visible := False;
@@ -396,8 +419,8 @@ end;
 function TextPlace(X, Y, W, H: Integer): TBitmapImage;
 begin
   Result := Place(X, Y, W, H);
-  Result.Bitmap.Width := W * Scale;
-  Result.Bitmap.Height := H * Scale;
+  Result.Bitmap.Width := Px(W);
+  Result.Bitmap.Height := Px(H);
 end;
 
 { Text in Tiny5 on a solid background, left aligned, vertically centred; and, when it is given, a
@@ -414,7 +437,7 @@ begin
   Canvas.FillRect(R);
   Canvas.Brush.Style := bsClear;
   Canvas.Font.Name := 'Tiny5';
-  Canvas.Font.Height := -16 * Scale;
+  Canvas.Font.Height := -Px(16);
   Canvas.Font.Color := Color;
   Canvas.TextOut(0, (R.Bottom - Canvas.TextHeight(Text)) div 2, Text);
   if Right <> '' then
@@ -436,7 +459,7 @@ begin
   Shown := Path;
   Canvas := PathText.Bitmap.Canvas;
   Canvas.Font.Name := 'Tiny5';
-  Canvas.Font.Height := -16 * Scale;
+  Canvas.Font.Height := -Px(16);
   Cut := 4;
   while (Canvas.TextWidth(Shown) > PathText.Bitmap.Width) and (Cut < Length(Path) - 8) do
   begin
@@ -674,7 +697,7 @@ var
   Suffix: String;
 begin
   UpdateScale := PictureScale;
-  Suffix := IntToStr(UpdateScale) + 'x.bmp';
+  Suffix := IntToStr(UpdateScale) + '.bmp';
   ExtractTemporaryFile('update-bg-' + Suffix);
   ExtractTemporaryFile('update-fill-' + Suffix);
   ExtractTemporaryFile('update-cap-' + Suffix);
@@ -703,7 +726,7 @@ begin
   UpdateMarkStrip.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-mark-' + Suffix));
   UpdateMark := TBitmapImage.Create(WizardForm);
   UpdateMark.Parent := Cover;
-  UpdateMark.SetBounds(UpdateMarkLeft * UpdateScale, UpdateMarkTop * UpdateScale, UpdateMarkStrip.Bitmap.Width div UpdateMarkFrames, UpdateMarkStrip.Bitmap.Height);
+  UpdateMark.SetBounds(ScaledBy(UpdateMarkLeft, UpdateScale), ScaledBy(UpdateMarkTop, UpdateScale), UpdateMarkStrip.Bitmap.Width div UpdateMarkFrames, UpdateMarkStrip.Bitmap.Height);
   UpdateMark.Bitmap.Width := UpdateMark.Width;
   UpdateMark.Bitmap.Height := UpdateMark.Height;
   UpdateMark.BringToFront;
@@ -713,7 +736,7 @@ begin
 
   UpdateStatus := TBitmapImage.Create(WizardForm);
   UpdateStatus.Parent := Cover;
-  UpdateStatus.SetBounds(UpdateStatusLeft * UpdateScale, UpdateStatusTop * UpdateScale, UpdateStatusWidth * UpdateScale, UpdateStatusHeight * UpdateScale);
+  UpdateStatus.SetBounds(ScaledBy(UpdateStatusLeft, UpdateScale), ScaledBy(UpdateStatusTop, UpdateScale), ScaledBy(UpdateStatusWidth, UpdateScale), ScaledBy(UpdateStatusHeight, UpdateScale));
   UpdateStatus.Bitmap.Width := UpdateStatus.Width;
   UpdateStatus.Bitmap.Height := UpdateStatus.Height;
   UpdateStatus.BringToFront;
@@ -729,7 +752,7 @@ begin
   UpdateFill.Stretch := False;
   UpdateFill.Center := False;
   UpdateFill.Bitmap.LoadFromFile(ExpandConstant('{tmp}\update-fill-' + Suffix));
-  UpdateFill.SetBounds(UpdateFillLeft * UpdateScale, UpdateFillTop * UpdateScale, 0, UpdateFill.Bitmap.Height);
+  UpdateFill.SetBounds(ScaledBy(UpdateFillLeft, UpdateScale), ScaledBy(UpdateFillTop, UpdateScale), 0, UpdateFill.Bitmap.Height);
   UpdateFill.BringToFront;
 
   UpdateCap := TBitmapImage.Create(WizardForm);
@@ -757,8 +780,8 @@ var
 begin
   Scale := PictureScale;
   DesktopIcon := True;
-  WizardForm.ClientWidth := 760 * Scale;
-  WizardForm.ClientHeight := 460 * Scale;
+  WizardForm.ClientWidth := Px(760);
+  WizardForm.ClientHeight := Px(460);
   WizardForm.Position := poScreenCenter;
 
   { The launcher's pixel font, for this process only. }

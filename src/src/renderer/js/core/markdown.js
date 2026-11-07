@@ -123,7 +123,7 @@ function cleanNode(node, documentRef) {
       for (const attribute of [...child.attributes]) {
         const name = attribute.name.toLowerCase();
         const keep =
-          (tag === 'A' && name === 'href' && /^https:\/\//i.test(attribute.value)) ||
+          (tag === 'A' && name === 'href' && /^https?:\/\//i.test(attribute.value)) ||
           (tag === 'IMG' && name === 'src' && /^https:\/\//i.test(attribute.value)) ||
           (tag === 'IMG' && (name === 'alt' || name === 'width' || name === 'height')) ||
           ((tag === 'TD' || tag === 'TH') && (name === 'colspan' || name === 'rowspan'));
@@ -145,15 +145,36 @@ function cleanNode(node, documentRef) {
   }
 }
 
+/**
+ * Links and pictures written relative to the project's site ("/mod/sodium", "images/a.png") made whole
+ * against `base`, so they work here too (they were dropped as not https before).
+ */
+function absolutize(root, base) {
+  if (!base) return;
+  for (const [selector, attribute] of [['a[href]', 'href'], ['img[src]', 'src']]) {
+    for (const element of root.querySelectorAll(selector)) {
+      const value = element.getAttribute(attribute).trim();
+      if (!value || /^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith('#')) continue;
+      try {
+        element.setAttribute(attribute, new URL(value, base).href);
+      } catch {
+        // Not a usable address: the whitelist drops it.
+      }
+    }
+  }
+}
+
 /** Parses and whitelists HTML, returns a DocumentFragment safe to insert. */
-export function safeHtml(html) {
+export function safeHtml(html, base = null) {
   const parsed = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+  absolutize(parsed.body, base);
   cleanNode(parsed.body, parsed);
   const fragment = document.createDocumentFragment();
   fragment.append(...[...parsed.body.childNodes].map((node) => document.importNode(node, true)));
   return fragment;
 }
 
-export function renderDescription(body, format) {
-  return safeHtml(format === 'markdown' ? markdownToHtml(body) : body);
+/** `base`: the project's page, for its relative links and pictures. */
+export function renderDescription(body, format, base = null) {
+  return safeHtml(format === 'markdown' ? markdownToHtml(body) : body, base);
 }

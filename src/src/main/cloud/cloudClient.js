@@ -7,7 +7,7 @@ const { readJsonFile, writeJsonFileAtomic } = require('../core/jsonFile');
 const { SerialQueue } = require('../core/serialQueue');
 const { getAppPaths } = require('../core/paths');
 const { createLogger } = require('../core/logger');
-const { getSettings } = require('../settings/settingsService');
+const { getSettings, updateSettings } = require('../settings/settingsService');
 const { loadAccountStore, encryptSecret, decryptSecret } = require('../accounts/accountStore');
 
 /*
@@ -221,6 +221,54 @@ async function fetchAs(accountId, pathname) {
   }
 }
 
+/*
+ * Which account friends, messages, invites and the "online" status go as. Friends are the launcher's,
+ * not one account's: with "Друзья общие для всех аккаунтов" on (the default) they stay the friends of
+ * one account (settings.social.friendsAccountId) whatever account is chosen for playing, so switching
+ * the account no longer empties the list. Off: the account chosen for playing, as before.
+ */
+let choosing = null;
+
+async function socialAccountId() {
+  const settings = await getSettings();
+  const { selectedId, accounts } = await loadAccountStore();
+  if (!selectedId) return null;
+  if (settings.social?.sharedFriends === false) return selectedId;
+  const saved = settings.social?.friendsAccountId;
+  if (saved && accounts.some((account) => account.id === saved)) return saved;
+  choosing ??= chooseFriendsAccount(settings, accounts, selectedId).finally(() => {
+    choosing = null;
+  });
+  return choosing;
+}
+
+/**
+ * The first time (or after that account was removed): of the accounts already signed in to the server,
+ * the one with the most friends — the one the player made friends with — else the chosen one.
+ */
+async function chooseFriendsAccount(settings, accounts, selectedId) {
+  const base = serverUrl(settings);
+  const store = await readStore();
+  let best = selectedId;
+  let bestCount = -1;
+  for (const account of accounts) {
+    if (!base || store.sessions[account.id]?.server !== base) continue;
+    try {
+      const result = await callAs(account.id, 'GET', '/v1/friends');
+      const count = (result.friends?.length ?? 0) + (result.incoming?.length ?? 0) + (result.outgoing?.length ?? 0);
+      if (count > bestCount || (count === bestCount && account.id === selectedId)) {
+        best = account.id;
+        bestCount = count;
+      }
+    } catch {
+      // Not reachable as this account now: not a candidate.
+    }
+  }
+  await updateSettings({ social: { friendsAccountId: best } });
+  log.info(`Друзья Amethyx идут от аккаунта ${best}${bestCount > 0 ? ` (друзей и заявок: ${bestCount})` : ''}`);
+  return best;
+}
+
 /** Forgets the server session of a removed account. */
 function forgetAccount(accountId) {
   return updateStore((store) => {
@@ -229,4 +277,4 @@ function forgetAccount(accountId) {
   });
 }
 
-module.exports = { serverUrl, requireServer, callAs, fetchAs, sessionFor, findAccount, readStore, updateStore, forgetAccount, CloudUnavailable, NAMESPACE, BUILT_IN_SERVER };
+module.exports = { serverUrl, requireServer, callAs, fetchAs, sessionFor, findAccount, readStore, updateStore, forgetAccount, socialAccountId, CloudUnavailable, NAMESPACE, BUILT_IN_SERVER };

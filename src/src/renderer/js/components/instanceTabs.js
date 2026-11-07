@@ -2,6 +2,7 @@ import { api } from '../services/api.js';
 import { locale } from '../core/i18n.js';
 import { h, icon } from '../core/dom.js';
 import { errorMessage } from '../core/format.js';
+import { openLink } from '../core/links.js';
 import { formatBytes } from '../core/content.js';
 import { morph } from '../core/effects.js';
 import { store } from '../state/appStore.js';
@@ -874,7 +875,7 @@ function createOwnServerCard(getInstance, { onChange } = {}) {
           h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Описание в списке серверов'), motdInput),
         ),
         h('label', { class: 'compat-dialog__remember' }, online, h('span', null, 'Только лицензия (online-mode): без этого заходят и офлайн-аккаунты')),
-        h('label', { class: 'compat-dialog__remember' }, eula, h('span', null, 'Я принимаю ', h('button', { class: 'link-button', type: 'button', onclick: (event) => { event.preventDefault(); api.app.openExternal('https://aka.ms/MinecraftEULA'); } }, 'EULA Minecraft'), ' (без этого сервер Mojang не запускается)')),
+        h('label', { class: 'compat-dialog__remember' }, eula, h('span', null, 'Я принимаю ', h('button', { class: 'link-button', type: 'button', onclick: (event) => { event.preventDefault(); openLink('https://aka.ms/MinecraftEULA', { title: 'EULA Minecraft' }); } }, 'EULA Minecraft'), ' (без этого сервер Mojang не запускается)')),
         h('p', { class: 'text-muted server-create__hint' }, 'Друзья в той же сети заходят по адресу из карточки сервера, из интернета — через «Доступ из интернета» (лаунчер откроет порт на роутере). Остальные настройки — кнопкой «Настройки» после создания.'),
       ),
       footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), createButton],

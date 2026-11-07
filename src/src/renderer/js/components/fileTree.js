@@ -7,12 +7,13 @@ import { formatBytes } from '../core/content.js';
  * one level at a time, as they are needed; their sizes come in by themselves.
  *
  * createFileTree({ load(relativeDir) → [{ name, path, dir, size? }], sizes(paths) → { path: bytes },
- *                  ticked(entry) → whether a top-level entry starts ticked })
- * → { element, selectedPaths(), retick(ticked) }
+ *                  ticked(entry) → whether a top-level entry starts ticked, onChange() → after any tick })
+ * → { element, ready, selectedPaths(), retick(ticked), stateOf(path), setTicked(path, on), has(path) }
  */
-export function createFileTree({ load, sizes, ticked }) {
+export function createFileTree({ load, sizes, ticked, onChange = () => {} }) {
   const element = h('div', { class: 'file-tree', role: 'tree' }, h('div', { class: 'file-tree__empty text-muted' }, 'Загрузка…'));
   let roots = [];
+  const rootFor = (path) => roots.find((node) => node.entry.path === path) ?? null;
 
   function makeNode(entry, depth, parent, state) {
     const node = { entry, depth, parent, state, children: null, open: false };
@@ -61,6 +62,7 @@ export function createFileTree({ load, sizes, ticked }) {
   function toggle(node) {
     setState(node, node.state === 'on' ? 'off' : 'on');
     refreshUp(node);
+    onChange();
   }
 
   async function openNode(node) {
@@ -90,7 +92,7 @@ export function createFileTree({ load, sizes, ticked }) {
     return node.children.flatMap(collect);
   }
 
-  load('')
+  const ready = load('')
     .then((entries) => {
       roots = entries.map((entry) => makeNode(entry, 0, null, ticked(entry) ? 'on' : 'off'));
       element.replaceChildren(...(roots.length ? roots.map((node) => node.element) : [h('div', { class: 'file-tree__empty text-muted' }, 'Папка пуста')]));
@@ -100,10 +102,20 @@ export function createFileTree({ load, sizes, ticked }) {
 
   return {
     element,
+    /** Resolves once the top level is in. */
+    ready,
     selectedPaths: () => roots.flatMap(collect),
     /** Ticks the top level again (another format has other usual contents). */
     retick(nextTicked) {
       roots.forEach((node) => setState(node, nextTicked(node.entry) ? 'on' : 'off'));
+    },
+    /** A top-level entry's tick: 'on', 'off', 'partial', or null when there is no such entry. */
+    stateOf: (path) => rootFor(path)?.state ?? null,
+    has: (path) => Boolean(rootFor(path)),
+    /** Ticks or unticks a top-level entry with all that is inside it. */
+    setTicked(path, on) {
+      const node = rootFor(path);
+      if (node) setState(node, on ? 'on' : 'off');
     },
   };
 }

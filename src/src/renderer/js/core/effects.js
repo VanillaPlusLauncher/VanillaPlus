@@ -199,7 +199,13 @@ export function morph(change, { cards = null, panel = null, key = (card) => card
   if (!animationsEnabled() || !document.startViewTransition || document.hidden || (panel && !shown(panel)) || (!panel && cards && ![...cards()].some(shown))) {
     return Promise.resolve(change());
   }
-  passage?.skipTransition();
+  // Clicked again while a passage still runs (tabs gone through quickly): the running one ends at once
+  // and this change comes without one of its own. A new passage takes a picture of the whole window
+  // each time, and a row of them in a few hundred milliseconds made the window stall.
+  if (passage) {
+    passage.skipTransition();
+    return Promise.resolve(change());
+  }
   const names = new Map();
   const named = new Set();
   const name = (element, value, kind) => {

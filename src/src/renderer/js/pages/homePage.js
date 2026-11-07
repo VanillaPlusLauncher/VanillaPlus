@@ -15,6 +15,7 @@ import { openCreateInstanceModal } from '../components/createInstanceModal.js';
 import { currentSkin, openDressingRoom } from '../components/dressingRoom.js';
 import { createHomePlayer } from '../skins/homePlayer.js';
 import { defaultSkinUrl } from '../core/skinHead.js';
+import { openLink } from '../core/links.js';
 
 /** Yellow splash texts: small facts about the launcher, one at random, as on the game's title screen. */
 const SPLASHES = [
@@ -97,7 +98,7 @@ export function createHomePage({ navigate }) {
     logo,
     h('p', { class: 'hero__subtitle' }, 'Java Edition · моды, сборки, скины'),
     h('div', { class: 'home-section' }, h('div', { class: 'home-section__head' }, h('h2', { class: 'section-title' }, 'Недавние сборки'), h('button', { class: 'link-button', type: 'button', onclick: () => navigate('builds') }, 'Все сборки ›')), recentHost),
-    h('div', { class: 'home-section' }, h('div', { class: 'home-section__head' }, h('h2', { class: 'section-title' }, 'Новости Minecraft'), h('button', { class: 'link-button', type: 'button', onclick: () => api.app.openExternal(`https://www.minecraft.net/${locale().toLowerCase()}/articles`) }, 'minecraft.net ›')), newsHost),
+    h('div', { class: 'home-section' }, h('div', { class: 'home-section__head' }, h('h2', { class: 'section-title' }, 'Новости Minecraft'), h('button', { class: 'link-button', type: 'button', onclick: () => openLink(`https://www.minecraft.net/${locale().toLowerCase()}/articles`) }, 'minecraft.net ›')), newsHost),
   );
 
   const playBar = createPlayBar({ navigate });
@@ -207,7 +208,7 @@ export function createHomePage({ navigate }) {
               class: 'news-tile',
               type: 'button',
               style: { '--delay': `${300 + index * 90}ms` },
-              onclick: () => article.url && api.app.openExternal(article.url).catch((error) => toast(errorMessage(error), 'error')),
+              onclick: () => article.url && openLink(article.url, { title: article.title }),
             },
             h('img', { class: 'news-tile__image', src: article.image, alt: '', loading: 'lazy' }),
             h('span', { class: 'news-tile__shade' }),

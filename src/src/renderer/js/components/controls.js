@@ -27,9 +27,22 @@ export function loadingState(text = 'Загрузка…') {
   return h('div', { class: 'loading-state', role: 'status' }, loadingMark(), h('span', { class: 'loading-state__text' }, text));
 }
 
-/** The small bobbing X used wherever something loads. */
+/**
+ * The small bobbing X used wherever something loads. A mark drawn anew (a section rebuilt while a
+ * download goes on) keeps the beat of the one it replaces: its endless animations run on the page's
+ * clock instead of starting from the top, so the X never jerks back to the start.
+ */
 export function loadingMark(className = 'loading-mark') {
-  return h('img', { class: className, src: assetUrl('branding/amethyx-mark.png'), alt: '', 'aria-hidden': 'true' });
+  const mark = h('img', { class: className, src: assetUrl('branding/amethyx-mark.png'), alt: '', 'aria-hidden': 'true' });
+  const keepBeat = () => {
+    for (const animation of mark.getAnimations?.() ?? []) {
+      if (animation.startTime !== 0 && animation.effect?.getTiming().iterations === Infinity) animation.startTime = 0;
+    }
+  };
+  // Before the first frame when the mark is already on the page; otherwise once its animation starts.
+  requestAnimationFrame(keepBeat);
+  mark.addEventListener('animationstart', keepBeat);
+  return mark;
 }
 
 /**

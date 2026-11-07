@@ -74,6 +74,8 @@ function normalize(raw, id) {
     notes: cleanText(raw?.notes, 2000),
     overrides,
     source: raw?.source && typeof raw.source === 'object' ? raw.source : null,
+    // A copy whose files are still being copied (or whose copying broke off): instanceService.copyInstance.
+    ...(raw?.copying === true ? { copying: true } : {}),
   };
 }
 
@@ -236,16 +238,45 @@ function deleteInstance(layout, id) {
   });
 }
 
-/** Copies an instance folder (worlds, mods, configs) under a new name. */
-function duplicateInstance(layout, id, name) {
+/**
+ * The start of a copy: the new folder with its instance.json (new name, group, marked `copying`), so the
+ * list shows the copy at once, as busy. The files come after it (instanceService.copyInstance), outside
+ * the write queue: a big copy must not hold up every other change to instances.
+ * options: { name, group, playTime } — playTime: the play time and "last played" go along.
+ */
+function beginCopy(layout, id, options = {}) {
   return writeQueue.run(async () => {
     const source = await getInstance(layout, id);
-    const newName = cleanText(name, 64) || `${source.name} (копия)`;
-    const newId = await allocateId(layout, newName);
-    await fsp.cp(layout.instanceDirectory(id), layout.instanceDirectory(newId), { recursive: true });
-    const copy = normalize({ ...source, name: newName, createdAt: new Date().toISOString(), lastPlayedAt: null, playTimeMs: 0 }, newId);
+    const name = cleanText(options.name, 64) || source.name;
+    const newId = await allocateId(layout, name);
+    await fsp.mkdir(layout.instanceDirectory(newId), { recursive: true });
+    const copy = normalize(
+      {
+        ...source,
+        name,
+        group: options.group === undefined ? source.group : options.group,
+        createdAt: new Date().toISOString(),
+        lastPlayedAt: options.playTime ? source.lastPlayedAt : null,
+        playTimeMs: options.playTime ? source.playTimeMs : 0,
+        copying: true,
+      },
+      newId,
+    );
     await writeJsonFileAtomic(instanceFile(layout, newId), copy);
-    return copy;
+    log.info(`Копируем сборку «${source.name}» (${id}) в «${name}» (${newId})`);
+    return { source, copy };
+  });
+}
+
+/** The end of a copy: the mark goes, the instance can be played. */
+function finishCopy(layout, id) {
+  return writeQueue.run(async () => {
+    const raw = await readJsonFile(instanceFile(layout, id), null);
+    if (!raw) throw new Error('Копия сборки пропала, пока копировалась.');
+    delete raw.copying;
+    const instance = normalize(raw, id);
+    await writeJsonFileAtomic(instanceFile(layout, id), instance);
+    return instance;
   });
 }
 
@@ -255,7 +286,8 @@ module.exports = {
   createInstance,
   updateInstance,
   deleteInstance,
-  duplicateInstance,
+  beginCopy,
+  finishCopy,
   describeInstalledVersion,
   LOADERS,
   OVERRIDE_KEYS,

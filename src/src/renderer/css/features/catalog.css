@@ -345,6 +345,35 @@
   user-select: text;
 }
 
+/* The whole page of a project can be selected and copied: name, author, summary, tags, description,
+   versions. Buttons stay out of a selection. */
+.project-modal :is(.project-header__meta, .project-header__meta *, .version-row__meta, .version-row__meta *) {
+  user-select: text;
+}
+
+.project-modal :is(button, .btn, .tabs) {
+  user-select: none;
+}
+
+/* A click on the name copies it. */
+.project-header__name {
+  cursor: copy;
+  border-radius: 6px;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.project-header__name:hover {
+  color: var(--color-accent);
+}
+
+.project-description img {
+  cursor: zoom-in;
+}
+
+.project-description a img {
+  cursor: var(--cursor-hand, pointer);
+}
+
 .project-header__sub {
   font-size: 13px;
   color: var(--color-text-muted);
@@ -471,51 +500,208 @@
   text-align: left;
 }
 
+/* Pictures at full size (components/lightbox.js): the picture in the middle, arrows at the sides, a bar
+   with its name, number, "in the browser" and the cross at the bottom. */
 .lightbox {
   position: fixed;
   inset: 0;
   z-index: 160;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  background: rgba(0, 0, 0, 0.88);
+  background: rgba(6, 4, 10, 0.9);
+  backdrop-filter: blur(6px);
   animation: fadeIn 200ms both;
+}
+
+.lightbox--closing {
+  animation: fadeOut 180ms both;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
 }
 
-.lightbox figure {
-  margin: 0;
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+
+.lightbox__stage {
+  position: absolute;
+  inset: 24px 84px 76px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .lightbox__image {
-  max-width: 82vw;
-  max-height: 80vh;
-  border: 3px solid #000;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  transform-origin: center;
+  cursor: zoom-in;
+  user-select: none;
+  animation: lightbox-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.lightbox__caption {
+.lightbox__image--smooth {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lightbox__image--loading {
+  opacity: 0.35;
+}
+
+.lightbox--zoomed .lightbox__image {
+  cursor: grab;
+  border-radius: 0;
+}
+
+.lightbox--zoomed .lightbox__image:active {
+  cursor: grabbing;
+}
+
+@keyframes lightbox-in {
+  from { opacity: 0; scale: 0.94; }
+}
+
+.lightbox__bar {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 8px 8px 16px;
+  border-radius: 14px;
+  background: var(--color-surface-strong);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox__text {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
   color: var(--color-text-soft);
 }
 
+.lightbox__caption {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 50vw;
+}
+
+.lightbox__counter {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .lightbox__nav {
-  width: 50px;
-  height: 80px;
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  width: 56px;
+  height: 56px;
   border: 0;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-size: 40px;
+  border-radius: 50%;
+  background: var(--color-surface-strong);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  color: var(--color-text);
+  font-size: 34px;
+  line-height: 1;
+  transition: background-color 160ms ease, scale 160ms ease;
+}
+
+.lightbox__nav--prev {
+  left: 16px;
+}
+
+.lightbox__nav--next {
+  right: 16px;
 }
 
 .lightbox__nav:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--soft-face-hover, rgba(255, 255, 255, 0.16));
+  scale: 1.06;
+}
+
+/* --- A web page inside the launcher (components/webPage.js): links open here. -------------------------- */
+.web-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.web-page__title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.web-page__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.web-page__nav {
+  width: 36px;
+  height: 36px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.web-page__address {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.32);
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.4);
+  color: var(--color-text-soft);
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: copy;
+}
+
+.web-page__progress {
+  display: block;
+  height: 3px;
+  margin: -4px 0 -3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent) no-repeat;
+  background-size: 40% 100%;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.web-page__progress--on {
+  opacity: 1;
+  animation: web-page-loading 1100ms linear infinite;
+}
+
+@keyframes web-page-loading {
+  from { background-position: -40% 0; }
+  to { background-position: 140% 0; }
+}
+
+.web-page__view {
+  display: flex;
+  width: 100%;
+  height: min(68vh, 760px);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
 }
 
 .project-versions {

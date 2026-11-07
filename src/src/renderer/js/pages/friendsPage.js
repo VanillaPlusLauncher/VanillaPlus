@@ -12,6 +12,7 @@ import { go } from '../core/nav.js';
 import { confirmDialog, openModal } from '../components/modal.js';
 import { toast } from '../components/toast.js';
 import { createSegmented, loadingState } from '../components/controls.js';
+import { openLink } from '../core/links.js';
 
 const REFRESH_MS = 30 * 1000;
 const KINDS = [
@@ -268,7 +269,7 @@ export function createFriendsPage() {
     for (const match of text.matchAll(/https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]]/g)) {
       if (match.index > last) parts.push(text.slice(last, match.index));
       const url = match[0];
-      parts.push(h('a', { class: 'chat__link', href: '#', title: url, onclick: (event) => { event.preventDefault(); api.app.openExternal(url).catch(() => {}); } }, url));
+      parts.push(h('a', { class: 'chat__link', href: '#', title: url, onclick: (event) => { event.preventDefault(); openLink(url); } }, url));
       last = match.index + url.length;
     }
     if (last < text.length) parts.push(text.slice(last));

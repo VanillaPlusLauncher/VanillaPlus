@@ -1,6 +1,8 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
 import { openShareDialog } from '../components/shareDialog.js';
+import { openCopyInstanceDialog } from '../components/copyInstanceDialog.js';
+import { loadingMark } from '../components/controls.js';
 import { closeAssistant, createAssistantButton } from '../components/assistant.js';
 import { changeInstanceIcon } from '../components/iconPicker.js';
 import { errorMessage } from '../core/format.js';
@@ -120,6 +122,13 @@ export function createInstancesPage() {
 
   function statusOf(instance) {
     const { game, tasks } = store.get();
+    if (instance.copying) {
+      const task = tasks[`instance:${instance.id}`];
+      return { kind: 'busy', text: `Копирование · ${task?.percent ?? 0}%`, percent: task?.percent ?? 0 };
+    }
+    if (instance.copyFailed) {
+      return { kind: 'error', text: 'Копирование не закончено' };
+    }
     if (game.instanceId === instance.id && game.state === 'running') {
       return { kind: 'running', text: 'Запущена' };
     }
@@ -159,17 +168,20 @@ export function createInstancesPage() {
         playInstance(instance.id);
       },
     }, icon(status.kind === 'running' ? 'close' : 'play'));
-    const menuButton = h('button', { class: 'icon-button instance-card__menu', type: 'button', title: 'Действия', onclick: (event) => { event.stopPropagation(); openMenu(instance, event.currentTarget); } }, h('span', { class: 'dots' }, '⋯'));
+    // A copy still being copied: the X turns where the picture will be, nothing can be done with it yet.
+    const copying = Boolean(instance.copying);
+    const menuButton = copying ? null : h('button', { class: 'icon-button instance-card__menu', type: 'button', title: 'Действия', onclick: (event) => { event.stopPropagation(); openMenu(instance, event.currentTarget); } }, h('span', { class: 'dots' }, '⋯'));
 
     const element = h(
       'article',
       {
-        class: `instance-card instance-card--${view}${selected ? ' instance-card--selected' : ''} rise`,
+        class: `instance-card instance-card--${view}${selected ? ' instance-card--selected' : ''}${copying ? ' instance-card--copying' : ''}${instance.copyFailed ? ' instance-card--broken' : ''} rise`,
         style: { '--delay': `${Math.min(index, 16) * 30}ms` },
         tabindex: '0',
         'data-id': instance.id,
+        'aria-busy': copying ? 'true' : null,
         // Cards are dragged onto group headers or other groups' cards to move them between groups.
-        draggable: 'true',
+        draggable: copying ? 'false' : 'true',
         ondragstart: (event) => {
           event.dataTransfer.setData(DRAG_TYPE, instance.id);
           event.dataTransfer.effectAllowed = 'move';
@@ -183,23 +195,30 @@ export function createInstancesPage() {
         },
         // One click opens the instance (header, tabs, content); it also becomes the selected one.
         onclick: () => {
+          // Still copying: the card says so ("Копирование · N%"), a click does nothing.
+          if (copying) return;
+          // Left half-copied (the launcher was closed meanwhile): a card with "Удалить".
+          if (instance.copyFailed) {
+            toast('Копирование этой сборки не закончилось. Удалите её и скопируйте заново.', 'info', 7000, { action: { label: 'Удалить', onClick: () => remove(instance) } });
+            return;
+          }
           select(instance.id);
           openInstance(instance.id);
         },
         onkeydown: (event) => {
-          if (event.key === 'Enter') openInstance(instance.id);
+          if (event.key === 'Enter') event.currentTarget.click();
         },
         oncontextmenu: (event) => {
           event.preventDefault();
-          openMenu(instance, event.currentTarget, event);
+          if (!copying) openMenu(instance, event.currentTarget, event);
         },
       },
       // No play button over the picture (it covered it): play from the menu, the page or Home.
-      h('div', { class: 'instance-card__art' }, iconImage(instance.icon, 'instance-card__icon')),
+      h('div', { class: 'instance-card__art' }, copying ? loadingMark('loading-mark instance-card__loading') : iconImage(instance.icon, 'instance-card__icon')),
       h(
         'div',
         { class: 'instance-card__body' },
-        h('div', { class: 'instance-card__name', title: instance.name }, instance.name),
+        h('div', { class: 'instance-card__name', title: instance.name, 'data-i18n': 'off' }, instance.name),
         h('div', { class: 'instance-card__meta' }, h('span', { class: `loader-tag loader-tag--${instance.loader.type}` }, LOADER_LABELS[instance.loader.type]), h('span', null, instance.minecraft)),
         h('div', { class: 'instance-card__status' }, statusDot, statusText),
         view === 'list' ? h('div', { class: 'instance-card__extra' }, `В игре: ${formatPlayTime(instance.playTimeMs)}`) : null,
@@ -401,7 +420,7 @@ export function createInstancesPage() {
     const { instances, settings, instancesStatus, game } = store.get();
     return JSON.stringify([
       instancesStatus,
-      instances.map((instance) => [instance.id, instance.name, instance.group, instance.icon, instance.minecraft, instance.loader, instance.installed, instance.lastPlayedAt]),
+      instances.map((instance) => [instance.id, instance.name, instance.group, instance.icon, instance.minecraft, instance.loader, instance.installed, instance.lastPlayedAt, instance.copying, instance.copyFailed]),
       settings?.selectedInstanceId,
       settings?.collapsedGroups,
       settings?.instanceGroups,
@@ -509,7 +528,7 @@ export function createInstancesPage() {
       item('Переименовать', () => rename(instance)),
       item('Сменить картинку…', () => changeInstanceIcon(instance)),
       item('Переместить в группу…', () => moveToGroup(instance)),
-      item('Копировать сборку', () => duplicate(instance)),
+      item('Копировать сборку…', () => openCopyInstanceDialog(instance)),
       item('Экспорт…', () => openShareDialog(instance)),
       h('div', { class: 'context-menu__divider' }),
       item('Удалить', () => remove(instance), true),
@@ -558,19 +577,6 @@ export function createInstancesPage() {
     const group = await promptText({ title: 'Группа сборки', label: 'Название группы (пусто — без группы)', value: instance.group, confirmLabel: 'Переместить', suggestions: existingGroups() });
     if (group !== null && group !== instance.group) {
       await updateInstance(instance.id, { group }).catch((error) => toast(errorMessage(error), 'error'));
-    }
-  }
-
-  async function duplicate(instance) {
-    const name = await promptText({ title: 'Копия сборки', label: 'Название копии', value: `${instance.name} (копия)`, confirmLabel: 'Копировать' });
-    if (name) {
-      try {
-        await api.instances.duplicate(instance.id, name);
-        await refreshInstances();
-        toast('Сборка скопирована вместе с мирами и модами', 'success');
-      } catch (error) {
-        toast(errorMessage(error), 'error');
-      }
     }
   }
 

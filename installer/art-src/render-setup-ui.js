@@ -3,10 +3,11 @@
 /*
  * Renders the parts of setup-ui.html into PNGs (run by make-setup-art.ps1 through a launcher build's
  * AMETHYX_MAIN_SCRIPT hook, so it has Electron). Every [data-part] is drawn alone on a transparent
- * page at 1x, 2x and 3x and saved as setup-<part>-<k>x.png, with [data-pad] px round it for its
- * shadow (kept inside the window); the places of the pictures and of every [data-rect] at 1x go to
- * setup-layout.iss as Pascal constants (SetupBtnInstallX, ...), and a padded part's own box too
- * (SetupBtnInstallBoxX, ...: where a button is clicked).
+ * page at each of Windows' usual scales and saved as setup-<part>-<percent>.png, with [data-pad] px
+ * round it for its shadow (kept inside the window); the places of the pictures and of every
+ * [data-rect] at 1x go to setup-layout.iss as Pascal constants (SetupBtnInstallX, ...), and a padded
+ * part's own box too (SetupBtnInstallBoxX, ...: where a button is clicked). At a scale a picture is
+ * cut at its 1x place times the scale, rounded half up, as Amethyx.iss puts it (ScaledBy).
  * Environment: SETUP_UI_PAGE (the copied setup-ui.html), SETUP_UI_OUT (installer/art).
  */
 const fs = require('node:fs');
@@ -15,7 +16,9 @@ const { BrowserWindow } = require('electron');
 
 const W = 760;
 const H = 460;
-const SCALES = [1, 2, 3];
+// Percent; the same list as PictureScale in Amethyx.iss and make-update-art.ps1.
+const PICTURE_SCALES = [100, 125, 150, 175, 200, 225, 250, 300];
+const scaled = (value, percent) => Math.floor((value * percent + 50) / 100);
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const constName = (name) => `Setup${name.replace(/(^|-)(\w)/g, (_, __, c) => c.toUpperCase())}`;
 
@@ -45,17 +48,19 @@ module.exports = async ({ log }) => {
   }
   fs.writeFileSync(path.join(out, 'setup-layout.iss'), `${lines.join('\r\n')}\r\n`);
 
-  for (const k of SCALES) {
-    win.setContentSize(W * k, H * k);
-    win.webContents.setZoomFactor(k);
+  for (const percent of PICTURE_SCALES) {
+    win.setContentSize(scaled(W, percent), scaled(H, percent));
+    win.webContents.setZoomFactor(percent / 100);
     await wait(400);
     for (const item of items.filter((entry) => entry.part)) {
       await win.webContents.executeJavaScript(`document.querySelectorAll('[data-part]').forEach((el) => { el.style.visibility = el.dataset.part === ${JSON.stringify(item.part)} ? 'visible' : 'hidden'; })`);
       await wait(120);
-      const image = await win.webContents.capturePage({ x: item.x * k, y: item.y * k, width: item.w * k, height: item.h * k });
-      fs.writeFileSync(path.join(out, `setup-${item.part}-${k}x.png`), image.toPNG());
+      const x = scaled(item.x, percent);
+      const y = scaled(item.y, percent);
+      const image = await win.webContents.capturePage({ x, y, width: scaled(item.x + item.w, percent) - x, height: scaled(item.y + item.h, percent) - y });
+      fs.writeFileSync(path.join(out, `setup-${item.part}-${percent}.png`), image.toPNG());
     }
-    log(`rendered ${k}x`);
+    log(`rendered ${percent} %`);
   }
   win.destroy();
 };

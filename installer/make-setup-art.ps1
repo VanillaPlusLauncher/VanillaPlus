@@ -1,15 +1,18 @@
 ﻿# Pictures of the installer's own screens (Amethyx.iss draws its window from them, no Windows controls):
-#   1. the parts of art-src\setup-ui.html (panels, buttons, the name, the bar) at 1x, 2x and 3x into
-#      art\setup-*.png and their places into art\setup-layout.iss — drawn by a launcher build (it has
-#      Electron), started with its own empty profile and folder, never the real ones;
+#   1. the parts of art-src\setup-ui.html (panels, buttons, the name, the bar) at Windows' usual
+#      scales (100 … 300 %) into art\setup-*-<percent>.png and their places into art\setup-layout.iss —
+#      drawn by a launcher build (it has Electron), started with its own empty profile and folder,
+#      never the real ones;
 #   2. the backgrounds: one panorama face of several Minecraft versions, cut to the window's shape,
 #      into art\setup-pano-*.png. They are the game's own pictures, so they are not kept in git
 #      (.gitignore): they are made from the launcher's panorama cache when missing.
-# Usage: .\make-setup-art.ps1 [-Launcher <Amethyx.exe>] [-Panoramas <mc-ui\panoramas>] [-PanoramasOnly]
+# Usage: .\make-setup-art.ps1 [-Launcher <Amethyx.exe>] [-Panoramas <mc-ui\panoramas>] [-PanoramasOnly | -ScreensOnly]
 param(
   [string]$Launcher = '',
   [string]$Panoramas = "$env:APPDATA\Amethyx\mc-ui\panoramas",
-  [switch]$PanoramasOnly
+  [switch]$PanoramasOnly,
+  # Only part 1: the backgrounds already there stay as they are.
+  [switch]$ScreensOnly
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
@@ -21,6 +24,7 @@ if (-not $Launcher) { $Launcher = Join-Path $root 'build\Amethyx\Amethyx.exe' }
 # Bright scenes first; the installer picks one at random each time it starts.
 $versions = @('26.1', '1.21.9', '1.21.6', '26.3', '1.20')
 $made = 0
+if ($ScreensOnly) { $versions = @(); $made = @(Get-ChildItem $art -Filter 'setup-pano-*.png').Count }
 foreach ($version in $versions) {
   $face = Join-Path $Panoramas "$version\panorama_0.png"
   if (-not (Test-Path $face)) { continue }
@@ -66,9 +70,13 @@ $settings = @{ gameDirectory = "$work\game"; social = @{ online = $false } } | C
 $env:SETUP_UI_PAGE = "$work\setup-ui.html"
 $env:SETUP_UI_OUT = $art
 $env:AMETHYX_MAIN_SCRIPT = Join-Path $PSScriptRoot 'art-src\render-setup-ui.js'
+# Nowhere to update from: this copy only draws.
+$env:AMETHYX_UPDATE_FEED = 'http://127.0.0.1:8799/latest.json'
+# Pictures of the previous scales go; the ones drawn now take their place.
+Get-ChildItem $art -Filter 'setup-*.png' | Where-Object { $_.Name -notlike 'setup-pano-*' } | Remove-Item
 $p = Start-Process $Launcher -ArgumentList "--user-data-dir=`"$work\profile`"" -PassThru
-if (-not $p.WaitForExit(120000)) { $p.Kill(); throw 'Лаунчер не закончил рисовать за 2 минуты.' }
-Remove-Item Env:AMETHYX_MAIN_SCRIPT
+if (-not $p.WaitForExit(180000)) { $p.Kill(); throw 'Лаунчер не закончил рисовать за 3 минуты.' }
+Remove-Item Env:AMETHYX_MAIN_SCRIPT, Env:AMETHYX_UPDATE_FEED
 $log = Join-Path $PSScriptRoot 'art-src\render-setup-ui.js.out.txt'
 if (Test-Path $log) { Get-Content $log; Remove-Item $log }
 if (-not (Test-Path (Join-Path $art 'setup-layout.iss'))) { throw 'Экраны не нарисованы.' }

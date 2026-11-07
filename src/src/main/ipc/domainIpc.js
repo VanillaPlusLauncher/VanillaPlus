@@ -225,8 +225,20 @@ function registerDomainHandlers(handle) {
     await instanceService.deleteInstance(await settings(), id);
     instancesChanged(id);
   });
-  handle(CHANNELS.instances.duplicate, async (_event, id, name) => {
-    const copy = await instanceService.duplicateInstance(await settings(), id, name);
+  // "Копировать сборку": options { name, group, playTime, paths } — what to copy, as in Prism Launcher.
+  handle(CHANNELS.instances.duplicate, async (_event, id, options) => {
+    const raw = typeof options === 'string' ? { name: options } : options ?? {};
+    const copy = await instanceService.copyInstance(
+      await settings(),
+      String(id),
+      {
+        name: typeof raw.name === 'string' ? raw.name : undefined,
+        group: typeof raw.group === 'string' ? raw.group.slice(0, 40) : undefined,
+        playTime: raw.playTime === true,
+        paths: Array.isArray(raw.paths) ? raw.paths.slice(0, 20000).map((entry) => String(entry).slice(0, 1000)) : null,
+      },
+      { onDone: (copyId) => instancesChanged(copyId) },
+    );
     instancesChanged(copy.id);
     return copy;
   });

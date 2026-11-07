@@ -1,14 +1,13 @@
 'use strict';
 
 const { nativeImage } = require('electron');
-const { loadAccountStore } = require('../accounts/accountStore');
 const { getSettings } = require('../settings/settingsService');
-const { callAs, fetchAs } = require('./cloudClient');
+const { callAs, fetchAs, socialAccountId } = require('./cloudClient');
 
 /*
- * Messages with friends, as the account selected for playing: text, screenshots from the
- * instances (shrunk to a JPEG that fits the server's limit) and invites to play — the server to
- * join and, when wanted, the share code of the instance, so a friend gets the same mods in a click.
+ * Messages with friends, as the account friends go as (cloudClient.socialAccountId): text, screenshots
+ * from the instances (shrunk to a JPEG that fits the server's limit) and invites to play — the server
+ * to join and, when wanted, the share code of the instance, so a friend gets the same mods in a click.
  */
 
 const MAX_IMAGE_BASE64 = 880 * 1024;
@@ -16,9 +15,9 @@ const IMAGE_CACHE = 40;
 const imageCache = new Map();
 
 async function me() {
-  const { selectedId } = await loadAccountStore();
-  if (!selectedId) throw new Error('Добавьте аккаунт, чтобы писать друзьям.');
-  return selectedId;
+  const accountId = await socialAccountId();
+  if (!accountId) throw new Error('Добавьте аккаунт, чтобы писать друзьям.');
+  return accountId;
 }
 
 async function listMessages(friendId, before = null) {

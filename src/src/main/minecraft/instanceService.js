@@ -55,6 +55,9 @@ async function listInstances(settings) {
       installed: Boolean(instance.versionId && (await isComplete(layout, instance.versionId))),
       installing: pending.has(instance.id),
       directory: layout.instanceDirectory(instance.id),
+      // Still being copied now, or a copy that broke off (the launcher closed in the middle).
+      copying: Boolean(instance.copying && copies.has(instance.id)),
+      copyFailed: Boolean(instance.copying && !copies.has(instance.id)),
     })),
   );
 }
@@ -134,11 +137,114 @@ function deleteInstance(settings, id) {
   if (pending.has(id)) {
     throw new Error('Дождитесь окончания установки сборки.');
   }
+  if (copies.has(id)) {
+    throw new Error('Дождитесь окончания копирования сборки.');
+  }
   return store.deleteInstance(layoutFor(settings), id);
 }
 
-function duplicateInstance(settings, id, name) {
-  return store.duplicateInstance(layoutFor(settings), id, name);
+/** Copies being made now, by the new instance's id. */
+const copies = new Set();
+/** Files copied at the same time. */
+const COPY_WORKERS = 8;
+/** Never copied: the folder's own description (written anew), natives, the launcher's leftovers. */
+const COPY_SKIPPED = new Set(['instance.json', 'natives', '.amethyx/backups', '.amethyx/last-run.log']);
+const cleanRelative = (value) => String(value ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+
+/**
+ * The files to copy: [{ from, to, size }]. `paths` are the ticked files and folders (relative, "/"),
+ * a folder meaning all of it; null means everything. The launcher's own data of the instance (its
+ * picture, what it knows of the mods) always goes along.
+ */
+async function filesToCopy(sourceDir, targetDir, paths) {
+  const chosen = paths ? [...new Set(paths.map(cleanRelative))].filter((rel) => rel && !rel.split('/').includes('..')) : null;
+  const wanted = (rel) => !chosen || rel.startsWith('.amethyx') || chosen.some((entry) => rel === entry || rel.startsWith(`${entry}/`));
+  const onTheWay = (rel) => !chosen || rel === '.amethyx' || chosen.some((entry) => entry.startsWith(`${rel}/`));
+  const files = [];
+  const folders = [];
+  const walk = async (rel) => {
+    const entries = await fsp.readdir(path.join(sourceDir, rel), { withFileTypes: true }).catch(() => []);
+    const here = [];
+    for (const entry of entries) {
+      const child = rel ? `${rel}/${entry.name}` : entry.name;
+      if (COPY_SKIPPED.has(child) || /^\.amethyx\/map-/.test(child)) continue;
+      if (entry.isDirectory()) {
+        if (wanted(child)) folders.push(path.join(targetDir, child));
+        if (wanted(child) || onTheWay(child)) await walk(child);
+      } else if (entry.isFile() && wanted(child)) {
+        here.push(child);
+      }
+    }
+    // The sizes of a folder's files all at once (a world folder holds thousands of them).
+    const stats = await Promise.all(here.map((child) => fsp.stat(path.join(sourceDir, child)).catch(() => null)));
+    here.forEach((child, index) => {
+      if (stats[index]) files.push({ from: path.join(sourceDir, child), to: path.join(targetDir, child), size: stats[index].size, rel: child });
+    });
+  };
+  await walk('');
+  return { files, folders };
+}
+
+/**
+ * "Копировать сборку", as Prism Launcher: the copy appears at once (marked `copying`, the list shows it
+ * busy and it cannot be played), its files are copied in the background with progress in the top bar
+ * (task `instance:<new id>`), then the mark goes. Resolves with the new instance right away;
+ * `onDone()` runs when the files are in (or the copying failed).
+ * options: { name, group, playTime, paths } (instanceStore.beginCopy, filesToCopy).
+ */
+async function copyInstance(settings, id, options = {}, { onDone = () => {} } = {}) {
+  const layout = layoutFor(settings);
+  const { source, copy } = await store.beginCopy(layout, id, options);
+  copies.add(copy.id);
+  // The top bar shows the copy's name and "Копирование" (one word, so it is translated).
+  const reporter = createTaskReporter({ taskId: `instance:${copy.id}`, kind: 'instance', label: 'Копирование', instance: copy.name });
+  reporter.report('Копирование', 0);
+  (async () => {
+    try {
+      const { files, folders } = await filesToCopy(layout.instanceDirectory(id), layout.instanceDirectory(copy.id), Array.isArray(options.paths) ? options.paths : null);
+      const made = new Set();
+      const ensureFolder = async (folder) => {
+        if (made.has(folder)) return;
+        await fsp.mkdir(folder, { recursive: true });
+        made.add(folder);
+      };
+      for (const folder of folders) await ensureFolder(folder);
+      const total = files.reduce((sum, file) => sum + file.size, 0) || 1;
+      let done = 0;
+      let next = 0;
+      let failed = false;
+      // Several files at once: a world is thousands of small region files, and one by one the copy
+      // mostly waited for the disk to answer each (12 000 small files took 23 s).
+      const worker = async () => {
+        while (!failed && next < files.length) {
+          const file = files[next++];
+          try {
+            await ensureFolder(path.dirname(file.to));
+            await fsp.copyFile(file.from, file.to);
+          } catch (error) {
+            // A world open in the game keeps its lock file busy; the game makes a new one anyway.
+            if (path.basename(file.from) !== 'session.lock') {
+              failed = true;
+              throw error;
+            }
+          }
+          done += file.size;
+          reporter.report('Копирование', (done / total) * 99, file.rel);
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(COPY_WORKERS, files.length) }, worker));
+      await store.finishCopy(layout, copy.id);
+      reporter.finish('done', `${files.length}`);
+      log.info(`Сборка «${source.name}» скопирована в «${copy.name}»: ${files.length} файлов`);
+    } catch (error) {
+      reporter.finish('error', error.message);
+      log.warn(`Копия сборки «${copy.name}» не доделана: ${error.message}`);
+    } finally {
+      copies.delete(copy.id);
+      onDone(copy.id);
+    }
+  })();
+  return { ...copy, directory: layout.instanceDirectory(copy.id) };
 }
 
 /**
@@ -153,6 +259,9 @@ function ensureInstanceReady(settings, id) {
   const work = (async () => {
     const layout = layoutFor(settings);
     let instance = await store.getInstance(layout, id);
+    if (instance.copying) {
+      throw new Error(copies.has(id) ? 'Сборка ещё копируется: подождите, пока копирование закончится.' : 'Копирование этой сборки не закончилось. Удалите её и скопируйте заново.');
+    }
     // An instance with a loader but the plain Minecraft version id was switched from vanilla by an
     // older launcher that kept the old id: it still needs its loader installed.
     const staleVanillaId = instance.loader.type !== 'vanilla' && instance.versionId === instance.minecraft;
@@ -253,7 +362,7 @@ module.exports = {
   createInstance,
   updateInstance,
   deleteInstance,
-  duplicateInstance,
+  copyInstance,
   repairInstance,
   ensureInstanceReady,
   setCustomIcon,

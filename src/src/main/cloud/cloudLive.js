@@ -7,11 +7,10 @@ const { broadcast } = require('../core/broadcast');
 const { createLogger } = require('../core/logger');
 const { CHANNELS } = require('../../shared/channels');
 const { getSettings } = require('../settings/settingsService');
-const { loadAccountStore } = require('../accounts/accountStore');
-const { serverUrl, callAs } = require('./cloudClient');
+const { serverUrl, callAs, socialAccountId } = require('./cloudClient');
 
 /*
- * News from the Amethyx server for the selected account: new messages and read marks. The server
+ * News from the Amethyx server for the account friends go as: new messages and read marks. The server
  * lives on ordinary hosting that cannot hold a connection open, so the launcher asks it every few
  * seconds (GET /v1/updates?since=…) and a little less often while it does not answer. Events go to
  * the window; when the window is not in focus Amethyx's own notice card (notice.js) shows the message.
@@ -82,7 +81,7 @@ async function poll() {
   let next = pause;
   try {
     const settings = await getSettings();
-    const { selectedId } = await loadAccountStore();
+    const selectedId = serverUrl(settings) ? await socialAccountId() : null;
     if (!serverUrl(settings) || !selectedId) {
       next = IDLE_MS;
     } else {
@@ -125,9 +124,9 @@ function stopLive() {
   timer = null;
 }
 
-/** After switching accounts: the news follow the selected account. */
+/** After switching accounts: the news follow the account friends go as (the same one when shared). */
 async function followAccount() {
-  const { selectedId } = await loadAccountStore().catch(() => ({ selectedId: null }));
+  const selectedId = await socialAccountId().catch(() => null);
   if (stopped || selectedId === accountId) return;
   startLive();
 }

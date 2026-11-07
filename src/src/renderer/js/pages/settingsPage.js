@@ -325,7 +325,9 @@ export function createSettingsPage() {
       element.classList.add('segmented--nowrap');
       return element;
     };
-    const update = (patch) => save({ social: { ...social, ...patch } });
+    // The friends' account is the main process's to keep (it picks it): never sent back from here.
+    const { friendsAccountId: _kept, ...ownSocial } = social;
+    const update = (patch) => save({ social: { ...ownSocial, ...patch } });
     const serverInput = h('input', { class: 'input', type: 'text', placeholder: 'https://… (пусто — сервер Amethyx)', value: social.serverUrl ?? '', spellcheck: 'false', 'data-i18n': 'off' });
     serverInput.addEventListener('change', () => {
       const value = serverInput.value.trim();
@@ -333,7 +335,7 @@ export function createSettingsPage() {
         toast('Адрес сервера должен начинаться с https://', 'error');
         return;
       }
-      save({ social: { ...social, serverUrl: value } }, false);
+      save({ social: { ...ownSocial, serverUrl: value } }, false);
     });
     return [
       card('Скины и плащи в игре', 'В сборках с модами (Fabric, Forge, NeoForge, Quilt) лаунчер ставит мод CustomSkinLoader: в игре видны ваш скин и плащ Amethyx и скины других игроков Amethyx. На версиях до 1.7.5 они видны и без мода. В новых версиях без модов офлайн-аккаунты получают свой скин и плащ, а Microsoft и Ely.by остаются со своими.',
@@ -342,6 +344,10 @@ export function createSettingsPage() {
       card('Онлайн-функции', 'Друзья, статус «в сети» и скины, которые видят другие игроки Amethyx, работают через сервер Amethyx. На него уходят только ник, скин, плащ и (если разрешено) во что вы играете. Пароли и ключи входа туда не попадают.',
         row('Друзья и общие скины', null, toggle(social.online !== false, (value) => update({ online: value }), 'Онлайн-функции')),
         row('Показывать друзьям, во что я играю', 'Сборку, версию игры и сервер.', toggle(social.shareActivity !== false, (value) => update({ shareActivity: value }), 'Показывать активность')),
+        // Friends belong to the launcher, not to one account (main/cloud/cloudClient.js socialAccountId).
+        row('Друзья общие для всех аккаунтов', 'При смене аккаунта друзья и переписка остаются.', toggle(social.sharedFriends !== false, (value) => {
+          Promise.resolve(update({ sharedFriends: value })).then(() => api.friends.ping()).catch(() => {});
+        }, 'Общие друзья')),
         h('label', { class: 'field' }, h('span', { class: 'field__label' }, 'Свой сервер Amethyx (необязательно)'), serverInput),
       ),
       // How invites go out and what a click on a friend's invite does.
@@ -401,6 +407,9 @@ export function createSettingsPage() {
 
   // --- Updates -------------------------------------------------------------------------
   let updateStatus = null;
+  // While a version downloads only its line and bar change: rebuilding the section for every percent
+  // started the X's bob over each time and made the bar jump.
+  let downloadView = null;
 
   function updatesSection(settings, info) {
     const updates = settings.updates ?? {};
@@ -447,6 +456,10 @@ export function createSettingsPage() {
       h('button', { class: 'btn btn--secondary btn--compact', type: 'button', disabled: ['checking', 'downloading'].includes(status.state), onclick: checkNow }, 'Проверить обновления'),
     );
 
+    const titleNode = h('div', { class: 'update-status__title' }, title);
+    const bar = status.state === 'downloading' ? h('div', { class: 'progress__bar', style: { width: `${status.progress ?? 0}%` } }) : null;
+    downloadView = bar ? { titleNode, bar, version: latest?.version } : null;
+
     // The buttons stand in one row with what they do ("Проверяем…" shows right next to the button
     // pressed, not on another line). Element.append writes a missing part as the text "null": only
     // the parts there are go in.
@@ -456,10 +469,10 @@ export function createSettingsPage() {
           h('div', { class: 'settings-row', style: { justifyContent: 'flex-start', gap: '10px' } }, actions),
           h('div', { class: 'update-status__main' },
             mark,
-            h('div', null, h('div', { class: 'update-status__title' }, title), hint ? h('div', { class: 'settings-card__desc' }, hint) : null),
+            h('div', null, titleNode, hint ? h('div', { class: 'settings-card__desc' }, hint) : null),
           ),
         ),
-        status.state === 'downloading' ? h('div', { class: 'progress' }, h('div', { class: 'progress__bar', style: { width: `${status.progress ?? 0}%` } })) : null,
+        bar ? h('div', { class: 'progress' }, bar) : null,
         latest?.notes && ['available', 'downloading', 'ready', 'restarting'].includes(status.state) ? h('div', { class: 'update-notes' }, h('b', null, 'Что нового: '), latest.notes) : null,
       ].filter(Boolean),
     );
@@ -512,7 +525,15 @@ export function createSettingsPage() {
   api.updates.status().then((status) => { updateStatus = status; if (section === 'updates') render(true); }).catch(() => {});
   api.events.onUpdateStatus((status) => {
     updateStatus = status;
-    if (section === 'updates' && element.classList.contains('page--active')) render(true);
+    if (section !== 'updates' || !element.classList.contains('page--active')) return;
+    const view = downloadView;
+    if (status.state === 'downloading' && view?.bar.isConnected && view.version === status.latest?.version) {
+      const percent = status.progress ?? 0;
+      view.titleNode.textContent = `Скачиваем ${view.version}… ${percent}%`;
+      view.bar.style.width = `${percent}%`;
+      return;
+    }
+    render(true);
   });
 
   async function resetAll() {

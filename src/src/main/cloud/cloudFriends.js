@@ -5,7 +5,7 @@ const { request } = require('../core/http');
 const { skinByName } = require('../skins/skinSources');
 const { getSettings } = require('../settings/settingsService');
 const { loadAccountStore } = require('../accounts/accountStore');
-const { callAs, serverUrl, NAMESPACE } = require('./cloudClient');
+const { callAs, serverUrl, socialAccountId, NAMESPACE } = require('./cloudClient');
 
 /*
  * Friends of the account selected for playing, and its "online / playing" status. The launcher
@@ -21,10 +21,11 @@ const skinCache = new Map();
 let timer = null;
 let lastAccountId = null;
 
+/** The account friends go as (cloudClient.socialAccountId: the same one after an account switch). */
 async function selectedAccountId() {
-  const { selectedId } = await loadAccountStore();
-  if (!selectedId) throw new Error('Добавьте аккаунт, чтобы дружить в Amethyx.');
-  return selectedId;
+  const accountId = await socialAccountId();
+  if (!accountId) throw new Error('Добавьте аккаунт, чтобы дружить в Amethyx.');
+  return accountId;
 }
 
 /**
@@ -85,7 +86,7 @@ async function reportPresence() {
   try {
     const settings = await getSettings();
     if (!serverUrl(settings)) return;
-    const { selectedId } = await loadAccountStore();
+    const selectedId = await socialAccountId();
     if (!selectedId) return;
     // Switching accounts: the previous one goes offline at once.
     if (lastAccountId && lastAccountId !== selectedId) {

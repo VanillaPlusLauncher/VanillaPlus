@@ -296,6 +296,12 @@
 
 /* --- Passages (core/effects.js morph): a card glides to its new place and takes its new shape, a dialog
    or a tab's box grows to its new size, the rest crossfades. --------------------------------------------- */
+/* The pictures of a passage lie over the window; clicks go through them to the page under it (the new
+   state), so the next tab can be clicked while one still glides in. */
+::view-transition {
+  pointer-events: none;
+}
+
 ::view-transition-group(*) {
   animation-duration: 420ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);

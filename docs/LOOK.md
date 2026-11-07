@@ -7,7 +7,8 @@ unless the owner asks otherwise. Backups of this state: the git tags `look-soft-
 
 | Part | How it is | Where |
 |---|---|---|
-| Buttons and panels | **Soft**: raised plates (shadow down-right, light up-left, a lit top edge) on lighter violet-grey panels; round corners; no frames or bevel lines | `css/soft.css`, `data-style="soft"` (default) |
+| Panels and cards | **Soft**: raised plates (shadow down-right, light up-left, a lit top edge) on lighter violet-grey panels; round corners; no frames or bevel lines | `css/soft.css`, `data-style="soft"` (default) |
+| Buttons | **3D keys** (owner's request, 2026-11-07): a face lit from above, the key's own side under it (4 px, 3 px on icon buttons, chips and quiet buttons) and a soft shadow round its foot; the main action is a key of the theme colour with a deep side and a glow under the pointer. Chips, loaders and open lists are keys too; chosen ones stay pressed down | `soft.css` §1 `--key-*`, §4 |
 | Chosen things | **Pressed in**: darker than the plates around, inner shadow, text in the theme colour; never shown by an outline. The same in tab bars and switches: the group is one raised plate, the chosen option is pressed into it | `soft.css` §5 |
 | Motion | Choices fade over 220 ms; switches' plates slide; the catalog dims the old cards while loading and the new ones rise in as the list glides to its height; cards lean towards the pointer (wide ones only slightly) | `soft.css`, `features/alive.css`, `features/catalog.css`, `core/effects.js resizeSmoothly`, `components/alive.js` |
 | Font | **Tiny5, the Minecraft pixel font** (default). Settings → Оформление → Шрифт offers 11 | `tokens.css` `data-font` |
@@ -18,7 +19,7 @@ unless the owner asks otherwise. Backups of this state: the git tags `look-soft-
 | Switches | Never a jump: tiles ↔ list, an order, a filter or a search — each card glides to its new place and shape; a tab or mode in a dialog — the dialog grows or shrinks to it while the old content fades into the new; the look, colour or font — the window crossfades. Any new switch goes through `morph()` | `core/effects.js morph` (View Transitions), `features/alive.css` |
 | Mods, packs, shaders | "Подробно": the full row (tick, switch, picture, name, version, file line, badges, "⋯ ×"), one a line — two cut the names to a letter. "Компактно": a short line, three or four. "Плитка" (variant C, picked by the user): the picture fills the square, "Клиент"/"Сервер" over the name on a dark shade at the bottom; one line of controls on top — the tick (under the pointer) left, "⋯ ×" (under the pointer) and the switch right; a chosen tile keeps its tick and gets a ring. The bar over the list never wraps | `features/instance.css`, `components/contentList.js` |
 | Shine | A soft band of light crosses a button under the pointer | `features/pixel.css` runs it, `soft.css` §4 paints it |
-| Press | The button sinks in | `soft.css` §4 |
+| Press | Under the pointer the key rises 1 px; pressed, its face goes down onto its side (one box-shadow list for every state, so it glides) | `soft.css` §4 |
 
 The pixel look (square, pixel-cut, Minecraft bevels) stays as a choice: Settings → Оформление →
 Интерфейс → Кнопки: «Пиксельные». It is `features/` alone (`pixel.css` over the screens' files);

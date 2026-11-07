@@ -17,6 +17,7 @@
 - A friend joining shows a small card over the game; when a friend's world is closed, the launcher says so instead of a silent "connection lost"
 - A panel over the game: while you play, press Shift+Tab and the Amethyx panel slides in from the right — invite a friend to your world or to your own server, reply in the chat, send your latest screenshot. The keys work only while the game's window is in front, so in other programs Shift+Tab does what it always does. Nothing goes into the game, so it works in every version and with every loader. A message card over the game says which keys answer it. The keys and the panel itself are in Settings → "Friends and skins": press the button, then any combination (Ctrl+Alt+O, F9…); "Сбросить" brings back Shift+Tab. A new combination works at once, also in a running game
 - Export → "Send to a friend": the instance goes straight into the chat
+- Friends are shared by all accounts: switching the account keeps your friends and chats (can be turned off in Settings → "Friends and skins")
 - Friends, chat and shared skins work through the Amethyx server; all of it can be turned off in Settings → "Friends and skins". The server moved from Cloudflare to the site's own hosting (the `website/cloud` folder, PHP): Cloudflare is blocked in Russia. Accounts, friends and skins move over from the old server; the launcher learns of new messages by asking the server every few seconds. Amethyx skins are now seen by everyone: before, a player with Microsoft did not see the skins of friends with offline accounts and the other way round
 - Where Cloudflare is blocked (Russia), Modrinth's and CurseForge's icons, files and modpacks did not load: when a site does not answer directly, the launcher gets the same through the Amethyx server (only from those sites)
 
@@ -32,6 +33,9 @@
 
 ### Instances and mods
 - One "Add instance" button on the Instances page, like Prism Launcher: a custom instance, Modrinth and CurseForge modpacks, a file, other launchers and a friend's code are tabs of one window
+- "Copy instance…" like Prism Launcher: the name (a copy gets its own at once, such as "Instance (2)"), the group and what goes along — play time, worlds, game options, resource packs, screenshots, shaders, the server list, mods or "Select all"; under "Individual files" every file can be ticked, as in Export. The copy shows up in the list at once with a spinner and a percentage, the top bar shows the copying, and it opens once the files are in
+- The mod page: a click on the name copies it, the description can be selected and copied; pictures open full screen, flip with the arrows and zoom with the wheel; links open right in the launcher, and a link to another Modrinth mod opens its page
+- The Library remembers the site for each tab: Maps switch to CurseForge, and Mods go back to the site they had (CurseForge used to stay); the loader filter is shown for mods only
 - Import from other launchers (Instances → "Add instance" → "Other launchers"): Prism Launcher, ElyPrismLauncher, PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher and the official launcher are found automatically; the version, loader, mods, settings, resource packs, shaders, worlds and screenshots move over
 - One-click "Optimization": the launcher looks at memory, CPU, graphics card and monitor, finds conflicts, installs performance mods for the loader and version (Sodium, Lithium, FerriteCore, ModernFix and more), picks memory, Java flags and graphics settings. It reads what the instance's mods are incompatible with and never suggests such mods (for example, ScalableLux next to Create Aeronautics). "Undo" reverts everything
 - "Smart helper": a grass block on the Instances page and on each instance's page opens a small chat. Ask with a button or in your own words: it checks the mods for conflicts (the same mod twice, a mod for another loader or game version, mods their authors say do not work together, a required mod missing or switched off, two render engines and other known pairs) and fixes them with one button; suggests mods for speed and convenience, or the most downloaded ones on a topic (magic, technology, decoration, mobs…) that fit the instance; finds mod updates; opens "Optimization". No AI and nothing to pay: the checks are the launcher's own. It never pops up by itself — the first-start walk-through shows it once
@@ -52,6 +56,10 @@
 - Custom instance groups with drag and drop; "Change picture…" on right click; a "Notes" tab; Notes, Version, Java and Files are gathered under the instance's "Settings"
 
 ### Launcher
+- 3D buttons, like keys: each shows its side, rises a little under the pointer and goes down when pressed; the main button takes the theme colour
+- Switching pages and tabs quickly no longer hangs: a new animation no longer piles onto the previous one
+- The install and update windows are no longer huge at 125–175 % Windows scaling: they are the size they are meant to be at any scale
+- The X in Settings → "Updates" no longer starts its bob over at every percent of a download
 - A short tutorial on the first start (after the language question): the account, Play, Instances, Library, Friends, the Wardrobe and Settings are lit up one by one with a few plain words about each. Nothing to choose; "Skip" ends it. It can be shown again in Settings → "Launcher"
 - The installer is dark like the launcher, with screenshots of the current look
 - Updates come from the launcher's site (launcher.x-world.plus/updates/latest.json) and from GitHub: both are checked, the newest version wins, either one being down does not stop updates. A launcher on a test build also gets new test builds from the site (updates/beta.json)

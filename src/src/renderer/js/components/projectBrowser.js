@@ -10,6 +10,7 @@ import { projectIcon } from '../core/projectIcon.js';
 import { resizeSmoothly } from '../core/effects.js';
 import { createGameVersionButton } from './gameVersionPicker.js';
 import { copyText, selectedText } from '../core/clipboard.js';
+import { openLink } from '../core/links.js';
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 350;
@@ -120,14 +121,25 @@ export function createProjectBrowser(options) {
   // Placed again whenever the switch gets its size (built while hidden, or the font changed).
   new ResizeObserver(() => movePlatformThumb()).observe(platformSwitch);
 
+  /*
+   * Each tab keeps its own site: Maps switch to CurseForge (Modrinth has none), and Mods come back to the
+   * site they had, not to the one Maps forced. A tab not opened yet takes the site last picked by hand
+   * when it has that site.
+   */
+  const platformByType = {};
+  let pickedPlatform = state.platform;
+  /** The version and loader each tab had when it was left. */
+  const filtersByType = {};
+
   /** Only the sites that have this type; one that has none of it gives way to the first that has. */
   function syncPlatforms() {
     const available = platformsFor(state.type);
     platformButtons.forEach((button, index) => {
       button.hidden = !available.includes(PLATFORMS[index]);
     });
-    if (!available.includes(state.platform)) {
-      state.platform = available[0];
+    const wanted = [platformByType[state.type], pickedPlatform, state.platform].find((platform) => available.includes(platform)) ?? available[0];
+    if (wanted !== state.platform) {
+      state.platform = wanted;
       platformButtons.forEach((button, index) => button.setAttribute('aria-pressed', String(PLATFORMS[index] === state.platform)));
       platformSwitch.dataset.platform = state.platform;
     }
@@ -154,14 +166,17 @@ export function createProjectBrowser(options) {
     const key = instance ? `${instance.id}|${instance.minecraft}|${instance.loader.type}|${state.type}` : `none|${state.type}`;
     if (key !== state.filtersKey) {
       state.filtersKey = key;
-      if (own) {
-        state.gameVersion = own.gameVersion;
-        state.loader = own.loader;
-      }
+      // Without an instance (modpacks) the tab's own last filters: the mods' NeoForge used to stay on
+      // and hide every other modpack.
+      const next = own ?? filtersByType[state.type] ?? { gameVersion: '', loader: '' };
+      state.gameVersion = next.gameVersion;
+      state.loader = next.loader;
       versionPicker.setValue(state.gameVersion);
       loaderSelect.value = state.loader;
     }
+    // Maps, packs and shaders have no loader: no loader filter there.
     loaderSelect.disabled = state.type !== 'mod' && state.type !== 'modpack';
+    loaderSelect.hidden = loaderSelect.disabled;
     resetFilters.hidden = !own || (state.gameVersion === own.gameVersion && state.loader === own.loader);
     return { gameVersion: state.gameVersion || null, loader: loaderSelect.disabled ? null : state.loader || null, instance };
   }
@@ -193,7 +208,7 @@ export function createProjectBrowser(options) {
       { class: 'context-menu', role: 'menu' },
       entry('Копировать название', () => copyText(hit.title, 'Название скопировано')),
       entry('Подробнее', openDetails),
-      entry('Открыть сайт', () => api.app.openExternal(hit.url), !hit.url),
+      entry('Открыть сайт', () => openLink(hit.url, { title: hit.title }), !hit.url),
     );
     document.body.append(menu);
     menu.style.left = `${Math.max(12, Math.min(pointer.clientX, window.innerWidth - menu.offsetWidth - 12))}px`;
@@ -228,7 +243,15 @@ export function createProjectBrowser(options) {
         toast(errorMessage(error), 'error');
       }
     });
-    const openDetails = () => openProjectModal(hit, { instance: instanceFilters().instance, type: state.type, filters: installFilters(), onInstall: (versionId) => options.onInstall(hit, versionId, installFilters()) });
+    const openDetails = () =>
+      openProjectModal(hit, {
+        instance: instanceFilters().instance,
+        type: state.type,
+        filters: installFilters(),
+        onInstall: (versionId) => options.onInstall(hit, versionId, installFilters()),
+        // A project of the same kind the description links to installs the same way.
+        installOther: (other, versionId) => options.onInstall(other, versionId, installFilters()),
+      });
     return h(
       'article',
       {
@@ -352,6 +375,8 @@ export function createProjectBrowser(options) {
   function setType(type) {
     if (type !== state.type) {
       queries[state.type] = state.query;
+      platformByType[state.type] = state.platform;
+      filtersByType[state.type] = { gameVersion: state.gameVersion, loader: state.loader };
       clearTimeout(searchTimer);
       state.type = type;
       state.query = queries[type] ?? '';
@@ -366,11 +391,14 @@ export function createProjectBrowser(options) {
       return;
     }
     state.platform = platform;
+    platformByType[state.type] = platform;
     platformButtons.forEach((button, index) => button.setAttribute('aria-pressed', String(PLATFORMS[index] === platform)));
     platformSwitch.dataset.platform = platform;
     sortSelect.disabled = platform === 'mcinside';
     movePlatformThumb();
     if (fromUser) {
+      // Minecraft Inside has maps only: picking it says nothing about where mods come from.
+      if (platform !== 'mcinside') pickedPlatform = platform;
       options.onPlatformChange?.(platform);
     }
     reload();

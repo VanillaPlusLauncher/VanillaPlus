@@ -16,6 +16,7 @@ import { updateInstance } from '../state/actions.js';
 import { projectIcon } from '../core/projectIcon.js';
 import { assetUrl } from '../core/assets.js';
 import { copyText, selectedText } from '../core/clipboard.js';
+import { openLink } from '../core/links.js';
 
 /** Mods: where they are needed (Modrinth data or the mod's own file). */
 const SIDE_LABELS = { client: 'Клиент', server: 'Сервер', both: 'Везде' };
@@ -664,7 +665,7 @@ export function createContentList(getInstance, type) {
       { class: 'context-menu', role: 'menu' },
       entry('Копировать название', () => copyText(item.title, 'Название скопировано')),
       entry('Сменить версию…', () => changeVersion(item), !item.platform),
-      entry('Открыть страницу', () => api.app.openExternal(page), !page),
+      entry('Открыть страницу', () => openLink(page, { title: item.title }), !page),
       entry('Показать в папке', () => api.instances.openEntry(getInstance().id, `${FOLDERS[type]}/${item.file}`, { reveal: true }).catch((error) => toast(errorMessage(error), 'error'))),
       h('div', { class: 'context-menu__divider' }),
       entry(item.enabled ? 'Выключить' : 'Включить', () => setEnabled(item, !item.enabled), item.folder),

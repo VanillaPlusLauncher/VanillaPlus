@@ -132,6 +132,10 @@ function buildDefaults() {
       online: true,
       /** Friends see which instance and server you play. */
       shareActivity: true,
+      /** Friends stay when the account for playing changes: they go as one account (cloudClient.socialAccountId). */
+      sharedFriends: true,
+      /** That account (an id from accounts.json); empty = chosen the next time friends are used. */
+      friendsAccountId: '',
       /** Address of the Amethyx server; empty = the built-in one. */
       serverUrl: '',
       /** Invites carry the instance (its share code), so a friend builds the same one in a click. */
@@ -283,6 +287,8 @@ function sanitize(input, defaults) {
     skinsInMods: typeof input.social?.skinsInMods === 'boolean' ? input.social.skinsInMods : defaults.social.skinsInMods,
     online: typeof input.social?.online === 'boolean' ? input.social.online : defaults.social.online,
     shareActivity: typeof input.social?.shareActivity === 'boolean' ? input.social.shareActivity : defaults.social.shareActivity,
+    sharedFriends: typeof input.social?.sharedFriends === 'boolean' ? input.social.sharedFriends : defaults.social.sharedFriends,
+    friendsAccountId: typeof input.social?.friendsAccountId === 'string' ? input.social.friendsAccountId.slice(0, 100) : defaults.social.friendsAccountId,
     // https only; plain http just for a server on this computer (testing website/cloud, which lives
     // under a path: http://127.0.0.1:8830/cloud).
     serverUrl:
