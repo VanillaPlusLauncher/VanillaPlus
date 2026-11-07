@@ -35,7 +35,7 @@
 ## Проверить
 - Вид без PHP: `.claude/launch.json` → «website-mock» (`installer/site/mock-site.mjs`, порт 8821, выдуманные версии).
   Перед этим собрать тестовую копию в `%TEMP%\rldev\sitetest\www` теми же шагами, что и пакет.
-- PHP-логика: `%TEMP%\rldev\php74\php.exe -n -l <файл>`; адрес посетителя —
+- PHP-логика: `C:\Users\salah\Tools\php74\php.exe -n -l <файл>`; адрес посетителя —
   `php74 installer\site\client-ip-test.php website\lib\amethyx.php` (9 случаев).
 - Полный тест API (`installer/site/api-test.mjs`) ждёт PHP-сервер на 8820 с тестовой копией; после поломки
   php 8.1 заново не запускался.

@@ -198,7 +198,7 @@ r = await call('login', { body: { login: 'boss', password: PASS }, headers: A })
 // Versions are listed by number, newest first, whatever order they were uploaded in.
 {
   const { execFileSync } = await import('node:child_process');
-  const php = process.env.AMETHYX_TEST_PHP || process.env.TEMP + '\\rldev\\php74\\php.exe';
+  const php = process.env.AMETHYX_TEST_PHP || 'C:\\Users\\salah\\Tools\\php74\\php.exe';
   const code = `define('AMX',1); require 'website/lib/amethyx.php';
     $rows = []; foreach (['1.7-alpha','1.7-beta.28','1.7-beta.39','1.7.0-beta.26','1.7-beta.35','1.7','1.6.2','1.10-beta.1'] as $i => $v) $rows[] = ['version'=>$v,'platform'=>'windows','created_at'=>$i,'id'=>$i,'latest'=>0];
     echo implode(' ', array_column(amx_sort_versions($rows), 'version'));`;

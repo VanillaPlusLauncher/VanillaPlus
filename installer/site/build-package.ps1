@@ -9,7 +9,7 @@ param([switch]$WithLoop)
 $ErrorActionPreference = 'Stop'
 $sp = $PSScriptRoot
 Set-Location (Resolve-Path "$sp\..\..")
-$node = "$env:TEMP\rldev\node\node-v24.22.0-win-x64\node.exe"
+$node = (Get-Command node).Source # Node 24 is installed in the system (C:\Users\salah\Tools\README.md)
 $pkg = "$env:TEMP\rldev\sitepkg"
 $out = "$env:TEMP\rldev"
 # The Desktop folder "Amethyx для сайта" (found by its old archive: Windows PowerShell reads this file as ANSI)
