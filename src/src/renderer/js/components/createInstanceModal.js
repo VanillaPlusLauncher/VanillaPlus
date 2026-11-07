@@ -12,6 +12,7 @@ import { toast } from './toast.js';
 import { pickIcon } from './iconPicker.js';
 import { createProjectBrowser } from './projectBrowser.js';
 import { createImportCodeForm } from './shareDialog.js';
+import { createLauncherImportPanel } from './launcherImportPanel.js';
 
 const LOADERS = ['vanilla', 'fabric', 'quilt', 'forge', 'neoforge'];
 const VERSION_FILTERS = ['release', 'snapshot', 'old_beta', 'old_alpha'];
@@ -45,11 +46,13 @@ export async function importModpackFiles(paths, fields = {}) {
 }
 
 /**
- * "New instance" dialog, as in Prism Launcher: a custom instance (Minecraft version + loader),
- * a modpack from Modrinth or CurseForge, or a pack file from disk.
+ * "Добавить сборку", the one way in, as Prism Launcher's "Add Instance": a custom instance
+ * (Minecraft version + loader), a modpack from Modrinth or CurseForge, a pack file from disk,
+ * instances moved from other launchers, or a share code.
+ * `minecraft` preselects a version: the "new Minecraft is out" notice opens the dialog with it.
+ * `tab` opens another tab first ('modrinth', 'curseforge', 'file', 'launchers', 'code').
  */
-/** `minecraft` preselects a version: the "new Minecraft is out" notice opens the dialog with it. */
-export function openCreateInstanceModal({ group: initialGroup = '', minecraft: preferredMinecraft = null, type: preferredType = null } = {}) {
+export function openCreateInstanceModal({ group: initialGroup = '', minecraft: preferredMinecraft = null, type: preferredType = null, tab: initialTab = 'custom' } = {}) {
   const state = {
     tab: 'custom',
     minecraft: null,
@@ -165,12 +168,22 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
     return h('div', { class: 'create-code' }, codeForm.element, h('div', { class: 'create-code__actions' }, codeForm.createButton));
   }
 
+  // --- From other launchers (Prism, Modrinth App, CurseForge, TLauncher…) -------------------
+  // Their folders are scanned only once this tab is opened.
+  let launcherPanel = null;
+  function launchersPanel() {
+    launcherPanel ??= createLauncherImportPanel({ onDone: () => modal.close() });
+    launcherPanel.load();
+    return launcherPanel.element;
+  }
+
   // --- Tabs ------------------------------------------------------------------------
   const tabs = [
     ['custom', 'Своя сборка', () => customPanel],
     ['modrinth', 'Modrinth', () => packBrowser('modrinth')],
     ['curseforge', 'CurseForge', () => packBrowser('curseforge')],
     ['file', 'Из файла', () => filePanel],
+    ['launchers', 'Другие лаунчеры', () => launchersPanel()],
     ['code', 'По коду', () => codePanel()],
   ];
   const tabHost = h('div', { class: 'create-tab-host' });
@@ -353,11 +366,11 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
   renderChips();
   renderVersions();
   const modal = openModal({
-    title: 'Новая сборка',
+    title: 'Добавить сборку',
     size: 'xl',
     content: h('div', { class: 'create-instance' }, h('div', { class: 'tabs', role: 'tablist' }, tabButtons), tabHost),
     footer: [footer],
     onClose: unsubscribe,
   });
-  showTab('custom');
+  openTab(tabs.some(([key]) => key === initialTab) ? initialTab : 'custom');
 }

@@ -3,17 +3,18 @@ import { h } from '../core/dom.js';
 import { errorMessage } from '../core/format.js';
 import { LOADER_LABELS } from '../core/content.js';
 import { refreshInstances } from '../state/actions.js';
-import { openModal } from './modal.js';
 import { toast } from './toast.js';
 
 /**
- * "Из других лаунчеров": the launcher looks for Prism, ElyPrism, PolyMC, MultiMC, Modrinth App,
- * CurseForge, ATLauncher, GDLauncher, Millida, TLauncher, SKLauncher, Legacy Launcher and the
- * official launcher, lists their instances, and moves the chosen ones in (a copy: the other
- * launcher keeps its own).
+ * "Другие лаунчеры", a tab of "Добавить сборку": the launcher looks for Prism, ElyPrism,
+ * PolyMC, MultiMC, Modrinth App, CurseForge, ATLauncher, GDLauncher, Millida, TLauncher,
+ * SKLauncher, Legacy Launcher and the official launcher, lists their instances, and moves the
+ * chosen ones in (a copy: the other launcher keeps its own). The scan starts on the first load();
+ * `onDone()` runs as soon as the move begins (the dialog closes, toasts tell the rest).
  */
-export function openLauncherImportDialog() {
+export function createLauncherImportPanel({ onDone }) {
   const selected = new Map();
+  let loading = null;
   const host = h('div', { class: 'launcher-import' }, h('p', { class: 'text-muted' }, 'Ищем другие лаунчеры…'));
   const worlds = h('input', { type: 'checkbox', checked: true });
   const screenshots = h('input', { type: 'checkbox', checked: true });
@@ -29,7 +30,8 @@ export function openLauncherImportDialog() {
     if (instance.mods) parts.push(`модов: ${instance.mods}`);
     if (instance.worlds) parts.push(`миров: ${instance.worlds}`);
     if (instance.shaderpacks) parts.push(`шейдеров: ${instance.shaderpacks}`);
-    return parts.join(' · ');
+    // A text node of its own for each part, so each one is translated ("миров: 1" → "worlds: 1").
+    return parts.flatMap((part, index) => (index ? [' · ', h('span', null, part)] : [h('span', null, part)]));
   }
 
   function row(launcher, instance) {
@@ -56,7 +58,12 @@ export function openLauncherImportDialog() {
     return item;
   }
 
-  async function load() {
+  function load() {
+    loading ??= scan();
+    return loading;
+  }
+
+  async function scan() {
     try {
       const launchers = await api.content.scanLaunchers();
       if (!launchers.length) {
@@ -80,7 +87,7 @@ export function openLauncherImportDialog() {
 
   async function move() {
     const jobs = [...selected.values()];
-    modal.close();
+    onDone();
     let done = 0;
     for (const { launcher, instance } of jobs) {
       try {
@@ -96,18 +103,17 @@ export function openLauncherImportDialog() {
     if (jobs.length > 1) toast(`Перенесено сборок: ${done} из ${jobs.length}`, done === jobs.length ? 'success' : 'info', 5000);
   }
 
-  const modal = openModal({
-    title: 'Перенос из других лаунчеров',
-    wide: true,
-    content: h(
+  // The list on top, and under it what else to copy and "Перенести", like "Создать сборку" in "По коду".
+  const element = h(
+    'div',
+    { class: 'create-launchers' },
+    host,
+    h(
       'div',
-      { class: 'modal__section' },
-      h('p', { class: 'text-soft' }, 'Выберите сборки: Amethyx создаст такие же (версия игры и загрузчик) и скопирует моды, настройки, ресурспаки и шейдеры. В другом лаунчере всё останется как было.'),
+      { class: 'create-launchers__bar' },
       h('div', { class: 'share-options' }, h('label', { class: 'compat-dialog__remember' }, worlds, h('span', null, 'Миры')), h('label', { class: 'compat-dialog__remember' }, screenshots, h('span', null, 'Скриншоты'))),
-      host,
+      moveButton,
     ),
-    footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), moveButton],
-  });
-  load();
-  return modal;
+  );
+  return { element, load };
 }

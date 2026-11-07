@@ -1,7 +1,6 @@
 import { api } from '../services/api.js';
 import { h, icon } from '../core/dom.js';
-import { openImportCodeDialog, openShareDialog } from '../components/shareDialog.js';
-import { openLauncherImportDialog } from '../components/launcherImportDialog.js';
+import { openShareDialog } from '../components/shareDialog.js';
 import { closeAssistant, createAssistantButton } from '../components/assistant.js';
 import { changeInstanceIcon } from '../components/iconPicker.js';
 import { errorMessage } from '../core/format.js';
@@ -84,11 +83,9 @@ export function createInstancesPage() {
         { class: 'page-header__actions' },
         // The selected instance first; the helper has its own list to pick another one.
         createAssistantButton({ getInstance: () => store.get().instances.find((instance) => instance.id === store.get().settings?.selectedInstanceId) ?? null }),
-        h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Prism, Modrinth App, CurseForge, Millida, TLauncher и другие', onclick: () => openLauncherImportDialog() }, icon('download'), 'Из других лаунчеров'),
-        h('button', { class: 'btn btn--ghost btn--compact', type: 'button', onclick: () => importPack() }, icon('folder'), 'Импорт'),
-        h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Собрать сборку по коду от друга', onclick: () => openImportCodeDialog() }, icon('file'), 'Вставить код'),
         h('button', { class: 'btn btn--ghost btn--compact', type: 'button', title: 'Группа — как папка: сборки перетаскиваются в неё мышкой', onclick: () => createGroup() }, icon('folder'), 'Новая группа'),
-        h('button', { class: 'btn btn--primary', type: 'button', onclick: (event) => { pixelBurst(event.currentTarget, { count: 10 }); openCreateInstanceModal(); } }, h('span', { class: 'plus' }, '+'), 'Новая сборка'),
+        // One way in, as Prism Launcher's "Add Instance": modpacks, a file, other launchers and a code are its tabs.
+        h('button', { class: 'btn btn--primary', type: 'button', onclick: (event) => { pixelBurst(event.currentTarget, { count: 10 }); openCreateInstanceModal(); } }, h('span', { class: 'plus' }, '+'), 'Добавить сборку'),
       ),
     ),
     h('div', { class: 'toolbar' }, h('div', { class: 'input-with-icon toolbar__search' }, icon('search'), searchInput), loaderSelect, sortSelect, h('div', { class: 'view-switch' }, viewButtons)),
@@ -101,14 +98,6 @@ export function createInstancesPage() {
     event.preventDefault();
     openPageMenu(event);
   });
-
-  async function importPack() {
-    const paths = await api.app.pickFiles({ title: 'Файл модпака', filters: [{ name: 'Модпаки', extensions: ['mrpack', 'zip'] }] });
-    if (paths.length > 0) {
-      const { importModpackFiles } = await import('../components/createInstanceModal.js');
-      importModpackFiles(paths);
-    }
-  }
 
   function filtered() {
     const { instances } = store.get();
@@ -341,12 +330,8 @@ export function createInstancesPage() {
     const menu = h(
       'div',
       { class: 'context-menu', role: 'menu' },
-      item('Новая сборка…', () => openCreateInstanceModal()),
+      item('Добавить сборку…', () => openCreateInstanceModal()),
       item('Новая группа…', () => createGroup()),
-      h('div', { class: 'context-menu__divider' }),
-      item('Вставить код…', () => openImportCodeDialog()),
-      item('Импорт файла…', () => importPack()),
-      item('Из других лаунчеров…', () => openLauncherImportDialog()),
     );
     document.body.append(menu);
     menu.style.left = `${Math.min(pointerEvent.clientX, window.innerWidth - menu.offsetWidth - 12)}px`;

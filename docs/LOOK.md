@@ -35,7 +35,7 @@ The pixel look (square, pixel-cut, Minecraft bevels) stays as a choice: Settings
    | `shell.css` | the window around the pages: first start, sidebar extras, context menu, tooltips, toasts, «Загрузка…», cursor, start screen, language picker, walk-through, the notification book, «Умный помощник» (the grass block's chat) |
    | `controls.css` | links, ticks, small switches and chips, dropdowns, fields, path rows, segmented controls, dialog footers and tabs |
    | `home.css` | Главная: logo, recent and news rows, play bar with its instance switcher, the player and «Гардероб» |
-   | `instances.css` | Сборки: groups, the three card styles, «Новая сборка», icon picker, moving from other launchers |
+   | `instances.css` | Сборки: groups, the three card styles, «Добавить сборку» (its tabs: own, Modrinth, CurseForge, file, other launchers, code), icon picker |
    | `instance.css` | an instance's page: tabs, mods / packs / shaders lists and their three looks, worlds, servers, screenshots, files, journal, its settings, optimisation, shaders, sharing and export |
    | `server.css` | «Мой сервер»: where it runs, its card, hosting export, its settings, unknown mods |
    | `catalog.css` | Библиотека and «Найти моды»: Modrinth / CurseForge switch, cards, project dialog |

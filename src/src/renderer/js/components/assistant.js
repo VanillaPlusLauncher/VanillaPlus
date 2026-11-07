@@ -217,7 +217,7 @@ function createPanel() {
     const instance = current();
     const needsInstance = !['hello', 'help', 'thanks', 'mood', 'unknown'].includes(key);
     if (needsInstance && !instance) {
-      bot('Сборок пока нет. Создай первую — кнопка «Новая сборка» на странице «Сборки».');
+      bot('Сборок пока нет. Создай первую — кнопка «Добавить сборку» на странице «Сборки».');
       return;
     }
     if (!needsInstance) {

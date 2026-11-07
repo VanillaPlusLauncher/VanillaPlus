@@ -47,7 +47,7 @@ export function openShareDialog(instance) {
   const codePanel = h(
     'div',
     { class: 'share-panel' },
-    h('p', { class: 'text-soft' }, 'Друг вставляет код в Amethyx («Сборки» → «Вставить код») и получает ту же сборку: версию игры, загрузчик и те же версии модов, ресурспаков и шейдеров.'),
+    h('p', { class: 'text-soft' }, 'Друг вставляет код в Amethyx («Сборки» → «Добавить сборку» → «По коду») и получает ту же сборку: версию игры, загрузчик и те же версии модов, ресурспаков и шейдеров.'),
     codeArea,
     codeInfo,
     uploadBox,
@@ -214,7 +214,7 @@ export function openShareDialog(instance) {
 
 /**
  * The share-code form: shows what a code contains, then builds the instance ("Создать сборку").
- * Used by "Вставить код" and by the "По коду" tab of "Новая сборка"; `onDone()` once it is built.
+ * The "По коду" tab of "Добавить сборку"; `onDone()` once it is built.
  * Returns { element, createButton, pasteFromClipboard() }.
  */
 export function createImportCodeForm({ onDone }) {
@@ -292,17 +292,4 @@ export function createImportCodeForm({ onDone }) {
         .catch(() => {});
     },
   };
-}
-
-/** "Вставить код": the share-code form in a window of its own. */
-export function openImportCodeDialog() {
-  const form = createImportCodeForm({ onDone: () => modal.close() });
-  const modal = openModal({
-    title: 'Сборка по коду',
-    wide: true,
-    content: form.element,
-    footer: [h('button', { class: 'btn btn--ghost', type: 'button', onclick: () => modal.close() }, 'Отмена'), form.createButton],
-  });
-  form.pasteFromClipboard();
-  return modal;
 }

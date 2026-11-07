@@ -424,6 +424,11 @@
   min-height: 0;
 }
 
+/* Six tabs: a long name («Другие лаунчеры») takes the room it needs instead of breaking in two lines. */
+.create-instance .tabs__button {
+  white-space: nowrap;
+}
+
 .create-tab-host {
   min-height: 420px;
 }
@@ -581,6 +586,25 @@
 .create-code__actions {
   display: flex;
   justify-content: flex-end;
+}
+
+/* "Из других лаунчеров": the found instances, then "Миры / Скриншоты" and "Перенести" in one row. */
+.create-launchers {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 380px;
+}
+
+.create-launchers > .launcher-import {
+  flex: 1;
+}
+
+.create-launchers__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .create-file__drop {
