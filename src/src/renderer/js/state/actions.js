@@ -28,7 +28,8 @@ export async function loadInitialData() {
   });
   await refreshInstances();
   const { instances } = store.get();
-  if (!settings.selectedInstanceId && instances.length > 0) {
+  // Home has no instance (never chosen, or the chosen one was deleted): the last played one.
+  if (!instances.some((instance) => instance.id === settings.selectedInstanceId) && instances.length > 0) {
     // Builds made before instances existed: keep the version that was selected, else the last played.
     const previous = instances.find((instance) => instance.id === settings.selectedVersionId);
     const recent = [...instances].sort((a, b) => (b.lastPlayedAt ?? b.createdAt ?? '').localeCompare(a.lastPlayedAt ?? a.createdAt ?? ''))[0];

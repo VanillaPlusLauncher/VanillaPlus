@@ -184,6 +184,13 @@ export function createInstancePage() {
     };
   }
 
+  // The open part slides in, as the other tabs' panels do (.instance-panel in instance.css).
+  function slideIn(node) {
+    node.classList.remove('instance-slide-in');
+    void node.offsetWidth;
+    node.classList.add('instance-slide-in');
+  }
+
   function showTab(key, options = {}) {
     if (tab === 'log' && key !== 'log') {
       logTab.hide();
@@ -191,6 +198,7 @@ export function createInstancePage() {
     if (tab === 'notes' && key !== 'notes') {
       notesTab.hide();
     }
+    const previous = tab;
     tab = ALL_KEYS.includes(key) ? key : 'mod';
     const inSettings = SETTINGS_SECTIONS.some((entry) => entry.key === tab);
     TABS.forEach((entry, index) => tabButtons[index].setAttribute('aria-selected', String(entry.key === tab)));
@@ -198,7 +206,13 @@ export function createInstancePage() {
     SETTINGS_SECTIONS.forEach((entry, index) => sectionButtons[index].setAttribute('aria-current', String(entry.key === tab)));
     if (inSettings) {
       lastSection = tab;
-      tabHost.replaceChildren(settingsView);
+      // Into "Настройки" from another tab the whole view slides in; between its sections only the section.
+      if (settingsView.parentNode !== tabHost) {
+        tabHost.replaceChildren(settingsView);
+        slideIn(settingsView);
+      } else if (tab !== previous) {
+        slideIn(sectionHost);
+      }
     }
     if (lists[tab]) {
       tabHost.replaceChildren(lists[tab].element);

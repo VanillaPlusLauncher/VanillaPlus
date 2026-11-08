@@ -9,7 +9,7 @@ const { resolveJavaForLaunch } = require('../java/javaService');
 const { prepareSkinAgent } = require('./skinAgent');
 const { migrateSharedGameData } = require('./instanceMigration');
 const instanceService = require('./instanceService');
-const { getSettings, updateSettings } = require('../settings/settingsService');
+const { getSettings } = require('../settings/settingsService');
 const { getLaunchSession } = require('../accounts/accountService');
 const { loadAccountStore } = require('../accounts/accountStore');
 const { saveLastRun, crashReportSince } = require('./instanceFiles');
@@ -185,7 +185,7 @@ async function play(requestedInstanceId, options = {}) {
 }
 
 async function launch(requestedInstanceId, { server = null } = {}) {
-  let settings = await getSettings();
+  const settings = await getSettings();
   const instanceId = requestedInstanceId || settings.selectedInstanceId;
   if (!instanceId) {
     throw new Error('Выберите сборку для запуска на вкладке «Сборки».');
@@ -202,9 +202,7 @@ async function launch(requestedInstanceId, { server = null } = {}) {
   const sessionReady = getLaunchSession(selectedId, { onRefresh: () => pushLogLine('Обновляем вход Microsoft…') });
   sessionReady.catch(() => {});
 
-  if (instanceId !== settings.selectedInstanceId) {
-    settings = await updateSettings({ selectedInstanceId: instanceId });
-  }
+  // Playing another instance leaves Home as it is: which one Home shows is chosen only with its › menu.
   const layout = instanceService.layoutFor(settings);
   try {
     const migratedTo = await migrateSharedGameData(layout);

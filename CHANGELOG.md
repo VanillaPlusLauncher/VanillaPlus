@@ -54,12 +54,15 @@
 - World backups before mod updates and version changes, restored in one click
 - Mods: select several at once, change a mod's version, mod page, export the list, "Folder" and "Configs" buttons
 - Custom instance groups with drag and drop; "Change picture…" on right click; a "Notes" tab; Notes, Version, Java and Files are gathered under the instance's "Settings"
+- The instance on Home is chosen only with the arrow in the Play bar: opening or playing another instance no longer changes it
+- An instance's "Settings" and its sections slide in smoothly, like its other tabs
 
 ### Launcher
 - 3D buttons, like keys: each shows its side, rises a little under the pointer and goes down when pressed; the main button takes the theme colour
 - Switching pages and tabs quickly no longer hangs: a new animation no longer piles onto the previous one
 - The install and update windows are no longer huge at 125–175 % Windows scaling: they are the size they are meant to be at any scale
 - The X in Settings → "Updates" no longer starts its bob over at every percent of a download
+- The update window shows the Amethyx X on its taskbar button instead of Windows' empty program picture
 - A short tutorial on the first start (after the language question): the account, Play, Instances, Library, Friends, the Wardrobe and Settings are lit up one by one with a few plain words about each. Nothing to choose; "Skip" ends it. It can be shown again in Settings → "Launcher"
 - The installer is dark like the launcher, with screenshots of the current look
 - Updates come from the launcher's site (launcher.x-world.plus/updates/latest.json) and from GitHub: both are checked, the newest version wins, either one being down does not stop updates. A launcher on a test build also gets new test builds from the site (updates/beta.json)

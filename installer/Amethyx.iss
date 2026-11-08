@@ -68,6 +68,8 @@ Name: "ru"; MessagesFile: "compiler:Languages\Russian.isl"
 Source: "art\update-*.bmp"; Flags: dontcopy
 Source: "art\setup-*.png"; Flags: dontcopy
 Source: "art\Tiny5.ttf"; Flags: dontcopy
+; The update window's taskbar button (SetUpdateWindowIcon).
+Source: "art\setup.ico"; Flags: dontcopy
 ; FileStarted: the window says which part of the launcher is being put in place.
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; BeforeInstall: FileStarted
 
@@ -194,6 +196,12 @@ function TranslateMessage(const Msg: TMsg): BOOL;
   external 'TranslateMessage@user32.dll stdcall';
 function DispatchMessage(const Msg: TMsg): Longint;
   external 'DispatchMessageW@user32.dll stdcall';
+function LoadImage(Instance: LongWord; FileName: String; ImageType: LongWord; CX, CY: Integer; Flags: LongWord): Longint;
+  external 'LoadImageW@user32.dll stdcall';
+function GetSystemMetrics(Index: Integer): Integer;
+  external 'GetSystemMetrics@user32.dll stdcall';
+function GetWindow(Wnd: HWND; Cmd: LongWord): HWND;
+  external 'GetWindow@user32.dll stdcall';
 
 const
   SC_CLOSE = $F060;
@@ -273,6 +281,117 @@ begin
   Radius := ScaledBy(UpdateCorner, UpdateScale);
   { The window owns the region from here on. }
   SetWindowRgn(WizardForm.Handle, CreateRoundRectRgn(0, 0, WizardForm.ClientWidth + 1, WizardForm.ClientHeight + 1, Radius * 2, Radius * 2), True);
+end;
+
+const
+  IMAGE_ICON = 1;
+  LR_LOADFROMFILE = $10;
+  WM_SETICON = $80;
+  ICON_SMALL = 0;
+  ICON_BIG = 1;
+  GW_OWNER = 4;
+  SM_CXICON = 11;
+  SM_CXSMICON = 49;
+
+var
+  UpdateIconBig, UpdateIconSmall: Longint;
+
+{ The taskbar button: the window without a frame (bsNone) was given no icon, and the button showed
+  Windows' empty program picture. The launcher's X is set on the window and on the one that owns it
+  (whichever of them the button belongs to). }
+procedure SetUpdateWindowIcon;
+var
+  FileName: String;
+  Owner: HWND;
+begin
+  if UpdateIconBig = 0 then
+  begin
+    ExtractTemporaryFile('setup.ico');
+    FileName := ExpandConstant('{tmp}\setup.ico');
+    UpdateIconBig := LoadImage(0, FileName, IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CXICON), LR_LOADFROMFILE);
+    UpdateIconSmall := LoadImage(0, FileName, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CXSMICON), LR_LOADFROMFILE);
+  end;
+  if (UpdateIconBig = 0) or (UpdateIconSmall = 0) then
+    Exit;
+  SendMessage(WizardForm.Handle, WM_SETICON, ICON_BIG, UpdateIconBig);
+  SendMessage(WizardForm.Handle, WM_SETICON, ICON_SMALL, UpdateIconSmall);
+  Owner := GetWindow(WizardForm.Handle, GW_OWNER);
+  if Owner <> 0 then
+  begin
+    SendMessage(Owner, WM_SETICON, ICON_BIG, UpdateIconBig);
+    SendMessage(Owner, WM_SETICON, ICON_SMALL, UpdateIconSmall);
+  end;
+end;
+
+{ Windows 11 takes the picture of a taskbar button from the program rather than from the window, and
+  Setup runs as a .tmp file, which has none: the button showed Windows' empty program picture even
+  with the X set on the window. So the window says it belongs to the launcher (the launcher's
+  AppUserModelID, main/index.js) and where the launcher's picture is: on a pinned launcher the update
+  shows on its button, otherwise on a button with the launcher's X. }
+type
+  TPropertyKey = record
+    FmtId: TGUID;
+    Pid: DWORD;
+  end;
+  TPropVariant = record
+    Vt: Word;
+    Reserved1, Reserved2, Reserved3: Word;
+    Data, Data2: Longint;
+  end;
+  IPropertyStore = interface(IUnknown)
+    '{886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99}'
+    function GetCount(var Count: DWORD): HResult;
+    function GetAt(Index: DWORD; var Key: TPropertyKey): HResult;
+    function GetValue(var Key: TPropertyKey; var Value: TPropVariant): HResult;
+    function SetValue(var Key: TPropertyKey; var Value: TPropVariant): HResult;
+    function Commit: HResult;
+  end;
+
+function SHGetPropertyStoreForWindow(Wnd: HWND; var Iid: TGUID; out Store: IUnknown): HResult;
+  external 'SHGetPropertyStoreForWindow@shell32.dll stdcall';
+
+const
+  AppUserModelKeys = '{9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}';
+  PidRelaunchCommand = 2;
+  PidRelaunchIconResource = 3;
+  PidRelaunchDisplayName = 4;
+  PidAppUserModelId = 5;
+  VT_LPWSTR = 31;
+  LauncherAppUserModelId = 'dev.amethyx.launcher';
+
+{ One text property of the window (the store keeps its own copy). }
+procedure SetWindowProperty(Store: IPropertyStore; Pid: DWORD; Text: String);
+var
+  Key: TPropertyKey;
+  Value: TPropVariant;
+begin
+  Key.FmtId := StringToGUID(AppUserModelKeys);
+  Key.Pid := Pid;
+  Value.Vt := VT_LPWSTR;
+  Value.Data := CastStringToInteger(Text);
+  OleCheck(Store.SetValue(Key, Value));
+end;
+
+procedure SetUpdateWindowIdentity;
+var
+  Unknown: IUnknown;
+  Store: IPropertyStore;
+  Iid: TGUID;
+  Exe: String;
+begin
+  try
+    Iid := StringToGUID('{886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99}');
+    OleCheck(SHGetPropertyStoreForWindow(WizardForm.Handle, Iid, Unknown));
+    Store := IPropertyStore(Unknown);
+    Exe := AddBackslash(WizardDirValue) + 'Amethyx.exe';
+    { The relaunch details first, the id last: the button is made anew when the id changes. }
+    SetWindowProperty(Store, PidRelaunchCommand, AddQuotes(Exe));
+    SetWindowProperty(Store, PidRelaunchDisplayName, '{#AppName}');
+    SetWindowProperty(Store, PidRelaunchIconResource, Exe + ',0');
+    SetWindowProperty(Store, PidAppUserModelId, LauncherAppUserModelId);
+  except
+    Log('Taskbar button of the update window not tied to the launcher: ' + GetExceptionMessage);
+  end;
 end;
 
 { The line under the title: what is being done, in Tiny5 over the window's own background, and the
@@ -769,6 +888,8 @@ begin
   { Drawn off screen first and shown at once: the X and the growing bar do not flicker. }
   SetWindowLong(Cover.Handle, GWL_EXSTYLE, GetWindowLong(Cover.Handle, GWL_EXSTYLE) or WS_EX_COMPOSITED);
   RoundUpdateWindowCorners;
+  SetUpdateWindowIcon;
+  SetUpdateWindowIdentity;
   UpdateTimer := SetTimer(0, 0, 30, CreateCallback(@OnUpdateTimer));
 end;
 
@@ -996,6 +1117,8 @@ begin
   begin
     { Again once the window is up, in case Windows made it anew when it was shown. }
     RoundUpdateWindowCorners;
+    SetUpdateWindowIcon;
+    SetUpdateWindowIdentity;
     Exit;
   end;
   case CurPageID of

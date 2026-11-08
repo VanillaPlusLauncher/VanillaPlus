@@ -1222,6 +1222,16 @@
   margin: 0;
 }
 
+/* "Настройки" of an instance slides in like the other tabs (instancePage.js slideIn); a section's own
+   panel (files, notes) does not slide a second time inside it. */
+.instance-slide-in {
+  animation: rise 320ms var(--ease-out) both;
+}
+
+.instance-settings-body > .instance-panel {
+  animation: none;
+}
+
 /* World backups */
 .world-card__backups {
   flex: none;

@@ -6,7 +6,7 @@ import { iconImage } from '../core/mc.js';
 import { openInstance } from '../core/nav.js';
 import { morph, pixelBurst } from '../core/effects.js';
 import { store } from '../state/appStore.js';
-import { loadCatalog, refreshInstances, saveSettings } from '../state/actions.js';
+import { loadCatalog, refreshInstances, saveSettings, selectedInstance } from '../state/actions.js';
 import { openModal } from './modal.js';
 import { toast } from './toast.js';
 import { pickIcon } from './iconPicker.js';
@@ -344,9 +344,10 @@ export function openCreateInstanceModal({ group: initialGroup = '', minecraft: p
       });
       pixelBurst(createButton);
       await refreshInstances();
-      // The new instance is the one chosen now: for "Играть" on Home and for the Library.
+      // The new instance is the Library's target now. Home keeps its own (chosen only with its › menu),
+      // unless it has none yet.
       store.set({ browseInstanceId: instance.id });
-      await saveSettings({ selectedInstanceId: instance.id });
+      if (!selectedInstance()) await saveSettings({ selectedInstanceId: instance.id });
       modal.close();
       toast(`Сборка «${instance.name}» создана`, 'success', 4200, { title: 'Новая сборка', icon: 'diamond', group: 'instances' });
       if (installNow.checked) {

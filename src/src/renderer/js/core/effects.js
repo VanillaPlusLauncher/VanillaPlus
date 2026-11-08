@@ -189,8 +189,8 @@ const MORPH_CARDS = 24;
 
 export function morph(change, { cards = null, panel = null, key = (card) => card.dataset.id } = {}) {
   // A page that is not the current one is only see-through (layout.css), not gone: its cards still have
-  // a place. A passage there froze the whole window over the page just opened (opening an instance from
-  // "Сборки" saves it as selected, and the list redrew behind it).
+  // a place. A passage there froze the whole window over the page just opened (a list redrawing
+  // behind it).
   const shown = (element) => {
     if (element.closest('.page:not(.page--active)')) return false;
     const box = element.getBoundingClientRect();

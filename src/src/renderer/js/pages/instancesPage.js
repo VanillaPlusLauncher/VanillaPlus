@@ -193,7 +193,8 @@ export function createInstancesPage() {
           content.classList.remove('instance-groups--dragging');
           content.querySelectorAll('.instance-group--drop').forEach((group) => group.classList.remove('instance-group--drop'));
         },
-        // One click opens the instance (header, tabs, content); it also becomes the selected one.
+        // One click opens the instance (header, tabs, content). Home keeps its own instance: that one is
+        // chosen only with the › menu on Home.
         onclick: () => {
           // Still copying: the card says so ("Копирование · N%"), a click does nothing.
           if (copying) return;
@@ -202,7 +203,6 @@ export function createInstancesPage() {
             toast('Копирование этой сборки не закончилось. Удалите её и скопируйте заново.', 'info', 7000, { action: { label: 'Удалить', onClick: () => remove(instance) } });
             return;
           }
-          select(instance.id);
           openInstance(instance.id);
         },
         onkeydown: (event) => {
@@ -228,12 +228,6 @@ export function createInstancesPage() {
     );
     cards.set(instance.id, { instance, statusText, statusDot, progress, bar, playButton });
     return element;
-  }
-
-  function select(instanceId) {
-    if (store.get().settings?.selectedInstanceId !== instanceId) {
-      saveSettings({ selectedInstanceId: instanceId }).catch((error) => toast(errorMessage(error), 'error'));
-    }
   }
 
   function groupSection(name, instances, collapsed, view, startIndex) {
