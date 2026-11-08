@@ -238,8 +238,9 @@ end;
   look, like a splash screen. It is one picture (make-update-art.ps1) over the wizard's own
   controls; the bar is a second picture shown as far as the install has got, and a third one, the
   pill's round end, stands at the edge of what is shown. Under the title one line says what is
-  being done right now, with the percentage at its right, and the X bobs like the launcher's
-  loading mark (a strip of frames, one shown after another by a timer).
+  being done right now, with the percentage at its right, and the X builds itself of pieces, glints,
+  breaks up and builds again (art-src\UpdateMark.cs; a strip of frames, one shown after another by a
+  timer).
   --------------------------------------------------------------------------------------------- }
 const
   UpdateFillLeft = 104;
@@ -250,8 +251,8 @@ const
   UpdateStatusHeight = 24;
   UpdateMarkLeft = 14;
   UpdateMarkTop = 14;
-  UpdateMarkFrames = 24;
-  UpdateMarkPeriod = 1100;
+  UpdateMarkFrames = 72;
+  UpdateMarkPeriod = 3600;
   UpdateCorner = 8;
   DWMWA_WINDOW_CORNER_PREFERENCE = 33;
   DWMWA_BORDER_COLOR = 34;
@@ -428,7 +429,7 @@ begin
   UpdateStatus.Invalidate;
 end;
 
-{ The X: the frame of the strip for this moment of the bob. }
+{ The X: the frame of the strip for this moment of its loop. }
 procedure ShowUpdateMark;
 var
   Frame, W: Integer;

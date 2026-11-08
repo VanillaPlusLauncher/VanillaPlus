@@ -6,14 +6,16 @@
 #   art\update-bg-<percent>.bmp    the whole window with an empty track,
 #   art\update-fill-<percent>.bmp  the track filled to the end; the installer shows as much of it as is done,
 #   art\update-cap-<percent>.bmp   the round end of the pill over the track, put at the edge of what is shown,
-#   art\update-mark-<percent>.bmp  the X bobbing like the launcher's loading mark: $frames pictures of the
-#                                  place round it side by side, shown one after another (one turn: $period ms).
+#   art\update-mark-<percent>.bmp  the X building itself of pieces (art-src\UpdateMark.cs): $frames pictures
+#                                  of the place round it side by side, shown one after another (one loop:
+#                                  UpdateMarkPeriod in Amethyx.iss).
 # The pill is the same in every column (light on top, deeper below), so the cap fits wherever it stands.
 # Every place is the 1x one times the scale, rounded half up, as Amethyx.iss puts it (ScaledBy).
 # Tiny5 (SIL Open Font License) is downloaded once and checked.
 # Usage: .\make-update-art.ps1
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
+Add-Type -Path (Join-Path $PSScriptRoot 'art-src\UpdateMark.cs') -ReferencedAssemblies System.Drawing
 $art = Join-Path $PSScriptRoot 'art'
 $font = Join-Path $env:TEMP 'Tiny5-Regular.ttf'
 $fontSha256 = 'eb4206abc0c73e9fe4fe93c034ea270578859c40a7e740c6207322413c5c4c91'
@@ -31,37 +33,14 @@ $track = @{ X = 104; Y = 92; W = 352; H = 12 }
 $radius = $track.H / 2
 # Where the pill ends when the cap is cut out (any place in the straight part of the track).
 $capEnd = $track.X + 200
-# The place the bobbing X moves in (UpdateMarkLeft, UpdateMarkTop in Amethyx.iss) and its frames;
-# the mark stands at 24, 32, 64 × 64, its middle at 56, 64.
+# The place the X is drawn in (UpdateMarkLeft, UpdateMarkTop in Amethyx.iss; its pieces never leave it)
+# and its frames (UpdateMarkFrames); the X stands at 24, 32, 64 × 64, its middle at 56, 64.
 $markBox = @{ X = 14; Y = 14; W = 84; H = 92 }
-$frames = 24
+$frames = 72
 # Percent; the same list as PictureScale in Amethyx.iss and render-setup-ui.js.
 $scales = 100, 125, 150, 175, 200, 225, 250, 300
 # A 1x length at scale $k (1.25 for 125 %), rounded half up like ScaledBy in Amethyx.iss.
 function Px([double]$value, [double]$k) { [int][Math]::Floor($value * $k + 0.5) }
-
-# mark-bob from the launcher (css/features/shell.css): [time, lift, angle, scale], each step eased by
-# cubic-bezier(0.45, 0, 0.55, 1). The lift is larger than its 5 px: this mark is bigger than 26 px.
-$keys = @(@(0, 0, -6, 1), @(0.45, -8, 6, 1.06), @(0.6, -6.5, 5, 1.05), @(1, 0, -6, 1))
-function Ease([double]$t) {
-  $lo = 0.0; $hi = 1.0
-  for ($i = 0; $i -lt 40; $i++) {
-    $u = ($lo + $hi) / 2
-    $x = 3 * (1 - $u) * (1 - $u) * $u * 0.45 + 3 * (1 - $u) * $u * $u * 0.55 + $u * $u * $u
-    if ($x -lt $t) { $lo = $u } else { $hi = $u }
-  }
-  $u = ($lo + $hi) / 2
-  3 * (1 - $u) * $u * $u + $u * $u * $u
-}
-function Pose([double]$p) {
-  for ($i = 0; $i -lt $keys.Count - 1; $i++) {
-    $a = $keys[$i]; $b = $keys[$i + 1]
-    if ($p -le $b[0]) {
-      $e = Ease (($p - $a[0]) / ($b[0] - $a[0]))
-      return @{ Lift = $a[1] + ($b[1] - $a[1]) * $e; Angle = $a[2] + ($b[2] - $a[2]) * $e; Scale = $a[3] + ($b[3] - $a[3]) * $e }
-    }
-  }
-}
 
 function Color([string]$hex, [int]$alpha = 255) { [System.Drawing.Color]::FromArgb($alpha, [System.Drawing.ColorTranslator]::FromHtml($hex)) }
 function Pill([float]$x, [float]$y, [float]$w, [float]$h) {
@@ -90,8 +69,8 @@ for ($y = 0; $y -lt $source.Height; $y++) {
 $source.Dispose()
 
 # The whole window at scale $k; $pillEnd: $null — an empty track, otherwise where the pill ends (1x);
-# $pose: how the mark stands (the first frame when left out).
-function Draw-Window([double]$k, $pillEnd, $pose = (Pose 0)) {
+# $moment: the moment of the X's loop (0..1), or -1 for the whole X standing still.
+function Draw-Window([double]$k, $pillEnd, [double]$moment = -1) {
   $bmp = New-Object System.Drawing.Bitmap (Px $W $k), (Px $H $k), ([System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
   $g = [System.Drawing.Graphics]::FromImage($bmp)
   $g.SmoothingMode = 'AntiAlias'
@@ -111,12 +90,10 @@ function Draw-Window([double]$k, $pillEnd, $pose = (Pose 0)) {
   $glowBrush.SurroundColors = @(Color '#9670f5' 0)
   $g.FillPath($glowBrush, $glow)
   $g.InterpolationMode = 'HighQualityBicubic'
-  $state = $g.Save()
-  $g.TranslateTransform((56 * $k), ((64 + $pose.Lift) * $k))
-  $g.RotateTransform($pose.Angle)
-  $g.ScaleTransform($pose.Scale, $pose.Scale)
-  $g.DrawImage($mark, (New-Object System.Drawing.RectangleF (-32 * $k), (-32 * $k), (64 * $k), (64 * $k)))
-  $g.Restore($state)
+  $left = Px $markBox.X $k; $top = Px $markBox.Y $k
+  $g.SetClip((New-Object System.Drawing.Rectangle $left, $top, ((Px ($markBox.X + $markBox.W) $k) - $left), ((Px ($markBox.Y + $markBox.H) $k) - $top)))
+  [UpdateMark]::Paint($g, $mark, $k, $moment)
+  $g.ResetClip()
 
   # The title in Tiny5, the launcher's font. The line under it (what is being done right now) is
   # written by the installer itself (ShowUpdateStatus in Amethyx.iss).
@@ -176,7 +153,7 @@ foreach ($percent in $scales) {
   Save-Crop $ended $k ($capEnd - $radius) $track.Y $radius $track.H "update-cap-$percent.bmp"
   $ended.Dispose()
 
-  # The bobbing X: the place round the mark in each pose, side by side (every frame the same size,
+  # The X building itself: the place round it at each moment, side by side (every frame the same size,
   # so the installer finds a frame as the strip's width / $frames).
   $left = Px $markBox.X $k; $top = Px $markBox.Y $k
   $frameW = (Px ($markBox.X + $markBox.W) $k) - $left
@@ -185,7 +162,7 @@ foreach ($percent in $scales) {
   $sg = [System.Drawing.Graphics]::FromImage($strip)
   $place = New-Object System.Drawing.Rectangle $left, $top, $frameW, $frameH
   for ($f = 0; $f -lt $frames; $f++) {
-    $posed = Draw-Window $k $null (Pose ($f / $frames))
+    $posed = Draw-Window $k $null ($f / $frames)
     $sg.DrawImage($posed, (New-Object System.Drawing.Rectangle ($f * $frameW), 0, $frameW, $frameH), $place, [System.Drawing.GraphicsUnit]::Pixel)
     $posed.Dispose()
   }
